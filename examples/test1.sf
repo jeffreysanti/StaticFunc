@@ -1,0 +1,59 @@
+
+#import string;
+
+
+// recursive version
+int32 fibr(int8 n)
+{
+	if(n == 1 || n == 2)
+		return 1;
+	return fib(n-1) + fib (n-2);
+}
+
+// tail-recursive version
+int32 fibt(int8 n)
+{
+	int32 aux(int8 n_cur, int32 last, int32 lastlast)
+	{
+		if(n_cur == n)
+			return last + lastlast;
+		aux(n_cur + 1, last + lastlast, last);
+	}
+	if(n == 1 || n == 2)
+		return 1;
+	return aux(3, 1, 1);
+}
+
+// iterative (mutable)
+int32 fibi(int8 n)
+{
+	if(n == 1 || n == 2)
+		return 1;
+
+	mut int32 last = 1;
+	mut int32 lastlast = 1;
+	for(int8 x : range(3, n))
+	{
+		int32 tmp(last);
+		last = last + lastlast;
+		last = tmp;
+	}
+	return last;
+}
+
+
+vector<int32> fibbs(int8 n)
+{
+	return [fibt(x) where x in range(1, n)];
+}
+
+
+int32 main(vector<string>)
+{
+	for(int32 x : fibbs(20))
+	{
+		println(string(x));
+	}
+	return 0;
+}
+
