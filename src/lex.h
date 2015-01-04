@@ -12,8 +12,9 @@
 #ifndef STATICFUNC_SRC_LEX_H_
 #define STATICFUNC_SRC_LEX_H_
 
+#include "lextokens.h"
 
-
+LexicalTokenList *lexicalAnalyze(FILE *fp);
 
 
 #endif /* STATICFUNC_SRC_LEX_H_ */

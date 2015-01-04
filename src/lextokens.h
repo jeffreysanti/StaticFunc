@@ -1,0 +1,48 @@
+/*
+ *  Jeffrey Santi
+ *  Static_Func Compiler
+ *
+ *  lextokens.h
+ *  Lexical Token Data Structures
+ *
+ */
+
+#ifndef STATICFUNC_SRC_LEXTOKENS_H_
+#define STATICFUNC_SRC_LEXTOKENS_H_
+
+#include <string.h>
+#include "io.h"
+
+typedef enum {
+	LT_NULL,
+	LT_ADD,
+	LT_SUB
+
+} LexicalTokenType;
+
+
+// Lexical Token Element (Linked List)
+typedef struct{
+	LexicalTokenType typ;
+	void *extra;
+
+	struct LexicalToken *prev;
+	struct LexicalToken *next;
+
+} LexicalToken;
+
+// Lexical Token List
+typedef struct{
+	LexicalToken *first;
+	LexicalToken *last;
+} LexicalTokenList;
+
+
+LexicalTokenList *createLexicalTokenList();
+void freeLexicalTokenList(LexicalTokenList *lst);
+void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ);
+
+void outputLexicalTokenList(LexicalTokenList *lst);
+
+
+#endif /* STATICFUNC_SRC_LEXTOKENS_H_ */

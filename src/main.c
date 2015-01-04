@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "lextokens.h"
+#include "io.h"
+
 int main(int argc, char **argv){
 
 	// Entry point to static_func compiler
@@ -20,11 +23,25 @@ int main(int argc, char **argv){
 	// initially just lex the input file
 
 	if(argc < 2){
-		printf("Error: No Input Files\n");
-		return EXIT_FAILURE;
+		fatalError("Error: No Input Files\n");
 	}
 
-	printf("File: %s", argv[1]);
+
+	FILE *fp = fopen(argv[1], "r");
+	if(fp == NULL){
+		fatalError("Error: Could Not Open Input File\n");
+	}
+	LexicalTokenList *T = lexicalAnalyze(fp);
+	fclose(fp);
+
+
+	LexicalTokenList *TL = createLexicalTokenList();
+	int i;
+	for(i=0; i<20; i++){
+		pushBasicToken(TL, LT_ADD);
+	}
+	outputLexicalTokenList(TL);
+	freeLexicalTokenList(TL);
 
 
 	return EXIT_SUCCESS;
