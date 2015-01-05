@@ -39,6 +39,9 @@ void freeLexicalTokenList(LexicalTokenList *lst)
 	while(tok != NULL){
 		LexicalToken *tokOld = tok;
 		tok = tokOld->prev;
+		if(tokOld->extra != NULL){
+			free(tokOld->extra);
+		}
 		free(tokOld);
 	}
 	free(lst);
@@ -57,6 +60,7 @@ LexicalToken *pushToken(LexicalTokenList *lst)
 	tok->next = NULL;
 	tok->prev = NULL;
 	tok->typ = LT_NULL;
+	tok->lineNo = 0;
 
 	if(lst->first == NULL){
 		lst->first = tok;
@@ -68,20 +72,39 @@ LexicalToken *pushToken(LexicalTokenList *lst)
 	return tok;
 }
 
-void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ)
+void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ, long ln)
 {
 	LexicalToken *tok = pushToken(lst);
 	tok->typ = typ;
+	tok->lineNo = ln;
+}
+
+void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char *dta)
+{
+	LexicalToken *tok = pushToken(lst);
+	tok->typ = typ;
+	tok->lineNo = ln;
+	tok->extra = dta;
 }
 
 LexicalToken *outputToken(LexicalToken *tok)
 {
-	if(tok->typ == LT_ADD){
-		printf("+");
-	}else if(tok->typ == LT_SUB){
-		printf("-");
+	if(tok->typ == LT_TEXT){
+		printf("[%d] LT_TEXT: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_KEYWORD){
+		printf("[%d] LT_KEYWORD: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_OP){
+		printf("[%d] LT_OP: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_TYPE){
+		printf("[%d] LT_TYPE: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_IDENTIFIER){
+		printf("[%d] LT_IDENTIFIER: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_INTEGER){
+		printf("[%d] LT_INTEGER: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_FLOAT){
+		printf("[%d] LT_FLOAT: %s", tok->lineNo, tok->extra);
 	}else{
-		printf("UNKNOWN TOKEN [outputToken]!!!\n");
+		printf("[%d] UNKNOWN TOKEN [outputToken]!!!");
 	}
 }
 

@@ -34,14 +34,11 @@ int main(int argc, char **argv){
 	LexicalTokenList *T = lexicalAnalyze(fp);
 	fclose(fp);
 
-
-	LexicalTokenList *TL = createLexicalTokenList();
-	int i;
-	for(i=0; i<20; i++){
-		pushBasicToken(TL, LT_ADD);
+	if(T != NULL){
+		outputLexicalTokenList(T);
+		freeLexicalTokenList(T);
 	}
-	outputLexicalTokenList(TL);
-	freeLexicalTokenList(TL);
+
 
 
 	return EXIT_SUCCESS;

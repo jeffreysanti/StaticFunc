@@ -15,8 +15,13 @@
 
 typedef enum {
 	LT_NULL,
-	LT_ADD,
-	LT_SUB
+	LT_OP,
+	LT_KEYWORD,
+	LT_TEXT,
+	LT_INTEGER,
+	LT_FLOAT,
+	LT_TYPE,
+	LT_IDENTIFIER
 
 } LexicalTokenType;
 
@@ -24,6 +29,7 @@ typedef enum {
 // Lexical Token Element (Linked List)
 typedef struct{
 	LexicalTokenType typ;
+	long lineNo;
 	void *extra;
 
 	struct LexicalToken *prev;
@@ -40,7 +46,9 @@ typedef struct{
 
 LexicalTokenList *createLexicalTokenList();
 void freeLexicalTokenList(LexicalTokenList *lst);
-void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ);
+void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ, long ln);
+void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char* dta);
+
 
 void outputLexicalTokenList(LexicalTokenList *lst);
 
