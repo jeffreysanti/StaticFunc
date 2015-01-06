@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lextokens.h"
+#include "parse.h"
 #include "io.h"
 
 int main(int argc, char **argv){
@@ -36,6 +36,10 @@ int main(int argc, char **argv){
 
 	if(T != NULL){
 		outputLexicalTokenList(T);
+
+		// now parse
+		parse(T);
+
 		freeLexicalTokenList(T);
 	}
 

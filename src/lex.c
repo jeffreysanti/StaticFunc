@@ -67,6 +67,9 @@ LexicalTokenList *lexicalAnalyze(FILE *fp)
 		freeLexicalTokenList(TL);
 		return NULL;
 	}
+
+	pushBasicToken(TL, LT_EOF, lnNo);
+
 	return TL;
 }
 
@@ -94,8 +97,6 @@ LexicalState processInit()
 
 	}else if(matchOperator(fulltxt, &cpos, clen) == MATCHED){
 		pushStringToken(TL, LT_OP, lnNo, extractString(fulltxt, start, cpos));
-	}else if(matchInlineTypes(fulltxt, &cpos, clen) == MATCHED){
-		pushStringToken(TL, LT_TYPE, lnNo, extractString(fulltxt, start, cpos));
 	}else if(matchKeyword(fulltxt, &cpos, clen) == MATCHED){
 		pushStringToken(TL, LT_KEYWORD, lnNo, extractString(fulltxt, start, cpos));
 	}else if(matchIdentifier(fulltxt, &cpos, clen) == MATCHED){

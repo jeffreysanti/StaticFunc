@@ -95,16 +95,16 @@ LexicalToken *outputToken(LexicalToken *tok)
 		printf("[%d] LT_KEYWORD: %s", tok->lineNo, tok->extra);
 	}else if(tok->typ == LT_OP){
 		printf("[%d] LT_OP: %s", tok->lineNo, tok->extra);
-	}else if(tok->typ == LT_TYPE){
-		printf("[%d] LT_TYPE: %s", tok->lineNo, tok->extra);
 	}else if(tok->typ == LT_IDENTIFIER){
 		printf("[%d] LT_IDENTIFIER: %s", tok->lineNo, tok->extra);
 	}else if(tok->typ == LT_INTEGER){
 		printf("[%d] LT_INTEGER: %s", tok->lineNo, tok->extra);
 	}else if(tok->typ == LT_FLOAT){
 		printf("[%d] LT_FLOAT: %s", tok->lineNo, tok->extra);
+	}else if(tok->typ == LT_EOF){
+		printf("[%d] LT_EOF", tok->lineNo);
 	}else{
-		printf("[%d] UNKNOWN TOKEN [outputToken]!!!");
+		printf("[%d] UNKNOWN TOKEN [outputToken]!!!", tok->extra);
 	}
 }
 

@@ -211,7 +211,13 @@ inline char matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "where") ||
 			matchStringPattern(fulltxt, cpos, clen, "in") ||
 			matchStringPattern(fulltxt, cpos, clen, "for") ||
-			matchStringPattern(fulltxt, cpos, clen, "if"))
+			matchStringPattern(fulltxt, cpos, clen, "if") ||
+			matchStringPattern(fulltxt, cpos, clen, "int64") ||
+			matchStringPattern(fulltxt, cpos, clen, "int32") ||
+			matchStringPattern(fulltxt, cpos, clen, "int16") ||
+			matchStringPattern(fulltxt, cpos, clen, "int8") ||
+			matchStringPattern(fulltxt, cpos, clen, "vector") ||
+			matchStringPattern(fulltxt, cpos, clen, "string"))
 		return MATCHED;
 	return UNMATCHED;
 }

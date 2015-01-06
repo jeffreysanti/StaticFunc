@@ -1,0 +1,61 @@
+
+*** StaticFunc Parser Rules***
+*** Jeffrey Santi***
+
+Productions [Expressions]
+
+
+NumericLit -> {floatLit} | {intLit}
+
+NumericVal -> NumericLit | {Ident}
+
+;; NumericExpr: -> NumericExprAux | NumericExprAux {+} NumericExpr
+NumericExpr: -> NumericExprAux NumericExpr_
+NumericExpr_: -> {+} NumericExpr | #
+
+
+;NumericExprAux -> NumericVal | NumericVal {*} NumericExprAux | {(} NumericExpr {)}
+NumericExprAux: -> NumericVal NumericExprAux_ | {(} NumericExpr {)}
+NumericExprAux_: -> {*} NumericExprAux | #
+
+
+
+
+
+New Grammar Notation:
+Curtosy of Neal R. Wagner's Explanation: http://www.cs.utsa.edu/~wagner/CS3723/rdparse/rdparser.html
+		
+		# Indicates End Of Production
+		| Indicates Factories of Production
+		{ xxx } 0-n instances of xxx
+		[x y z] either x y or z
+
+
+
+
+NumericVal		:	NumericLit
+				|	"IDENT"
+
+NumericLit		:	"FLOATLIT"
+				|	"INTLIT"
+
+
+
+
+NumericExpr		:	NumericExprA #
+NumericExprA	:	NumericExprB { [+ -] NumericExprB }
+NumericExprB	:	NumericExprC { [* / mod] NumericExprC }
+NumericExprC	:	NumericExprD ^ NumericExprC
+				|	NumericExprD
+NumericExprD	:	( NumericExprA )
+				|	NumericVal
+
+
+
+
+
+
+		
+
+
+

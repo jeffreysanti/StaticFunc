@@ -20,8 +20,9 @@ typedef enum {
 	LT_TEXT,
 	LT_INTEGER,
 	LT_FLOAT,
-	LT_TYPE,
-	LT_IDENTIFIER
+	LT_IDENTIFIER,
+
+	LT_EOF
 
 } LexicalTokenType;
 
