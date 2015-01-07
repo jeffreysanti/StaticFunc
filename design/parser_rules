@@ -32,23 +32,49 @@ Curtosy of Neal R. Wagner's Explanation: http://www.cs.utsa.edu/~wagner/CS3723/r
 
 
 
+VarValue	:	"IDENT" { ( ParamExpr ) } { "[" Expr "]" } { ( ParamExpr ) } { "." VarVal }
 
-NumericVal		:	NumericLit
-				|	"IDENT"
+Val			:	VarValue
+			|	NumLit
+			|	"STRINGLIT"
 
-NumericLit		:	"FLOATLIT"
-				|	"INTLIT"
+NumLit		:	"FLOATLIT"
+			|	"INTLIT"
 
 
 
 
-NumericExpr		:	NumericExprA #
-NumericExprA	:	NumericExprB { [+ -] NumericExprB }
-NumericExprB	:	NumericExprC { [* / mod] NumericExprC }
-NumericExprC	:	NumericExprD ^ NumericExprC
-				|	NumericExprD
-NumericExprD	:	( NumericExprA )
-				|	NumericVal
+Expr		:	ExprA #
+
+ExprA		:	ExprB { | ExprB }
+ExprB		:	ExprC { ~ ExprC }
+ExprC		:	ExprD { & ExprD }
+ExprD		:	ExprE { [== !=] ExprE }
+ExprE		:	ExprF { [< <= > >=] ExprF }
+ExprF		:	ExprG { [shl shr] ExprG }
+ExprG		:	ExprH { [+ -] ExprH }
+ExprH		:	ExprI { [* / mod] ExprI }
+ExprI		:	ExprJ ^ ExprI
+			|	ExprJ
+ExprJ		:	! ExprK
+			|	ExprK
+ExprK		:	( ExprA )
+			|	[ ArrayExpr ]
+			|	Val
+
+
+ArrayExpr		:	Expr ArrayExprAux
+				|	#
+ArrayExprAux	:	for VarValue in Expr {where Expr}
+				|	{ , Expr }
+
+ParamExpr		:	Expr { , Expr }
+				|	#
+
+
+Stmt			:	Decl
+
+Decl			:	DeclMod DeclType "IDENT"
 
 
 

@@ -165,6 +165,12 @@ inline char matchOperator(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "-") ||
 			matchStringPattern(fulltxt, cpos, clen, "*") ||
 			matchStringPattern(fulltxt, cpos, clen, "/") ||
+			matchStringPattern(fulltxt, cpos, clen, "%") ||
+			matchStringPattern(fulltxt, cpos, clen, "&") ||
+			matchStringPattern(fulltxt, cpos, clen, "|") ||
+			matchStringPattern(fulltxt, cpos, clen, "~") ||
+			matchStringPattern(fulltxt, cpos, clen, "shr") ||
+			matchStringPattern(fulltxt, cpos, clen, "shl") ||
 			matchStringPattern(fulltxt, cpos, clen, ",") ||
 			matchStringPattern(fulltxt, cpos, clen, ";") ||
 			matchStringPattern(fulltxt, cpos, clen, ":") ||
@@ -174,6 +180,7 @@ inline char matchOperator(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "}") ||
 			matchStringPattern(fulltxt, cpos, clen, "[") ||
 			matchStringPattern(fulltxt, cpos, clen, "]") ||
+			matchStringPattern(fulltxt, cpos, clen, ".") ||
 			matchStringPattern(fulltxt, cpos, clen, "<") ||
 			matchStringPattern(fulltxt, cpos, clen, ">") ||
 			matchStringPattern(fulltxt, cpos, clen, "="))
@@ -217,8 +224,14 @@ inline char matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "int16") ||
 			matchStringPattern(fulltxt, cpos, clen, "int8") ||
 			matchStringPattern(fulltxt, cpos, clen, "vector") ||
-			matchStringPattern(fulltxt, cpos, clen, "string"))
+			matchStringPattern(fulltxt, cpos, clen, "string")){
+
+		// next character must be non-alpha-numeric
+		if(isAlpha(fulltxt[*cpos]) || isNumeric(fulltxt[*cpos]))
+			return UNMATCHED;
+
 		return MATCHED;
+	}
 	return UNMATCHED;
 }
 

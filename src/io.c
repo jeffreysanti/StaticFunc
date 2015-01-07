@@ -8,6 +8,7 @@
  */
 
 #include "io.h"
+#include "parse.h"
 
 
 void fatalError( const char* format, ... ) {
@@ -19,11 +20,26 @@ void fatalError( const char* format, ... ) {
     exit(EXIT_FAILURE);
 }
 
-extern void reportError(const char *code, const char* format, ... ) {
+void reportError(const char *code, const char* format, ... ) {
 	fprintf(stderr, "ERROR [%s]: ", code);
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
     va_end(args );
+
+    fprintf(stderr, "\n");
 }
 
+bool reportParseError(struct PState *ps, const char *code, const char* format, ... ) {
+
+	((PState*) ps)->err ++;
+
+	fprintf(stderr, "ERROR [%s]: ", code);
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args );
+
+    fprintf(stderr, "\n");
+    return false;
+}
