@@ -1,62 +1,16 @@
 
-//mut tuple<int32:p1, string:p2, string> last([(1 + 7) * 3, 8, 12]);
-//vector<int16> lst(range(1, 6));
-
-//int8 myint(3);
-
-//(1 + 7) * abc[variable2.param1[0][4](callparam)()(heyy).test].xyz(testa, fd) * -4 + iff +
-
-
-var = [2*x for x in [1,2,3,4,5] where x % 2 == 0];
-
-//[888, 777, 1122]
-
-
-//5 + 7 + 5
-//{
-//	last = [5, "hello", "2"];
-//}
-//abc[variable2.param1[0][4](callparam)]
-
-//abc
-
-//5 + 3 * 2 == abc.var1[4].s(5555, 6666, 7777) - 9^2 * !5
-
-
-
-//mut int8 val(0);
-//int8 input(intin());
-
-//if(input != 2222 & input != 4){
-//	if(input == 3333)
-//		val = 3333;
-//	else
-//		val = 4444;
-//	
-//	val = 9999;
-//}
-//else
-//	val = 2222;
-//
-//
-//val = 1111;
 
 
 
 
+int32 a(3);
+mut int32 b;
+if(a == 2){
 
-mut int32 val(0);
-while(val < 32)
-	val = val + 1;
-
-val = val + 1;
-
-
-for(x in [1, 2, 3])
-	val = x;
-
-//print(val);
-
+}else
+	b = 4;
+	
+while(a == 2);
 
 
 

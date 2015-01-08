@@ -173,9 +173,11 @@ bool prodStmtFact3(PState *ps);
 bool prodStmtFact4(PState *ps);
 bool prodStmtFact5(PState *ps);
 bool prodStmtFact6(PState *ps);
+bool prodStmtFact7(PState *ps);
 
 bool prodStmtBlock(PState *ps);
 bool prodStmtBlockFact1(PState *ps);
+bool prodStmtBlockFact2(PState *ps);
 
 bool prodDecl(PState *ps);
 bool prodDeclFact1(PState *ps);

@@ -84,6 +84,7 @@ Stmt			:	"{" StmtBlock "}"
 				|	Cond
 				|	While
 				|	For
+				|	;
 
 Decl			:	DeclType "IDENT" { ( expr ) } ;
 Assign			:	"IDENT" VarValue = expr ;
@@ -93,6 +94,7 @@ DeclAux			:	< { DeclType {: "IDENT" } , } >
 				|	#
 
 StmtBlock		:	Stmt { Stmt }
+				|	#
 
 
 Cond			:	if ( expr ) Stmt { else Stmt }

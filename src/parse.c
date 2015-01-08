@@ -636,6 +636,7 @@ bool prodStmt(PState *ps){
 			ret = prodStmtFact4(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact5(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact6(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact7(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodStmtFact1(PState *ps){
 	LexicalToken *tkStart = ps->token;
@@ -654,6 +655,8 @@ bool prodStmt(PState *ps){
 	return prodWhile(ps);
 }bool prodStmtFact6(PState *ps){
 	return prodFor(ps);
+}bool prodStmtFact7(PState *ps){
+	return termStmtEnd(ps);
 }
 
 
@@ -661,6 +664,7 @@ bool prodStmt(PState *ps){
 bool prodStmtBlock(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodStmtBlockFact1(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtBlockFact2(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodStmtBlockFact1(PState *ps){
 	if(!prodStmt(ps)) return false;
@@ -681,6 +685,10 @@ bool prodStmtBlock(PState *ps){
 		insertParseNodeFromList(root, PTT_STMTBLOCK, storeAndNullChildNode(ps));
 	}
 	resetChildNode(ps, NULL);
+	ps->child = root;
+	return true;
+}bool prodStmtBlockFact2(PState *ps){
+	PTree *root = newParseTree(PTT_STMTBLOCK);
 	ps->child = root;
 	return true;
 }
