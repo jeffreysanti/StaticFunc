@@ -32,11 +32,17 @@ Curtosy of Neal R. Wagner's Explanation: http://www.cs.utsa.edu/~wagner/CS3723/r
 
 
 
-VarValue	:	"IDENT" { ( ParamExpr ) } { "[" Expr "]" } { ( ParamExpr ) } { "." VarVal }
+//////VarValue	:	"IDENT" { ( ParamExpr ) } { "[" Expr "]" } { ( ParamExpr ) } { "." VarVal }
 
-Val			:	VarValue
-			|	NumLit
+VarValue	:	. "IDENT" VarValue
+			|	[Expr] VarValue
+			| 	( ParamExpr ) VarValue
+			|	#
+
+
+Val			:	NumLit
 			|	"STRINGLIT"
+			|	"IDENT" VarValue
 
 NumLit		:	"FLOATLIT"
 			|	"INTLIT"
@@ -65,7 +71,7 @@ ExprK		:	( ExprA )
 
 ArrayExpr		:	Expr ArrayExprAux
 				|	#
-ArrayExprAux	:	for VarValue in Expr {where Expr}
+ArrayExprAux	:	for "IDENT" VarValue in Expr {where Expr}
 				|	{ , Expr }
 
 ParamExpr		:	Expr { , Expr }

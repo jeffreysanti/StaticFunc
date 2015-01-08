@@ -12,6 +12,8 @@
 
 #include <string.h>
 
+#include "lextokens.h"
+
 typedef enum{
 	PTT_NOTYPE,
 	PTT_EXPR,
@@ -20,10 +22,27 @@ typedef enum{
 	PTT_MULT,
 	PTT_DIV,
 	PTT_MOD,
+	PTT_XOR,
+	PTT_AND,
+	PTT_OR,
+	PTT_NOT,
 	PTT_EXP,
 	PTT_INT,
 	PTT_FLOAT,
-	PTT_OR
+	PTT_EQUAL,
+	PTT_NOT_EQUAL,
+	PTT_GTE,
+	PTT_GT,
+	PTT_LTE,
+	PTT_LT,
+	PTT_SHR,
+	PTT_SHL,
+	PTT_IDENTIFIER,
+	PTT_DOT,
+	PTT_ARR_ACCESS,
+	PTT_PARAM_CONT,
+	PTT_ARRAY_ELM,
+	PTT_ARRAY_COMP
 } PTType;
 
 typedef struct{
@@ -31,7 +50,7 @@ typedef struct{
 	struct PTree *child1;
 	struct PTree *child2;
 	struct PTree *parent;
-	void *extra;
+	LexicalToken *tok;
 } PTree;
 
 
@@ -40,10 +59,13 @@ PTree *newChildNode(PTree *parent);
 freeParseTreeNode(PTree *pTree);
 freeParseTreeNode_onlychildren(PTree *pTree);
 
-void removeParentParseNodeLeaveLChild(PTree *root);
+PTree *extractIndependentLeftParseNodeLeaveChild(PTree *root);
 
 void insertParseNodeFromList(PTree *root, PTType typ_cont, PTree *node);
+void setSecondLastParseNodeToken(PTree *root, LexicalToken *tok);
 void mergeEndParseNodes(PTree *root);
+
+void setParseNodeChild(PTree *parent, PTree *child);
 
 
 void dumpParseTree(PTree *root, int level);

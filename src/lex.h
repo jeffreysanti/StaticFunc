@@ -165,10 +165,12 @@ inline char matchOperator(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "-") ||
 			matchStringPattern(fulltxt, cpos, clen, "*") ||
 			matchStringPattern(fulltxt, cpos, clen, "/") ||
+			matchStringPattern(fulltxt, cpos, clen, "^") ||
 			matchStringPattern(fulltxt, cpos, clen, "%") ||
 			matchStringPattern(fulltxt, cpos, clen, "&") ||
 			matchStringPattern(fulltxt, cpos, clen, "|") ||
 			matchStringPattern(fulltxt, cpos, clen, "~") ||
+			matchStringPattern(fulltxt, cpos, clen, "!") ||
 			matchStringPattern(fulltxt, cpos, clen, "shr") ||
 			matchStringPattern(fulltxt, cpos, clen, "shl") ||
 			matchStringPattern(fulltxt, cpos, clen, ",") ||

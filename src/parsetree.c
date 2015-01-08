@@ -21,7 +21,7 @@ PTree *newParseTreeNode()
 	pTree->child2 = NULL;
 	pTree->parent = NULL;
 	pTree->typ = PTT_NOTYPE;
-	pTree->extra = NULL;
+	pTree->tok = NULL;
 }
 
 
@@ -72,12 +72,12 @@ PTree *newChildNode(PTree *parent)
 	}else if(parent->child2 == NULL){
 		parent->child2 = pTree;
 	}else{
-		printf("ERROR: Child Node Cannot Be Added\n");
+		fatalError("ERROR: Child Node Cannot Be Added\n");
 	}
 	return pTree;
 }
 
-void removeParentParseNodeLeaveLChild(PTree *root)
+/*void removeParentParseNodeLeaveLChild(PTree *root)
 {
 	PTree *lchild = root->child1;
 	lchild->parent = NULL;
@@ -91,6 +91,13 @@ void removeParentParseNodeLeaveLChild(PTree *root)
 
 	// free space associated originally with child
 	free(lchild);
+}*/
+PTree *extractIndependentLeftParseNodeLeaveChild(PTree *root)
+{
+	PTree *lchild = root->child1;
+	lchild->parent = NULL;
+	root->child1 = NULL; // so it does not overwrite replacement
+	return lchild;
 }
 
 void insertParseNodeFromList(PTree *root, PTType typ_cont, PTree *node)
@@ -103,7 +110,20 @@ void insertParseNodeFromList(PTree *root, PTType typ_cont, PTree *node)
 		insertParseNodeFromList(root->child2, typ_cont, node);
 	}else{
 		root->child1 = node;
+		node->parent = root;
 	}
+}
+
+// sets the lexical token of the second to last internal node of the tree
+void setSecondLastParseNodeToken(PTree *root, LexicalToken *tok)
+{
+	if(root->child1 == NULL || root->child2 == NULL)
+		return;
+	while(root->child2 != NULL){
+		root = root->child2;
+	}
+	root = root->parent;
+	root->tok = tok;
 }
 
 void mergeEndParseNodes(PTree *root)
@@ -122,6 +142,22 @@ void mergeEndParseNodes(PTree *root)
 	freeParseTreeNode(child);
 }
 
+void setParseNodeChild(PTree *parent, PTree *child)
+{
+	if(child == NULL){
+		printf("WARNING: setParseNodeChild called with null child!\n");
+		return;
+	}
+	child->parent = parent;
+	if(parent->child1 == NULL){
+		parent->child1 = child;
+	}else if(parent->child2 == NULL){
+		parent->child2 = child;
+	}else{
+		fatalError("ERROR: Parent Cannot Aquire Child Node\n");
+	}
+}
+
 void dumpParseTree(PTree *root, int level)
 {
 	if(root == NULL)
@@ -130,10 +166,17 @@ void dumpParseTree(PTree *root, int level)
 	for(i=0; i<level; i++){
 		printf("  ");
 	}
-	if(root->typ == PTT_INT)
-		printf("Val: %s\n", (char*)((LexicalToken*)root->extra)->extra);
+	/*if(root->typ == PTT_INT)
+		printf("Val: %s\n", (char*)((LexicalToken*)root->tok)->extra);
 	else
 		printf("NODE %d\n", root->typ);
+*/
+	if(root->tok != NULL){
+		outputToken(root->tok);
+		printf("\n");
+	}else{
+		printf("? %d\n", root->typ);
+	}
 
 	dumpParseTree(root->child1, level+1);
 	dumpParseTree(root->child2, level+1);

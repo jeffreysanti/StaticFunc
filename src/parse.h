@@ -47,12 +47,17 @@ static bool advanceToken(PState *ps, bool ret){
 }
 
 static bool resetChildNode(PState *ps, PTree *root){
-	freeParseTreeNode(root->child1);
-	freeParseTreeNode(root->child2);
-	ps->child = root;
+	freeParseTreeNode(ps->child);
+	freeParseTreeNode(root);
+	ps->child = NULL;
 	return false;
 }
 
+static PTree *storeAndNullChildNode(PState *ps){
+	PTree *child = ps->child;
+	ps->child = NULL;
+	return child;
+}
 
 bool helperPossibleFunctionCalls(PState *ps);
 bool helperArithmetic(PState *ps, bool (*nextProd)(PState*), ArtithmeticParseParam A[], int num);
@@ -99,6 +104,9 @@ bool prodNumericLiteralFact2(PState *ps);
 
 bool prodVarValue(PState *ps);
 bool prodVarValueFact1(PState *ps);
+bool prodVarValueFact2(PState *ps);
+bool prodVarValueFact3(PState *ps);
+bool prodVarValueFact4(PState *ps);
 
 bool prodValue(PState *ps);
 bool prodValueFact1(PState *ps);

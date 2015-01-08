@@ -12,17 +12,15 @@
 
 void parse(LexicalTokenList *TL)
 {
-	PTree *root = newParseTree(PTT_EXPR);
-
 	PState *ps = malloc(sizeof(PState));
 	if(ps == NULL){
 		fatalError("Out of Memory [parse: PState]\n");
 	}
-	ps->root = root;
+	ps->root = NULL;
 	ps->tl = TL;
 	ps->token = ps->tl->first;
 	ps->err = 0;
-	ps->child = newChildNode(root);
+	ps->child = NULL;
 
 
 	if(ps->token == NULL){
@@ -35,6 +33,8 @@ void parse(LexicalTokenList *TL)
 		return;
 	}
 
+	ps->root = ps->child;
+
 	// is anything left
 	if(ps->token->typ != LT_EOF){
 		reportError("PS004", 	"Remaining Tokens Not Parsed\n");
@@ -43,7 +43,7 @@ void parse(LexicalTokenList *TL)
 
 	dumpParseTree(ps->root, 0);
 
-	freeParseTreeNode(root);
+	freeParseTreeNode(ps->root);
 	free(ps);
 }
 
@@ -162,31 +162,24 @@ bool prodExpr(PState *ps){
 bool helperArithmetic(PState *ps, bool (*nextProd)(PState*), ArtithmeticParseParam A[], int num)
 {
 	//dumpParseTree(ps->root, 0);
-	PTree *root = ps->child;
-	PTree *op1 = newParseTree(PTT_NOTYPE);
-	ps->child = op1;
+	PTree *root = newParseTree(PTT_NOTYPE);
 	if(!nextProd(ps)){
-		freeParseTreeNode(op1);
 		return resetChildNode(ps, root);
 	}
-	int count = 0;
-	int i;
+	insertParseNodeFromList(root, PTT_NOTYPE, storeAndNullChildNode(ps));
+	int count = 0, i;
 	while(true){
 		bool done = false;
 		for(i=0; i<num; i++){ // for each type
 			if(!A[i].term(ps))
 				continue;
-			if(count == 0)
-				insertParseNodeFromList(root, PTT_NOTYPE, op1);
-			PTree *op2 = newParseTree(PTT_NOTYPE);
-			ps->child = op2;
 			LexicalToken *tkStart = ps->token;
 			if(!nextProd(ps)){
 				resetChildNode(ps, root);
-				freeParseTreeNode(op2);
 				return reportParseError(ps, "PS017", "Expression Missing Right Operand: Line %d", tkStart->lineNo);
 			}
-			insertParseNodeFromList(root, A[i].typ, op2);
+			insertParseNodeFromList(root, A[i].typ, storeAndNullChildNode(ps));
+			setSecondLastParseNodeToken(root, tkStart->prev);
 			count ++;
 			done = true;
 			break;
@@ -194,45 +187,18 @@ bool helperArithmetic(PState *ps, bool (*nextProd)(PState*), ArtithmeticParsePar
 		if(!done)
 			break;
 	}
+	resetChildNode(ps, NULL);
 	if(count > 0){
 		mergeEndParseNodes(root);
+		ps->child = root;
 	}else{
-		op1->parent = root->parent;
-		freeParseTreeNode(root->child1);
-		freeParseTreeNode(root->child2);
-		memcpy(root, op1, sizeof(PTree));
-		free(op1);
-		ps->child = root; //removeParentParseNodeLeaveLChild(root); // return data-containing node
+		ps->child = extractIndependentLeftParseNodeLeaveChild(root); // remove association with arithmetic operation
+		freeParseTreeNode(root);
 	}
 	return true;
 }
 
 bool prodExprAFact1(PState *ps){
-	/*PTree *root = ps->child;
-	PTree *op1 = newParseTree(PTT_NOTYPE);
-	ps->child = op1;
-	insertParseNodeFromList(root, PTT_OR, op1);
-	if(!prodExprB(ps)){
-		return resetChildNode(ps, root);
-	}
-	int count = 0;
-	while(true){
-		if(!termOr(ps)) break;
-		PTree *op2 = newParseTree(PTT_NOTYPE);
-		ps->child = op2;
-		LexicalToken *tkStart = ps->token;
-		if(!prodExprB(ps)){
-			resetChildNode(ps, root);
-			return reportParseError(ps, "PS017", "OR Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-		insertParseNodeFromList(root, PTT_OR, op2);
-		count ++;
-	}
-	if(count == 0)
-		resetChildNode(ps, root);
-	else
-		mergeEndParseNodes(root);
-	return true;*/
 	ArtithmeticParseParam A[1];
 	A[0].term = &termOr; A[0].typ = PTT_OR;
 	return helperArithmetic(ps, &prodExprB, A, 1);
@@ -242,93 +208,51 @@ bool prodExprAFact1(PState *ps){
 	bool 	ret = prodExprBFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprBFact1(PState *ps){
-	if(!prodExprC(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termXOr(ps)) break;
-		if(!prodExprC(ps)){
-			return reportParseError(ps, "PS018", "XOR Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;
+	ArtithmeticParseParam A[1];
+	A[0].term = &termXOr; A[0].typ = PTT_XOR;
+	return helperArithmetic(ps, &prodExprC, A, 1);
 }bool prodExprC(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodExprCFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprCFact1(PState *ps){
-	if(!prodExprD(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termAnd(ps)) break;
-		if(!prodExprD(ps)){
-			return reportParseError(ps, "PS019", "AND Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;
+	ArtithmeticParseParam A[1];
+	A[0].term = &termAnd; A[0].typ = PTT_AND;
+	return helperArithmetic(ps, &prodExprD, A, 1);
 }bool prodExprD(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodExprDFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprDFact1(PState *ps){
-	if(!prodExprE(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termEqual(ps) && !termNotEqual(ps)){
-			break;
-		}
-		if(!prodExprE(ps)){
-			return reportParseError(ps, "PS020", "==/!= Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;
+	ArtithmeticParseParam A[2];
+	A[0].term = &termEqual; A[0].typ = PTT_EQUAL;
+	A[1].term = &termNotEqual; A[1].typ = PTT_NOT_EQUAL;
+	return helperArithmetic(ps, &prodExprE, A, 2);
 }bool prodExprE(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodExprEFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprEFact1(PState *ps){
-	if(!prodExprF(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termLT(ps) && !termGT(ps) && !termGTE(ps) && !termLTE(ps)){
-			break;
-		}
-		if(!prodExprF(ps)){
-			return reportParseError(ps, "PS021", ">/>=/</<= Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;
+	ArtithmeticParseParam A[4];
+	A[0].term = &termLT; 	A[0].typ = PTT_LT;
+	A[1].term = &termGT; 	A[1].typ = PTT_GT;
+	A[2].term = &termGTE; 	A[2].typ = PTT_GTE;
+	A[3].term = &termLTE; 	A[3].typ = PTT_LTE;
+	return helperArithmetic(ps, &prodExprF, A, 4);
 }bool prodExprF(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodExprFFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprFFact1(PState *ps){
-	if(!prodExprG(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termShiftLeft(ps) && !termShiftRight(ps)){
-			break;
-		}
-		if(!prodExprG(ps)){
-			return reportParseError(ps, "PS022", "Binary Shift Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;
+	ArtithmeticParseParam A[2];
+	A[0].term = &termShiftLeft;  A[0].typ = PTT_SHL;
+	A[1].term = &termShiftRight; A[1].typ = PTT_SHR;
+	return helperArithmetic(ps, &prodExprG, A, 2);
 }bool prodExprG(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodExprGFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprGFact1(PState *ps){
-	/*if(!prodExprH(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termAdd(ps) && !termSub(ps)){
-			break;
-		}
-		if(!prodExprH(ps)){
-			return reportParseError(ps, "PS023", "+/- Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;*/
 	ArtithmeticParseParam A[2];
 	A[0].term = &termAdd; A[0].typ = PTT_ADD;
 	A[1].term = &termSub; A[1].typ = PTT_SUB;
@@ -338,17 +262,6 @@ bool prodExprAFact1(PState *ps){
 	bool 	ret = prodExprHFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprHFact1(PState *ps){
-	/*if(!prodExprI(ps)) return false;
-	while(true){
-		LexicalToken *tkStart = ps->token;
-		if(!termMul(ps) && !termDiv(ps) && !termMod(ps)){
-			break;
-		}
-		if(!prodExprI(ps)){
-			return reportParseError(ps, "PS024", "* % / Missing Right Operand: Line %d", tkStart->lineNo);
-		}
-	}
-	return true;*/
 	ArtithmeticParseParam A[3];
 	A[0].term = &termMul; A[0].typ = PTT_MULT;
 	A[1].term = &termDiv; A[1].typ = PTT_DIV;
@@ -360,13 +273,26 @@ bool prodExprAFact1(PState *ps){
 			ret = prodExprIFact2(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodExprIFact1(PState *ps){
-	if(prodExprJ(ps) && termExp(ps)){
-		LexicalToken *tkStart = ps->token;
-		if(!prodExprI(ps))
-			return reportParseError(ps, "PS025", "Exponent Missing Right Operand: Line %d", tkStart->lineNo);
-		return true;
+	if(prodExprJ(ps)){
+		PTree *op1 = storeAndNullChildNode(ps);
+		if(termExp(ps)){ // exponential function applied
+			LexicalToken *tkStart = ps->token;
+			PTree *root = newParseTree(PTT_EXP);
+			root->tok = tkStart->prev;
+			setParseNodeChild(root, op1);
+			if(!prodExprI(ps)){
+				resetChildNode(ps, root);
+				return reportParseError(ps, "PS025", "Exponent Missing Right Operand: Line %d", tkStart->lineNo);
+			}
+			setParseNodeChild(root, storeAndNullChildNode(ps));
+			ps->child = root;
+			return true;
+		}else{
+			return resetChildNode(ps, op1);
+		}
+	}else{
+		return resetChildNode(ps, NULL);
 	}
-	return false;
 }bool prodExprIFact2(PState *ps){
 	return prodExprJ(ps);
 }bool prodExprJ(PState *ps){
@@ -377,8 +303,14 @@ bool prodExprAFact1(PState *ps){
 }bool prodExprJFact1(PState *ps){
 	if(!termNot(ps)) return false;
 	LexicalToken *tkStart = ps->token;
-	if(!prodExprK(ps))
+	if(!prodExprK(ps)){
+		resetChildNode(ps, NULL);
 		return reportParseError(ps, "PS026", "! Missing Right Operand: Line %d", tkStart->lineNo);
+	}
+	PTree *root = newParseTree(PTT_NOT);
+	root->tok = tkStart->prev;
+	setParseNodeChild(root, storeAndNullChildNode(ps));
+	ps->child = root;
 	return true;
 }bool prodExprJFact2(PState *ps){
 	return prodExprK(ps);
@@ -414,7 +346,7 @@ bool prodExprAFact1(PState *ps){
 
 
 // function calls
-bool helperPossibleFunctionCalls(PState *ps)
+/*bool helperPossibleFunctionCalls(PState *ps)
 {
 	bool foundOne = false;
 	while(true){
@@ -430,44 +362,69 @@ bool helperPossibleFunctionCalls(PState *ps)
 			return foundOne;
 		}
 	}
-}
+}*/
 
 
 // VarValue
 bool prodVarValue(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodVarValueFact1(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact2(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact3(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact4(ps); if(!ret) ps->token = start; else return true;
 	return false;
-}bool prodVarValueFact1(PState *ps){
-	if(!termIdentifier(ps)) return false;
-	helperPossibleFunctionCalls(ps);
-	bool arrayAccessed = false;
-	while(true){ // Array Access
-		LexicalToken *tkStart = ps->token;
-		if(!termSqbrLeft(ps)){
-			break;
-		}
-		if(!prodExpr(ps)){
-			return reportParseError(ps, "PS005", "Tokens inside square bracket do not form expression: Line %d\n", ps->token->lineNo);
-		}
-		if(!termSqbrRight(ps)){
-			return reportParseError(ps, "PS006", "Square bracket not closed after expression: Line %d\n", ps->token->lineNo);
-		}
-		arrayAccessed = true;
+}bool prodVarValueFact1(PState *ps){ // op1.op2
+	if(!termDot(ps))
+		return false;
+	PTree *root = newParseTree(PTT_DOT);
+	setParseNodeChild(root, storeAndNullChildNode(ps)); // op1
+	root->tok = ps->token->prev;
+	if(!termIdentifier(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS011", "Element Access Not Identifier: Line %d\n", ps->token->lineNo);
 	}
-	helperPossibleFunctionCalls(ps);
-	while(true){ // Element Access [Tuples]
-		LexicalToken *tkStart = ps->token;
-		if(!termDot(ps)){
-			break;
-		}
-		if(!prodVarValue(ps)){
-			return reportParseError(ps, "PS011", "Element Access Not Identifier: Line %d\n", ps->token->lineNo);
-		}
+	PTree *op2 = newParseTree(PTT_IDENTIFIER); // op2 (identifier)
+	op2->tok = ps->token->prev;
+	setParseNodeChild(root, op2);
+	ps->child = root;
+	return prodVarValue(ps);
+}bool prodVarValueFact2(PState *ps){ // op1[op2]
+	if(!termSqbrLeft(ps))
+		return false;
+	PTree *root = newParseTree(PTT_ARR_ACCESS);
+	setParseNodeChild(root, storeAndNullChildNode(ps)); // op1
+	root->tok = ps->token->prev;
+	if(!prodExpr(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS005", "Tokens inside square bracket do not form expression: Line %d\n", ps->token->lineNo);
 	}
+	setParseNodeChild(root, storeAndNullChildNode(ps)); // op2
+	if(!termSqbrRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS006", "Square bracket not closed after expression: Line %d\n", ps->token->lineNo);
+	}
+	ps->child = root;
+	return prodVarValue(ps);
+}bool prodVarValueFact3(PState *ps){ // op1(op2)
+	if(!termParenLeft(ps))
+		return false;
+	PTree *root = newParseTree(PTT_ARR_ACCESS);
+	setParseNodeChild(root, storeAndNullChildNode(ps)); // op1
+	root->tok = ps->token->prev;
+	if(!prodParamExpr(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS025", "Tokens inside parens do not form paramater expression: Line %d\n", ps->token->lineNo);
+	}
+	setParseNodeChild(root, storeAndNullChildNode(ps)); // op2
+	if(!termParenRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS016", "Paren not closed after function call: Line %d\n", ps->token->lineNo);
+	}
+	ps->child = root;
+	return prodVarValue(ps);
+}bool prodVarValueFact4(PState *ps){
 	return true;
 }
-
 
 
 
@@ -480,11 +437,17 @@ bool prodValue(PState *ps){
 			ret = prodValueFact3(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodValueFact1(PState *ps){
-	return prodVarValue(ps);
-}bool prodValueFact2(PState *ps){
 	return prodNumericLiteral(ps);
-}bool prodValueFact3(PState *ps){
+}bool prodValueFact2(PState *ps){
 	return termStringLit(ps);
+}bool prodValueFact3(PState *ps){
+	if(termIdentifier(ps)){
+		resetChildNode(ps, NULL);
+		ps->child = newParseTree(PTT_IDENTIFIER);
+		ps->child->tok = ps->token->prev;
+		return prodVarValue(ps);
+	}
+	return false;
 }
 
 // NumericLiteral
@@ -495,15 +458,17 @@ bool prodNumericLiteral(PState *ps){
 	return false;
 }bool prodNumericLiteralFact1(PState *ps){
 	if(termFloatLit(ps)){
-		ps->child->typ = PTT_FLOAT;
-		ps->child->extra = ps->token->prev;
+		resetChildNode(ps, NULL);
+		ps->child = newParseTree(PTT_FLOAT);
+		ps->child->tok = ps->token->prev;
 		return true;
 	}
 	return false;
 }bool prodNumericLiteralFact2(PState *ps){
 	if(termIntLit(ps)){
-		ps->child->typ = PTT_INT;
-		ps->child->extra = ps->token->prev;
+		resetChildNode(ps, NULL);
+		ps->child = newParseTree(PTT_INT);
+		ps->child->tok = ps->token->prev;
 		return true;
 	}
 	return false;
@@ -519,8 +484,15 @@ bool prodArrayExpr(PState *ps){
 			ret = prodArrayExprFact2(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodArrayExprFact1(PState *ps){
-	return prodExpr(ps) && prodArrayExprAux(ps);
+	if(!prodExpr(ps))
+		return false;
+	PTree *root = newParseTree(PTT_ARRAY_ELM);
+	insertParseNodeFromList(root, PTT_ARRAY_ELM, storeAndNullChildNode(ps)); // first param
+	ps->child = root;
+	return prodArrayExprAux(ps);
 }bool prodArrayExprFact2(PState *ps){
+	PTree *root = newParseTree(PTT_ARRAY_ELM);
+	ps->child = root;
 	return true; // empty array
 }
 // AUX
@@ -531,8 +503,12 @@ bool prodArrayExprAux(PState *ps){
 	return false;
 }bool prodArrayExprAuxFact1(PState *ps){ // list comprehension
 	if(!termFor(ps)) return false;
+
+	// TODO:
+	fatalError("List Comprehensions Not Implemented!\n");
+
 	LexicalToken *tkStart = ps->token;
-	if(!(prodVarValue(ps) && termIn(ps) && prodExpr(ps))){
+	if(!(termIdentifier(ps) && prodVarValue(ps) && termIn(ps) && prodExpr(ps))){
 		return reportParseError(ps, "PS013", "Invalid List Comprehension: Line %d\n", tkStart->lineNo);
 	}
 	tkStart = ps->token;
@@ -543,15 +519,19 @@ bool prodArrayExprAux(PState *ps){
 	}
 	return true;
 }bool prodArrayExprAuxFact2(PState *ps){
+	PTree *root = storeAndNullChildNode(ps);
 	while(true){
 		LexicalToken *tkStart = ps->token;
 		if(!termComma(ps)){
 			break;
 		}
 		if(!prodExpr(ps)){
+			resetChildNode(ps, NULL);
 			return reportParseError(ps, "PS012", "Element Listed in Array Not Expression: Line %d\n", tkStart->lineNo);
 		}
+		insertParseNodeFromList(root, PTT_ARRAY_ELM, storeAndNullChildNode(ps));
 	}
+	ps->child = root;
 	return true;
 }
 
@@ -566,17 +546,25 @@ bool prodParamExpr(PState *ps){
 	return false;
 }bool prodParamExprFact1(PState *ps){
 	if(!prodExpr(ps)) return false;
+	PTree *root = newParseTree(PTT_PARAM_CONT);
+	insertParseNodeFromList(root, PTT_PARAM_CONT, storeAndNullChildNode(ps)); // first param
 	while(true){
 		LexicalToken *tkStart = ps->token;
 		if(!termComma(ps)){
 			break;
 		}
 		if(!prodExpr(ps)){
+			resetChildNode(ps, root);
 			return reportParseError(ps, "PS015", "Element Paramater Not Expression: Line %d\n", tkStart->lineNo);
 		}
+		insertParseNodeFromList(root, PTT_PARAM_CONT, storeAndNullChildNode(ps)); // first param
 	}
+	resetChildNode(ps, NULL);
+	ps->child = root;
 	return true;
 }bool prodParamExprFact2(PState *ps){
+	resetChildNode(ps, NULL);
+	ps->child = newParseTree(PTT_PARAM_CONT);
 	return true; // no params
 }
 
