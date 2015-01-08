@@ -44,7 +44,7 @@ int32 fibi(int8 n)
 vector<int32> fibbs(int8 n)
 {
 	println("TestSingle");
-	return [fibt(x) where x in range(1, n)];
+	return [fibt(x) where int32 x in range(1, n)];
 }
 
 

@@ -1,6 +1,13 @@
 
 
 
+vector<int8> lst([2*x for int8 x in range(20)]);
+
+mut int16 b(42);
+
+for(int8 a in [2,4,6]){
+	print(a);
+}
 
 
 int32 a(3);
@@ -10,8 +17,8 @@ if(a == 2){
 }else
 	b = 4;
 	
-while(a == 2);
-
+while(a == 2)
+	print(a);
 
 
 

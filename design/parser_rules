@@ -71,7 +71,7 @@ ExprK		:	( ExprA )
 
 ArrayExpr		:	Expr ArrayExprAux
 				|	#
-ArrayExprAux	:	for "IDENT" in Expr {where Expr}
+ArrayExprAux	:	for Decl in Expr {where Expr}
 				|	{ , Expr }
 
 ParamExpr		:	Expr { , Expr }
@@ -79,14 +79,16 @@ ParamExpr		:	Expr { , Expr }
 
 
 Stmt			:	"{" StmtBlock "}"
-				|	Decl
+				|	Decl ;
 				|	Assign
 				|	Cond
 				|	While
 				|	For
+				|	"IDENT"
+				|	Expr ;   -- Allows procedure calls
 				|	;
 
-Decl			:	DeclType "IDENT" { ( expr ) } ;
+Decl			:	DeclType "IDENT" { ( expr ) } 
 Assign			:	"IDENT" VarValue = expr ;
 
 DeclType		:	DeclMod "IDENT" DeclAux
@@ -99,7 +101,7 @@ StmtBlock		:	Stmt { Stmt }
 
 Cond			:	if ( expr ) Stmt { else Stmt }
 While			:	while ( expr ) Stmt
-For				:	for ( "IDENT" in Expr ) Stmt
+For				:	for ( Decl in Expr ) Stmt
 
 
 

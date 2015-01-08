@@ -543,14 +543,12 @@ bool prodArrayExprAux(PState *ps){
 	LexicalToken *tkStart = ps->token;
 	PTree *opBuild = extractIndependentLeftParseNodeLeaveChild(ps->child);
 	resetChildNode(ps, NULL);
-	if(!termIdentifier(ps)){
+	if(!prodDecl(ps)){
 		resetChildNode(ps, opBuild);
-		return reportParseError(ps, "PS050", "List Comprehension Expecting identifier variable: Line %d\n", tkStart->lineNo);
+		return reportParseError(ps, "PS050", "List Comprehension Expecting declaration: Line %d\n", tkStart->lineNo);
 	}
 	PTree *rootIn = newParseTree(PTT_ARRAY_COMP_IN);
-	PTree *opVar = newParseTree(PTT_IDENTIFIER);
-	opVar->tok = ps->token->prev;
-	setParseNodeChild(rootIn, opVar, PC_LEFT); // identifer variable
+	setParseNodeChild(rootIn, storeAndNullChildNode(ps), PC_LEFT); // identifer variable
 	if(!termIn(ps)){
 		resetChildNode(ps, rootIn);
 		resetChildNode(ps, opBuild);
@@ -637,6 +635,7 @@ bool prodStmt(PState *ps){
 			ret = prodStmtFact5(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact6(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact7(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact8(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodStmtFact1(PState *ps){
 	LexicalToken *tkStart = ps->token;
@@ -646,7 +645,15 @@ bool prodStmt(PState *ps){
 	}
 	return false;
 }bool prodStmtFact2(PState *ps){
-	return prodDecl(ps);
+	LexicalToken *tkStart = ps->token;
+	if(prodDecl(ps)){
+		if(!termStmtEnd(ps)){
+			resetChildNode(ps, NULL);
+			return reportParseError(ps, "PS028", "Declaration Semicolon Missing: Line %d\n", tkStart->lineNo);
+		}
+		return true;
+	}
+	return false;
 }bool prodStmtFact3(PState *ps){
 	return prodAssign(ps);
 }bool prodStmtFact4(PState *ps){
@@ -656,6 +663,8 @@ bool prodStmt(PState *ps){
 }bool prodStmtFact6(PState *ps){
 	return prodFor(ps);
 }bool prodStmtFact7(PState *ps){
+	return prodExpr(ps) && termStmtEnd(ps);
+}bool prodStmtFact8(PState *ps){
 	return termStmtEnd(ps);
 }
 
@@ -717,10 +726,6 @@ bool prodDecl(PState *ps){
 			resetChildNode(ps, root);
 			return reportParseError(ps, "PS027", "Declaration Initializer Missing Closing Paren: Line %d\n", tkStart->lineNo);
 		}
-	}
-	if(!termStmtEnd(ps)){
-		resetChildNode(ps, root);
-		return reportParseError(ps, "PS028", "Declaration Semicolon Missing: Line %d\n", tkStart->lineNo);
 	}
 	ps->child = root;
 	return true;
@@ -920,13 +925,11 @@ bool prodFor(PState *ps){
 	if(!termParenLeft(ps)){
 		return reportParseError(ps, "PS044", "For Requires Parens: Line %d\n", tkStart->lineNo);
 	}
-	if(!termIdentifier(ps)){
-		return reportParseError(ps, "PS045", "For Expecting identifier variable: Line %d\n", tkStart->lineNo);
-	}
 	PTree *rootCond = newParseTree(PTT_FOR_COND);
-	PTree *op1 = newParseTree(PTT_IDENTIFIER);
-	op1->tok = ps->token->prev;
-	setParseNodeChild(rootCond, op1, PC_LEFT); // identifer variable
+	if(!prodDecl(ps)){
+		return reportParseError(ps, "PS045", "For Expecting declaration: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(rootCond, storeAndNullChildNode(ps), PC_LEFT); // identifer variable
 	if(!termIn(ps)){
 		resetChildNode(ps, rootCond);
 		return reportParseError(ps, "PS046", "For Expecting in: Line %d\n", tkStart->lineNo);
