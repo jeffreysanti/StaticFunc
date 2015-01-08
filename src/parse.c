@@ -28,8 +28,8 @@ void parse(LexicalTokenList *TL)
 		return;
 	}
 
-	if(!prodStmt(ps)){
-		reportError("PS002", 	"Parse is not statement\n");
+	if(!prodStmtBlock(ps)){
+		reportError("PS002", 	"Parse is not statement block\n");
 		return;
 	}
 
@@ -149,6 +149,15 @@ bool termMul(PState *ps){
 	return advanceToken(ps, ret);
 }bool termColon(PState *ps){
 	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, ":")==0);
+	return advanceToken(ps, ret);
+}bool termAssign(PState *ps){
+	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, "=")==0);
+	return advanceToken(ps, ret);
+}bool termBraceLeft(PState *ps){
+	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, "{")==0);
+	return advanceToken(ps, ret);
+}bool termBraceRight(PState *ps){
+	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, "}")==0);
 	return advanceToken(ps, ret);
 }
 
@@ -450,7 +459,13 @@ bool prodValue(PState *ps){
 }bool prodValueFact1(PState *ps){
 	return prodNumericLiteral(ps);
 }bool prodValueFact2(PState *ps){
-	return termStringLit(ps);
+	if(termStringLit(ps)){
+		resetChildNode(ps, NULL);
+		ps->child = newParseTree(PTT_STRING);
+		ps->child->tok = ps->token->prev;
+		return true;
+	}
+	return false;
 }bool prodValueFact3(PState *ps){
 	if(termIdentifier(ps)){
 		resetChildNode(ps, NULL);
@@ -583,11 +598,56 @@ bool prodParamExpr(PState *ps){
 bool prodStmt(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodStmtFact1(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact2(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact3(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact4(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodStmtFact1(PState *ps){
+	LexicalToken *tkStart = ps->token;
+	if(termBraceLeft(ps) && prodStmtBlock(ps) && termBraceRight(ps)){
+		ps->child->tok = tkStart;
+		return true;
+	}
+	return false;
+}bool prodStmtFact2(PState *ps){
 	return prodDecl(ps);
+}bool prodStmtFact3(PState *ps){
+	return prodAssign(ps);
+}bool prodStmtFact4(PState *ps){
+	return false;
 }
 
+
+// Statement Block
+bool prodStmtBlock(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodStmtBlockFact1(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodStmtBlockFact1(PState *ps){
+	if(!prodStmt(ps)) return false;
+	PTree *root = newParseTree(PTT_STMTBLOCK);
+	insertParseNodeFromList(root, PTT_STMTBLOCK, storeAndNullChildNode(ps));
+	while(true){
+		int errPre = ps->err;
+		if(!prodStmt(ps)){
+			if(ps->err > errPre){ // error mode: Eat Tokens Until Semicolon
+				while(!termStmtEnd(ps)){
+					advanceToken(ps, true);
+				}
+				continue;
+			}else{
+				break;
+			}
+		}
+		insertParseNodeFromList(root, PTT_STMTBLOCK, storeAndNullChildNode(ps));
+	}
+	resetChildNode(ps, NULL);
+	ps->child = root;
+	return true;
+}
+
+
+// Declaration
 bool prodDecl(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodDeclFact1(ps); if(!ret) ps->token = start; else return true;
@@ -602,21 +662,22 @@ bool prodDecl(PState *ps){
 	LexicalToken *tkStart = ps->token->prev;
 	if(termParenLeft(ps)){
 		if(!prodExpr(ps)){
+			resetChildNode(ps, root);
 			return reportParseError(ps, "PS026", "Invalid Declaration Initializer: Line %d\n", tkStart->lineNo);
 		}
 		setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // intitial value
 		if(!termParenRight(ps)){
+			resetChildNode(ps, root);
 			return reportParseError(ps, "PS027", "Declaration Initializer Missing Closing Paren: Line %d\n", tkStart->lineNo);
 		}
 	}
 	if(!termStmtEnd(ps)){
+		resetChildNode(ps, root);
 		return reportParseError(ps, "PS028", "Declaration Semicolon Missing: Line %d\n", tkStart->lineNo);
 	}
 	ps->child = root;
 	return true;
-}
-
-bool prodDeclType(PState *ps){
+}bool prodDeclType(PState *ps){
 	LexicalToken *start = ps->token;
 	bool 	ret = prodDeclTypeFact1(ps); if(!ret) ps->token = start; else return true;
 	return false;
@@ -657,6 +718,7 @@ bool prodDeclType(PState *ps){
 	if(!termLT(ps)) return false;
 	LexicalToken *tkStart = ps->token;
 	if(!prodDeclType(ps)){
+		resetChildNode(ps, NULL);
 		return reportParseError(ps, "PS029", "Empty type paramaters: Line %d\n", tkStart->lineNo);
 	}
 	PTree *root = newParseTree(PTT_DECL_PARAM);
@@ -686,7 +748,7 @@ bool prodDeclType(PState *ps){
 	}
 	if(!termGT(ps)){
 		resetChildNode(ps, root);
-		return reportParseError(ps, "PS030", "Type Params Missing >: Line %d\n", tkStart->lineNo);
+		return reportParseError(ps, "PS032", "Type Params Missing >: Line %d\n", tkStart->lineNo);
 	}
 	ps->child = root;
 	return true;
@@ -694,6 +756,36 @@ bool prodDeclType(PState *ps){
 	return true;
 }
 
+
+// Assignment
+bool prodAssign(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodAssignFact1(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodAssignFact1(PState *ps){
+	if(!termIdentifier(ps)) return false;
+	resetChildNode(ps, NULL);
+	ps->child = newParseTree(PTT_IDENTIFIER);
+	ps->child->tok = ps->token->prev;
+	prodVarValue(ps);
+	PTree *root = newParseTree(PTT_ASSIGN);
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
+	if(!termAssign(ps))
+		return resetChildNode(ps, root);
+	LexicalToken *tkStart = ps->token;
+	root->tok = tkStart->prev;
+	if(!prodExpr(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS033", "Assignment Missing Expression: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // op2
+	if(!termStmtEnd(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS034", "Declaration Semicolon Missing: Line %d\n", tkStart->lineNo);
+	}
+	ps->child = root;
+	return true;
+}
 
 
 

@@ -78,16 +78,22 @@ ParamExpr		:	Expr { , Expr }
 				|	#
 
 
-Stmt			:	Decl
+Stmt			:	"{" StmtBlock "}"
+				|	Decl
+				|	Assign
+				|	Cond
 
 Decl			:	DeclType "IDENT" { ( expr ) } ;
+Assign			:	"IDENT" VarValue = expr ;
 
 DeclType		:	DeclMod "IDENT" DeclAux
 DeclAux			:	< { DeclType {: "IDENT" } , } >
 				|	#
 
+StmtBlock		:	Stmt { Stmt }
 
 
+Cond			:	if ( expr ) Stmt { else Stmt }
 
 
 

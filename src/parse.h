@@ -97,6 +97,10 @@ bool termShiftLeft(PState *ps);
 bool termStmtEnd(PState *ps);
 bool termDeclMutable(PState *ps);
 bool termColon(PState *ps);
+bool termAssign(PState *ps);
+bool termBraceLeft(PState *ps);
+bool termBraceRight(PState *ps);
+
 
 
 bool prodNumericLiteral(PState *ps);
@@ -161,6 +165,12 @@ bool prodParamExprFact2(PState *ps);
 
 bool prodStmt(PState *ps);
 bool prodStmtFact1(PState *ps);
+bool prodStmtFact2(PState *ps);
+bool prodStmtFact3(PState *ps);
+bool prodStmtFact4(PState *ps);
+
+bool prodStmtBlock(PState *ps);
+bool prodStmtBlockFact1(PState *ps);
 
 bool prodDecl(PState *ps);
 bool prodDeclFact1(PState *ps);
@@ -173,6 +183,10 @@ bool prodDeclModFact2(PState *ps);
 bool prodDeclAux(PState *ps);
 bool prodDeclAuxFact1(PState *ps);
 bool prodDeclAuxFact2(PState *ps);
+
+
+bool prodAssign(PState *ps);
+bool prodAssignFact1(PState *ps);
 
 
 #endif /* STATICFUNC_SRC_PARSE_H_ */

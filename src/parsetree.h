@@ -28,6 +28,7 @@ typedef enum{
 	PTT_NOT,
 	PTT_EXP,
 	PTT_INT,
+	PTT_STRING,
 	PTT_FLOAT,
 	PTT_EQUAL,
 	PTT_NOT_EQUAL,
@@ -46,7 +47,9 @@ typedef enum{
 	PTT_DECL_MOD,
 	PTT_DECL_TYPE,
 	PTT_DECL_PARAM,
-	PTT_DECL
+	PTT_DECL,
+	PTT_STMTBLOCK,
+	PTT_ASSIGN
 } PTType;
 
 typedef struct{
