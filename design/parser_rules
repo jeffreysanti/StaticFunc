@@ -80,7 +80,13 @@ ParamExpr		:	Expr { , Expr }
 
 Stmt			:	Decl
 
-Decl			:	DeclMod DeclType "IDENT"
+Decl			:	DeclType "IDENT" { ( expr ) } ;
+
+DeclType		:	DeclMod "IDENT" DeclAux
+DeclAux			:	< { DeclType {: "IDENT" } , } >
+				|	#
+
+
 
 
 

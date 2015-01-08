@@ -142,20 +142,28 @@ void mergeEndParseNodes(PTree *root)
 	freeParseTreeNode(child);
 }
 
-void setParseNodeChild(PTree *parent, PTree *child)
+void setParseNodeChild(PTree *parent, PTree *child, ParseChild side)
 {
 	if(child == NULL){
-		printf("WARNING: setParseNodeChild called with null child!\n");
 		return;
 	}
+
 	child->parent = parent;
-	if(parent->child1 == NULL){
+	if(side == PC_LEFT && parent->child1 == NULL){
 		parent->child1 = child;
-	}else if(parent->child2 == NULL){
+	}else if(side == PC_RIGHT && parent->child2 == NULL){
 		parent->child2 = child;
 	}else{
 		fatalError("ERROR: Parent Cannot Aquire Child Node\n");
 	}
+}
+
+PTree *lastRightInternalParseNode(PTree *root)
+{
+	while(root->child2 != NULL){
+		root = root->child2;
+	}
+	return root;
 }
 
 void dumpParseTree(PTree *root, int level)

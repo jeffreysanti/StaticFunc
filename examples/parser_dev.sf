@@ -1,11 +1,11 @@
 
-//mut int32 last = (1 + 7) * 3;
+mut tuple<int32:p1, string:p2, string> last([(1 + 7) * 3, 8, 12]);
 
 
-(1 + 7) * abc[variable2.param1[0][4](callparam)()(heyy).test].xyz(testa, fd) * -4 + iff +
+//(1 + 7) * abc[variable2.param1[0][4](callparam)()(heyy).test].xyz(testa, fd) * -4 + iff +
 // [2*x for x in [1,2,3,4,5] where x % 2 == 0]
 
-[888, 777, 1122]
+//[888, 777, 1122]
 
 
 //5 + 7 + 5

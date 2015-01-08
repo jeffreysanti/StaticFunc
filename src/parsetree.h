@@ -42,7 +42,11 @@ typedef enum{
 	PTT_ARR_ACCESS,
 	PTT_PARAM_CONT,
 	PTT_ARRAY_ELM,
-	PTT_ARRAY_COMP
+	PTT_ARRAY_COMP,
+	PTT_DECL_MOD,
+	PTT_DECL_TYPE,
+	PTT_DECL_PARAM,
+	PTT_DECL
 } PTType;
 
 typedef struct{
@@ -65,7 +69,14 @@ void insertParseNodeFromList(PTree *root, PTType typ_cont, PTree *node);
 void setSecondLastParseNodeToken(PTree *root, LexicalToken *tok);
 void mergeEndParseNodes(PTree *root);
 
-void setParseNodeChild(PTree *parent, PTree *child);
+PTree *lastRightInternalParseNode(PTree *root);
+
+typedef enum {
+	PC_LEFT,
+	PC_RIGHT
+} ParseChild;
+
+void setParseNodeChild(PTree *parent, PTree *child, ParseChild side);
 
 
 void dumpParseTree(PTree *root, int level);
