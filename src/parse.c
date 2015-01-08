@@ -165,7 +165,12 @@ bool termMul(PState *ps){
 }bool termElse(PState *ps){
 	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "else")==0);
 	return advanceToken(ps, ret);
+}bool termWhile(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "while")==0);
+	return advanceToken(ps, ret);
 }
+
+
 
 
 
@@ -535,20 +540,42 @@ bool prodArrayExprAux(PState *ps){
 	return false;
 }bool prodArrayExprAuxFact1(PState *ps){ // list comprehension
 	if(!termFor(ps)) return false;
-
-	// TODO:
-	fatalError("List Comprehensions Not Implemented!\n");
-
 	LexicalToken *tkStart = ps->token;
-	if(!(termIdentifier(ps) && prodVarValue(ps) && termIn(ps) && prodExpr(ps))){
-		return reportParseError(ps, "PS013", "Invalid List Comprehension: Line %d\n", tkStart->lineNo);
+	PTree *opBuild = extractIndependentLeftParseNodeLeaveChild(ps->child);
+	resetChildNode(ps, NULL);
+	if(!termIdentifier(ps)){
+		resetChildNode(ps, opBuild);
+		return reportParseError(ps, "PS050", "List Comprehension Expecting identifier variable: Line %d\n", tkStart->lineNo);
 	}
-	tkStart = ps->token;
+	PTree *rootIn = newParseTree(PTT_ARRAY_COMP_IN);
+	PTree *opVar = newParseTree(PTT_IDENTIFIER);
+	opVar->tok = ps->token->prev;
+	setParseNodeChild(rootIn, opVar, PC_LEFT); // identifer variable
+	if(!termIn(ps)){
+		resetChildNode(ps, rootIn);
+		resetChildNode(ps, opBuild);
+		return reportParseError(ps, "PS051", "List Comprehension Expecting in: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodExpr(ps)){
+		resetChildNode(ps, rootIn);
+		resetChildNode(ps, opBuild);
+		return reportParseError(ps, "PS052", "List Comprehension Missing Expression: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(rootIn, storeAndNullChildNode(ps), PC_RIGHT); // range expression
+	PTree *rootOut = newParseTree(PTT_ARRAY_COMP_OUT);
+	setParseNodeChild(rootOut, opBuild, PC_LEFT); // build expression
 	if(termWhere(ps)){
 		if(!prodExpr(ps)){
-			return reportParseError(ps, "PS014", "Invalid List Comprehension Where Clause: Line %d\n", tkStart->lineNo);
+			resetChildNode(ps, rootIn);
+			resetChildNode(ps, rootOut);
+			return reportParseError(ps, "PS053", "List Comprehension Missing Expression After Where: Line %d\n", tkStart->lineNo);
 		}
+		setParseNodeChild(rootOut, storeAndNullChildNode(ps), PC_RIGHT); // range expression
 	}
+	PTree *root = newParseTree(PTT_ARRAY_COMP);
+	setParseNodeChild(root, rootIn, PC_LEFT);
+	setParseNodeChild(root, rootOut, PC_RIGHT);
+	ps->child = root;
 	return true;
 }bool prodArrayExprAuxFact2(PState *ps){
 	PTree *root = storeAndNullChildNode(ps);
@@ -607,6 +634,8 @@ bool prodStmt(PState *ps){
 			ret = prodStmtFact2(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact3(ps); if(!ret) ps->token = start; else return true;
 			ret = prodStmtFact4(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact5(ps); if(!ret) ps->token = start; else return true;
+			ret = prodStmtFact6(ps); if(!ret) ps->token = start; else return true;
 	return false;
 }bool prodStmtFact1(PState *ps){
 	LexicalToken *tkStart = ps->token;
@@ -621,6 +650,10 @@ bool prodStmt(PState *ps){
 	return prodAssign(ps);
 }bool prodStmtFact4(PState *ps){
 	return prodCond(ps);
+}bool prodStmtFact5(PState *ps){
+	return prodWhile(ps);
+}bool prodStmtFact6(PState *ps){
+	return prodFor(ps);
 }
 
 
@@ -838,6 +871,79 @@ bool prodCond(PState *ps){
 	return true;
 }
 
+
+bool prodWhile(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodWhileFact1(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodWhileFact1(PState *ps){
+	if(!termWhile(ps)) return false;
+	LexicalToken *tkStart = ps->token;
+	if(!termParenLeft(ps)){
+		return reportParseError(ps, "PS040", "While Requires Parens: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodExpr(ps)){
+		return reportParseError(ps, "PS041", "While Missing Expression: Line %d\n", tkStart->lineNo);
+	}
+	PTree *root = newParseTree(PTT_WHILE);
+	root->tok = tkStart->prev;
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
+	if(!termParenRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS042", "While Closing Paren Missing: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodStmt(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS043", "While Missing Following Stmt: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // op2
+	ps->child = root;
+	return true;
+}
+
+
+bool prodFor(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodForFact1(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodForFact1(PState *ps){
+	if(!termFor(ps)) return false;
+	LexicalToken *tkStart = ps->token;
+	if(!termParenLeft(ps)){
+		return reportParseError(ps, "PS044", "For Requires Parens: Line %d\n", tkStart->lineNo);
+	}
+	if(!termIdentifier(ps)){
+		return reportParseError(ps, "PS045", "For Expecting identifier variable: Line %d\n", tkStart->lineNo);
+	}
+	PTree *rootCond = newParseTree(PTT_FOR_COND);
+	PTree *op1 = newParseTree(PTT_IDENTIFIER);
+	op1->tok = ps->token->prev;
+	setParseNodeChild(rootCond, op1, PC_LEFT); // identifer variable
+	if(!termIn(ps)){
+		resetChildNode(ps, rootCond);
+		return reportParseError(ps, "PS046", "For Expecting in: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodExpr(ps)){
+		resetChildNode(ps, rootCond);
+		return reportParseError(ps, "PS047", "For Missing Expression: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(rootCond, storeAndNullChildNode(ps), PC_RIGHT); // range expression
+	PTree *root = newParseTree(PTT_FOR);
+	root->tok = tkStart->prev;
+	setParseNodeChild(root, rootCond, PC_LEFT);
+	root->tok = tkStart->prev;
+	if(!termParenRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS048", "For Closing Paren Missing: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodStmt(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS049", "For Missing Following Stmt: Line %d\n", tkStart->lineNo);
+	}
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // op2
+	ps->child = root;
+	return true;
+}
 
 
 

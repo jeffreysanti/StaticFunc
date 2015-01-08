@@ -71,7 +71,7 @@ ExprK		:	( ExprA )
 
 ArrayExpr		:	Expr ArrayExprAux
 				|	#
-ArrayExprAux	:	for "IDENT" VarValue in Expr {where Expr}
+ArrayExprAux	:	for "IDENT" in Expr {where Expr}
 				|	{ , Expr }
 
 ParamExpr		:	Expr { , Expr }
@@ -82,6 +82,8 @@ Stmt			:	"{" StmtBlock "}"
 				|	Decl
 				|	Assign
 				|	Cond
+				|	While
+				|	For
 
 Decl			:	DeclType "IDENT" { ( expr ) } ;
 Assign			:	"IDENT" VarValue = expr ;
@@ -94,7 +96,8 @@ StmtBlock		:	Stmt { Stmt }
 
 
 Cond			:	if ( expr ) Stmt { else Stmt }
-
+While			:	while ( expr ) Stmt
+For				:	for ( "IDENT" in Expr ) Stmt
 
 
 

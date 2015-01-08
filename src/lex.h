@@ -220,6 +220,7 @@ inline char matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "where") ||
 			matchStringPattern(fulltxt, cpos, clen, "in") ||
 			matchStringPattern(fulltxt, cpos, clen, "for") ||
+			matchStringPattern(fulltxt, cpos, clen, "while") ||
 			matchStringPattern(fulltxt, cpos, clen, "if") ||
 			matchStringPattern(fulltxt, cpos, clen, "else")){
 
