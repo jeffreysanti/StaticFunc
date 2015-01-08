@@ -100,7 +100,8 @@ bool termColon(PState *ps);
 bool termAssign(PState *ps);
 bool termBraceLeft(PState *ps);
 bool termBraceRight(PState *ps);
-
+bool termIf(PState *ps);
+bool termElse(PState *ps);
 
 
 bool prodNumericLiteral(PState *ps);
@@ -187,6 +188,9 @@ bool prodDeclAuxFact2(PState *ps);
 
 bool prodAssign(PState *ps);
 bool prodAssignFact1(PState *ps);
+
+bool prodCond(PState *ps);
+bool prodCondFact1(PState *ps);
 
 
 #endif /* STATICFUNC_SRC_PARSE_H_ */

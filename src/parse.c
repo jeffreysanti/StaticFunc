@@ -159,6 +159,12 @@ bool termMul(PState *ps){
 }bool termBraceRight(PState *ps){
 	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, "}")==0);
 	return advanceToken(ps, ret);
+}bool termIf(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "if")==0);
+	return advanceToken(ps, ret);
+}bool termElse(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "else")==0);
+	return advanceToken(ps, ret);
 }
 
 
@@ -614,7 +620,7 @@ bool prodStmt(PState *ps){
 }bool prodStmtFact3(PState *ps){
 	return prodAssign(ps);
 }bool prodStmtFact4(PState *ps){
-	return false;
+	return prodCond(ps);
 }
 
 
@@ -787,6 +793,50 @@ bool prodAssign(PState *ps){
 	return true;
 }
 
+
+// Conditionals
+bool prodCond(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodCondFact1(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodCondFact1(PState *ps){
+	if(!termIf(ps)) return false;
+	LexicalToken *tkStart = ps->token;
+	if(!termParenLeft(ps)){
+		return reportParseError(ps, "PS035", "Conditional Requires Parens: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodExpr(ps)){
+		return reportParseError(ps, "PS036", "Conditional Missing Expression: Line %d\n", tkStart->lineNo);
+	}
+	PTree *root = newParseTree(PTT_IF);
+	root->tok = tkStart->prev;
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
+	if(!termParenRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS037", "Conditional Closing Paren Missing: Line %d\n", tkStart->lineNo);
+	}
+	if(!prodStmt(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS038", "Conditional Missing Following Stmt: Line %d\n", tkStart->lineNo);
+	}
+	PTree *opTrue = storeAndNullChildNode(ps);
+	if(termElse(ps)){
+		tkStart = ps->token;
+		if(!prodStmt(ps)){
+			resetChildNode(ps, root);
+			return reportParseError(ps, "PS039", "Conditional Invalid Else Stmt: Line %d\n", tkStart->lineNo);
+		}
+		PTree *opFalse = storeAndNullChildNode(ps);
+		PTree *rootSwitch = newParseTree(PTT_IFELSE_SWITCH);
+		setParseNodeChild(rootSwitch, opTrue, PC_LEFT); // true
+		setParseNodeChild(rootSwitch, opFalse, PC_RIGHT); // true
+		setParseNodeChild(root, rootSwitch, PC_RIGHT); // op2
+	}else{
+		setParseNodeChild(root, opTrue, PC_RIGHT); // op2
+	}
+	ps->child = root;
+	return true;
+}
 
 
 

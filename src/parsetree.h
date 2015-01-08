@@ -49,7 +49,9 @@ typedef enum{
 	PTT_DECL_PARAM,
 	PTT_DECL,
 	PTT_STMTBLOCK,
-	PTT_ASSIGN
+	PTT_ASSIGN,
+	PTT_IF,
+	PTT_IFELSE_SWITCH
 } PTType;
 
 typedef struct{
