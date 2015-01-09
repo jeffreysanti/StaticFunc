@@ -43,6 +43,7 @@ VarValue	:	. "IDENT" VarValue
 Val			:	NumLit
 			|	"STRINGLIT"
 			|	"IDENT" VarValue
+			|	lambda ( FuncDefn )
 
 NumLit		:	"FLOATLIT"
 			|	"INTLIT"
@@ -79,14 +80,17 @@ ParamExpr		:	Expr { , Expr }
 
 
 Stmt			:	"{" StmtBlock "}"
+				|	FuncDefn
 				|	Decl ;
 				|	Assign
 				|	Cond
 				|	While
 				|	For
-				|	"IDENT"
+				|	"return" ReturnVal
 				|	Expr ;   -- Allows procedure calls
 				|	;
+
+ReturnVal		:	Expr ;
 
 Decl			:	DeclType "IDENT" { ( expr ) } 
 Assign			:	"IDENT" VarValue = expr ;
@@ -103,6 +107,8 @@ Cond			:	if ( expr ) Stmt { else Stmt }
 While			:	while ( expr ) Stmt
 For				:	for ( Decl in Expr ) Stmt
 
+
+FuncDefn		:	"function" DeclType "IDENT" "(" { Decl , } ")" StmtBlock
 
 
 

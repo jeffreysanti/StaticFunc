@@ -101,7 +101,10 @@ inline char matchIntegerLiteral(char *fulltxt, long *cpos, long clen)
 	long cposOrig = *cpos;
 
 	// match possible preceeding negative and/or 0x
-	matchStringPattern(fulltxt, cpos, clen, "-");
+	if(matchStringPattern(fulltxt, cpos, clen, "-") == MATCHED){
+		// make sure - not operator
+		// TODO
+	}
 	char hex = matchStringPattern(fulltxt, cpos, clen, "0x");
 
 	// now match at least one digit
@@ -216,6 +219,8 @@ inline char matchWhiteSpace(char *fulltxt, long *cpos, long clen)
 inline char matchKeyword(char *fulltxt, long *cpos, long clen)
 {
 	if(		matchStringPattern(fulltxt, cpos, clen, "mut") ||
+			matchStringPattern(fulltxt, cpos, clen, "def") ||
+			matchStringPattern(fulltxt, cpos, clen, "lambda") ||
 			matchStringPattern(fulltxt, cpos, clen, "return") ||
 			matchStringPattern(fulltxt, cpos, clen, "where") ||
 			matchStringPattern(fulltxt, cpos, clen, "in") ||

@@ -1,24 +1,14 @@
 
 
 
-vector<int8> lst([2*x for int8 x in range(20)]);
 
-mut int16 b(42);
+f.func() = 4;
 
-for(int8 a in [2,4,6]){
-	print(a);
+print();
+
+def int8 myfunc(vector<int8> arg1, string arg2){
+	return lambda(string(){
+		print("hello");
+		return "123";
+	});
 }
-
-
-int32 a(3);
-mut int32 b;
-if(a == 2){
-
-}else
-	b = 4;
-	
-while(a == 2)
-	print(a);
-
-
-
