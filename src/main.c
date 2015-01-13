@@ -13,8 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "lex.h"
 #include "parse.h"
 #include "io.h"
+#include "types.h"
 
 int main(int argc, char **argv){
 
@@ -26,6 +28,7 @@ int main(int argc, char **argv){
 		fatalError("Error: No Input Files\n");
 	}
 
+	initTypeSystem();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -42,6 +45,8 @@ int main(int argc, char **argv){
 
 		freeLexicalTokenList(T);
 	}
+
+	freeTypeSystem();
 
 
 

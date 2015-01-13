@@ -18,6 +18,7 @@
 #define EXIT(x, y) { if(y) printf("CONFIRMED %s\n", x); else printf("Exited %s\n", x); return y; }
 
 void parse(LexicalTokenList *TL);
+PTree *parseTypeDef(LexicalTokenList *TL);
 
 
 typedef struct{
@@ -34,6 +35,29 @@ typedef struct{
 	PTType typ;
 }ArtithmeticParseParam;
 
+
+static PState *preParse(LexicalTokenList *TL){
+	PState *ps = malloc(sizeof(PState));
+	if(ps == NULL){
+		freeLexicalTokenList(TL);
+		fatalError("Out of Memory [parse: PState]\n");
+	}
+	ps->root = NULL;
+	ps->tl = TL;
+	ps->token = ps->tl->first;
+	ps->err = 0;
+	ps->child = NULL;
+
+
+	if(ps->token == NULL){
+		free(ps);
+		freeLexicalTokenList(TL);
+		reportError("PS001", 	"Empty Token List\n");
+		return NULL;
+	}
+	return ps;
+}
+
 static bool advanceToken(PState *ps, bool ret){
 	if(!ret)
 		return false;
@@ -41,7 +65,7 @@ static bool advanceToken(PState *ps, bool ret){
 		reportError("PS003", 	"Out of tokens\n");
 		ps->err ++;
 	}else{
-		ps->token = ps->token->next;
+		ps->token = (LexicalToken*)ps->token->next;
 	}
 	return ret;
 }

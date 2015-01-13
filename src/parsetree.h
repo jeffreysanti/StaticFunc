@@ -74,8 +74,8 @@ typedef struct{
 
 PTree *newParseTree(PTType typ);
 PTree *newChildNode(PTree *parent);
-freeParseTreeNode(PTree *pTree);
-freeParseTreeNode_onlychildren(PTree *pTree);
+void freeParseTreeNode(PTree *pTree);
+void freeParseTreeNode_onlychildren(PTree *pTree);
 
 PTree *extractIndependentLeftParseNodeLeaveChild(PTree *root);
 

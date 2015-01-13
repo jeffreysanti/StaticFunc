@@ -30,7 +30,7 @@ void reportError(const char *code, const char* format, ... ) {
     fprintf(stderr, "\n");
 }
 
-bool reportParseError(struct PState *ps, const char *code, const char* format, ... ) {
+bool reportParseError(void *ps, const char *code, const char* format, ... ) {
 
 	((PState*) ps)->err ++;
 

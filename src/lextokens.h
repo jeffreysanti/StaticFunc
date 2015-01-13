@@ -11,6 +11,7 @@
 #define STATICFUNC_SRC_LEXTOKENS_H_
 
 #include <string.h>
+#include <ctype.h>
 #include "io.h"
 
 typedef enum {
@@ -52,6 +53,6 @@ void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char*
 
 
 void outputLexicalTokenList(LexicalTokenList *lst);
-
+void outputToken(LexicalToken *tok);
 
 #endif /* STATICFUNC_SRC_LEXTOKENS_H_ */

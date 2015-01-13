@@ -1,9 +1,13 @@
 
-#import string;
+//#import string;
+//#typedef myclass tuple<vector<int8>, string>;
+//#typelistdef I int8, int16;
+//#typelistadd I int32, int64;
 
 
-// recursive version
-def int32 fibr(int8 n)
+// recursive version	float16 fl2(.16);
+
+def I fibr(I n)
 {
 	if(n == 1 | n == 2)
 		return 1;
@@ -11,9 +15,9 @@ def int32 fibr(int8 n)
 }
 
 // tail-recursive version
-def int32 fibt(int8 n)
+def I fibt(I n)
 {
-	def int32 aux(int8 n_cur, int32 last, int32 lastlast)
+	def I aux(I n_cur, I last, I lastlast)
 	{
 		if(n_cur == n)
 			return last + lastlast;
@@ -25,26 +29,26 @@ def int32 fibt(int8 n)
 }
 
 // iterative (mutable)
-def int32 fibi(int8 n)
+def I fibi(I n)
 {
 	if(n == 1 | n == 2)
 		return 1;
 
-	mut int32 last(1);
-	mut int32 lastlast(1);
-	for(int8 x in range(3, n))
+	mut I last(1);
+	mut I lastlast(1);
+	for(I x in range(3, n))
 	{
-		int32 tmp(last);
+		I tmp(last);
 		last = last + lastlast;
 		last = tmp;
 	}
 	return last;
 }
 
-def vector<int32> fibbs(int8 n)
+def vector<I> fibbs(I n)
 {
 	println("TestSingle");
-	return [fibt(x) for int32 x in range(1, n)];
+	return [fibt(x) for I x in range(1, n)];
 }
 
 def int32 sum(function<int32, int32> func, int32 n)

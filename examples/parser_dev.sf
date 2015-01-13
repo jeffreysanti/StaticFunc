@@ -1,14 +1,8 @@
+#typedef A int32;
+#typedef B tuple<A, int32, A>;
+#typedef C list<B>;
+#typedef B dict<string, A>;
 
 
+A x(4);
 
-
-f.func() = 4;
-
-print();
-
-def int8 myfunc(vector<int8> arg1, string arg2){
-	return lambda(string(){
-		print("hello");
-		return "123";
-	});
-}

@@ -15,6 +15,7 @@
 #include "lextokens.h"
 
 LexicalTokenList *lexicalAnalyze(FILE *fp);
+LexicalTokenList *lexicalAnalyzeString(char *s, int len);
 
 
 typedef enum {
@@ -25,138 +26,143 @@ typedef enum {
 	LT_STRING_SINGLE
 } LexicalState;
 
+typedef struct{
+	char errorStatus;
+	long cpos;
+	long clen;
+	char *fulltxt;
+	LexicalTokenList *TL;
+	long lnNo;
+} LS;
+
 #define MAX_LITERAL 1023
 
-
-#define MATCHED 1
-#define UNMATCHED 0
-
-inline char matchStringPattern(char *fulltxt, long *cpos, long clen, char *pattern)
+static bool matchStringPattern(char *fulltxt, long *cpos, long clen, char *pattern)
 {
 	if(*cpos + strlen(pattern) > clen)
-		return UNMATCHED;
+		return false;
 	int i;
 	int oldCpos = *cpos;
 	for(i=0; i<strlen(pattern); i++){
 		if(tolower(fulltxt[*cpos]) != tolower(pattern[i])){
 			*cpos = oldCpos;
-			return UNMATCHED;
+			return false;
 		}
 		(*cpos) ++;
 	}
-	return MATCHED;
+	return true;
 }
 
 
-inline char matchLineComment(char *fulltxt, long *cpos, long clen) // "//"
+static bool matchLineComment(char *fulltxt, long *cpos, long clen) // "//"
 {
 	return matchStringPattern(fulltxt, cpos, clen, "//");
 }
 
-inline char matchPreprocessor(char *fulltxt, long *cpos, long clen) // "#"
+static bool matchPreprocessor(char *fulltxt, long *cpos, long clen) // "#"
 {
 	if(fulltxt[*cpos] != '#')
-		return UNMATCHED;
+		return false;
 	(*cpos) ++;
-	return MATCHED;
+	return true;
 }
 
-inline char isNumerich(char c, char hexMatch){
+static bool isNumerich(char c, char hexMatch){
 	if(c >= '0' && c <= '9'){
-		return MATCHED;
+		return true;
 	}
-	if(hexMatch == MATCHED && ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))){
-		return MATCHED;
+	if(hexMatch == true && ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))){
+		return true;
 	}
-	return UNMATCHED;
+	return false;
 }
 
-inline char isNumeric(char c){
-	isNumerich(c, UNMATCHED);
+static bool isNumeric(char c){
+	return isNumerich(c, false);
 }
 
-inline char isAlpha(char c){
+static char isAlpha(char c){
 	if(		(c >= 'A' && c <= 'Z') ||
 			(c >= 'a' && c <= 'z') ||
 			c == '_') {
-		return MATCHED;
+		return true;
 	}
-	return UNMATCHED;
+	return false;
 }
 
-inline char matchIdentifier(char *fulltxt, long *cpos, long clen)
+static char matchIdentifier(char *fulltxt, long *cpos, long clen)
 {
 	// first character
-	if(isAlpha(fulltxt[*cpos]) == UNMATCHED)
-		return UNMATCHED;
+	if(isAlpha(fulltxt[*cpos]) == false)
+		return false;
 	(*cpos) ++;
-	while(*cpos < clen && (isAlpha(fulltxt[*cpos]) == MATCHED || isNumeric(fulltxt[*cpos]) == MATCHED)) {
+	while(*cpos < clen && (isAlpha(fulltxt[*cpos]) == true || isNumeric(fulltxt[*cpos]) == true)) {
 		(*cpos) ++;
 	}
-	return MATCHED;
+	return true;
 }
 
-inline char matchIntegerLiteral(char *fulltxt, long *cpos, long clen)
+static char matchIntegerLiteral(char *fulltxt, long *cpos, long clen)
 {
 	long cposOrig = *cpos;
 
 	// match possible preceeding negative and/or 0x
-	if(matchStringPattern(fulltxt, cpos, clen, "-") == MATCHED){
+	if(matchStringPattern(fulltxt, cpos, clen, "-") == true){
 		// make sure - not operator
 		// TODO
 	}
 	char hex = matchStringPattern(fulltxt, cpos, clen, "0x");
 
 	// now match at least one digit
-	if(isNumerich(fulltxt[*cpos], hex) == UNMATCHED){
+	if(isNumerich(fulltxt[*cpos], hex) == false){
 		*cpos = cposOrig;
-		return UNMATCHED;
+		return false;
 	}
 	(*cpos) ++;
-	while(*cpos < clen && isNumerich(fulltxt[*cpos], hex) == MATCHED) {
+	while(*cpos < clen && isNumerich(fulltxt[*cpos], hex) == true) {
 		(*cpos) ++;
 	}
-	return MATCHED;
+	return true;
 }
 
-inline char matchFloatLiteral(char *fulltxt, long *cpos, long clen)
+static bool matchFloatLiteral(char *fulltxt, long *cpos, long clen)
 {
 	long cposOrig = *cpos;
 
 	// match possible preceeding negative
 	matchStringPattern(fulltxt, cpos, clen, "-");
-	char matchedDeci = matchStringPattern(fulltxt, cpos, clen, ".");
+	char trueDeci = matchStringPattern(fulltxt, cpos, clen, ".");
 
 	// now match at least one digit
-	if(isNumeric(fulltxt[*cpos]) == UNMATCHED){
+	if(isNumeric(fulltxt[*cpos]) == false){
 		*cpos = cposOrig;
-		return UNMATCHED;
+		return false;
 	}
 	(*cpos) ++;
-	while(*cpos < clen && isNumeric(fulltxt[*cpos]) == MATCHED) {
+	while(*cpos < clen && isNumeric(fulltxt[*cpos]) == true) {
 		(*cpos) ++;
 	}
 
-	if(matchedDeci == UNMATCHED){
-		matchedDeci = matchStringPattern(fulltxt, cpos, clen, ".");
-		if(matchedDeci){
-			while(*cpos < clen && isNumeric(fulltxt[*cpos]) == MATCHED) {
+	if(trueDeci == false){
+		trueDeci = matchStringPattern(fulltxt, cpos, clen, ".");
+		if(trueDeci){
+			while(*cpos < clen && isNumeric(fulltxt[*cpos]) == true) {
 				(*cpos) ++;
 			}
 		}
 	}
 
 	// floats MUST have a decimal point to distinguish from integer
-	if(!matchedDeci){
+	if(!trueDeci){
 		*cpos = cposOrig;
-		return UNMATCHED;
+		return false;
 	}
-	return MATCHED;
+	return true;
 }
 
 
 
-inline char matchOperator(char *fulltxt, long *cpos, long clen)
+static bool matchOperator(char *fulltxt, long *cpos, long clen)
 {
 	if(		matchStringPattern(fulltxt, cpos, clen, "||") ||
 			matchStringPattern(fulltxt, cpos, clen, "&&") ||
@@ -189,11 +195,11 @@ inline char matchOperator(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "<") ||
 			matchStringPattern(fulltxt, cpos, clen, ">") ||
 			matchStringPattern(fulltxt, cpos, clen, "="))
-		return MATCHED;
-	return UNMATCHED;
+		return true;
+	return false;
 }
 
-inline char matchInlineTypes(char *fulltxt, long *cpos, long clen)
+static bool matchInlineTypes(char *fulltxt, long *cpos, long clen)
 {
 	if(		matchStringPattern(fulltxt, cpos, clen, "int64") ||
 			matchStringPattern(fulltxt, cpos, clen, "int32") ||
@@ -201,22 +207,22 @@ inline char matchInlineTypes(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "int8") ||
 			matchStringPattern(fulltxt, cpos, clen, "vector") ||
 			matchStringPattern(fulltxt, cpos, clen, "string"))
-		return MATCHED;
-	return UNMATCHED;
+		return true;
+	return false;
 }
 
-inline char matchWhiteSpace(char *fulltxt, long *cpos, long clen)
+static bool matchWhiteSpace(char *fulltxt, long *cpos, long clen)
 {
 	if(		matchStringPattern(fulltxt, cpos, clen, " ") ||
 			matchStringPattern(fulltxt, cpos, clen, "\f") ||
 			matchStringPattern(fulltxt, cpos, clen, "\r") ||
 			matchStringPattern(fulltxt, cpos, clen, "\t") ||
 			matchStringPattern(fulltxt, cpos, clen, "\v"))
-		return MATCHED;
-	return UNMATCHED;
+		return true;
+	return false;
 }
 
-inline char matchKeyword(char *fulltxt, long *cpos, long clen)
+static bool matchKeyword(char *fulltxt, long *cpos, long clen)
 {
 	if(		matchStringPattern(fulltxt, cpos, clen, "mut") ||
 			matchStringPattern(fulltxt, cpos, clen, "def") ||
@@ -231,15 +237,15 @@ inline char matchKeyword(char *fulltxt, long *cpos, long clen)
 
 		// next character must be non-alpha-numeric
 		if(isAlpha(fulltxt[*cpos]) || isNumeric(fulltxt[*cpos]))
-			return UNMATCHED;
+			return false;
 
-		return MATCHED;
+		return true;
 	}
-	return UNMATCHED;
+	return false;
 }
 
 
-inline char *extractString(char *fulltxt, long start, long end){
+static bool *extractString(char *fulltxt, long start, long end){
 	char *str = malloc((1+ end-start)*sizeof(char));
 	if(str == NULL){
 		fatalError("Out of Memory [extractString]\n");
