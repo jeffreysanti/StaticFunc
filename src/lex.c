@@ -146,13 +146,11 @@ LexicalState processPrep(LS *ls)
 		ls->cpos ++;
 		bufpos ++;
 	}
-	if(parsePreprocessor(buf, bufpos) == 0){
+	if(!parsePreprocessor(buf, bufpos)){
 		reportError("LX007", 	"Invalid preprocessor found: Line %d\n", ls->lnNo);
 		ls->errorStatus ++;
 		return LT_INIT;
 	}
-
-	ls->cpos ++;
 	return LT_INIT;
 }
 

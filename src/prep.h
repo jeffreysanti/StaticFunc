@@ -14,8 +14,9 @@
 #include <string.h>
 #include "lex.h"
 #include "parse.h"
+#include "io.h"
 
-char parsePreprocessor(char *str, int len);
+bool parsePreprocessor(char *str, int len);
 
 
 #endif /* STATICFUNC_SRC_PREP_H_ */

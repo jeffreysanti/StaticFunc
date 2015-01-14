@@ -1,7 +1,14 @@
 #typedef A int32;
-#typedef B tuple<A, int32, A>;
-#typedef C list<B>;
-#typedef B dict<string, A>;
+#typedef X mut int32;
+#typedef B tuple<A, int32:named, A>;
+#typedef C vector<A>;
+//#typedef B dict<string, A>;
+
+
+#typedef funcptr function<void, int8>;
+
+#typelistadd INT int8,int32,int16,int64;
+#typelistadd INT string, int32;
 
 
 A x(4);

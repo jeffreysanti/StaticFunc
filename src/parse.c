@@ -68,6 +68,75 @@ PTree *parseTypeDef(LexicalTokenList *TL)
 	return root;
 }
 
+int parseTypeList(LexicalTokenList *TL, PTree ** ret)
+{
+	int cnt = 1;
+	LexicalToken *tk = TL->first;
+	while(tk->next != NULL){
+		if(tk->typ == LT_OP && strcmp(tk->extra, ",")==0)
+			cnt ++;
+		tk = (LexicalToken*)tk->next;
+	}
+	*ret = malloc(cnt*sizeof(PTree));
+	PState *ps = preParse(TL);
+
+	if(!termIdentifier(ps)){
+		freeLexicalTokenList(TL);
+		free(ps);
+		free(*ret);
+		return 0;
+	}
+	if(!prodDeclType(ps)){
+		freeLexicalTokenList(TL);
+		free(ps);
+		free(*ret);
+		return 0;
+	}
+	memcpy(&(*ret)[0], ps->child, sizeof(PTree));
+	free(ps->child);
+	ps->child = NULL;
+
+	int i = 1;
+	while(i < cnt){
+		if(!termComma(ps) || !prodDeclType(ps)){
+			int x;
+			for(x = 0; x<i; x++){
+				freeParseTreeNode_onlychildren(&((*ret)[x]));
+			}
+			freeLexicalTokenList(TL);
+			free(*ret);
+			free(ps);
+			return 0;
+		}
+		memcpy(&(*ret)[i], ps->child, sizeof(PTree));
+		free(ps->child);
+		ps->child = NULL;
+		i++;
+	}
+	if(!termStmtEnd(ps)){
+		freeLexicalTokenList(TL);
+		for(i=0; i<cnt; i++){
+			freeParseTreeNode_onlychildren(&((*ret)[i]));
+		}
+		free(ps);
+		free(*ret);
+		return 0;
+	}
+
+	// is anything left
+	if(ps->token->typ != LT_EOF){
+		freeLexicalTokenList(TL);
+		for(i=0; i<cnt; i++){
+			freeParseTreeNode_onlychildren(&((*ret)[i]));
+		}
+		free(ps);
+		free(*ret);
+		return 0;
+	}
+	free(ps);
+	return cnt;
+}
+
 // Terminators
 bool termMul(PState *ps){
 	bool ret = (ps->token->typ == LT_OP && strcmp(ps->token->extra, "*")==0);

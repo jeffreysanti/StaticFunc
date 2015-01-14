@@ -192,6 +192,29 @@ void dumpParseTree(PTree *root, int level)
 }
 
 
+void dumpParseTreeDet(PTree *root, int level)
+{
+	int i;
+	for(i=0; i<level; i++){
+		printf("  ");
+	}
+	if(root == NULL){
+		printf("NULL\n");
+		return;
+	}
+
+	if(root->tok != NULL){
+		printf("{%d} ", root->typ);
+		outputToken((LexicalToken*)root->tok);
+		printf("\n");
+	}else{
+		printf("{%d} ??\n", root->typ);
+	}
+
+	dumpParseTreeDet((PTree*)root->child1, level+1);
+	dumpParseTreeDet((PTree*)root->child2, level+1);
+}
+
 
 
 
