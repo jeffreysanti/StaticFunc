@@ -35,12 +35,14 @@ typedef enum{
 	TB_SET,
 	TB_FUNCTION,
 
+	TB_TYPELIST,
 	TB_ERROR
 }TypeBase;
 
 typedef struct{
 	TypeBase base;
 	bool mutable;
+	bool hasTypeListParam;
 
 	int numchildren;
 	struct Type *children;
@@ -80,11 +82,17 @@ void registerType(char *nm, Type t);
 void allocTypeChildren(Type *in, int n);
 
 Type duplicateType(Type typ);
+Type substituteTypeTemplate(Type typ, Type temp);
 
-Type deduceType(PTree *t);
 
+Type deduceTypeDeclType(PTree *t);
+
+TypeList getTypeListByName(char *nm);
 
 void addToTypeList(char *list, Type t);
+bool isTypeList(char *list);
+
+char *getDeclTypeListName(PTree *t);
 
 
 

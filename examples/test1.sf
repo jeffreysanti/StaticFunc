@@ -1,9 +1,8 @@
 
 //#import string;
-//#typedef myclass tuple<vector<int8>, string>;
-//#typelistdef I int8, int16;
-//#typelistadd I int32, int64;
-
+#typelistadd I int8, int16;
+#typelistadd I int32, int64;
+#typelistadd X int32, int64;
 
 // recursive version	float16 fl2(.16);
 
@@ -45,7 +44,7 @@ def I fibi(I n)
 	return last;
 }
 
-def vector<I> fibbs(I n)
+def vector<X> fibbs(X n)
 {
 	println("TestSingle");
 	return [fibt(x) for I x in range(1, n)];
@@ -59,7 +58,10 @@ def int32 sum(function<int32, int32> func, int32 n)
 		return func(n) + sum(func, n - 1);
 }
 
-
+def tuple<int8, int16, int32, X, vector<X>> T()
+{
+	return 0;
+}
 
 def int32 main(vector<string> args)
 {

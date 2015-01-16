@@ -17,7 +17,7 @@
 #define ENTER(x) printf("Entered %s\n", x);
 #define EXIT(x, y) { if(y) printf("CONFIRMED %s\n", x); else printf("Exited %s\n", x); return y; }
 
-void parse(LexicalTokenList *TL);
+PTree *parse(LexicalTokenList *TL);
 PTree *parseTypeDef(LexicalTokenList *TL);
 int parseTypeList(LexicalTokenList *TL, PTree ** ret);
 

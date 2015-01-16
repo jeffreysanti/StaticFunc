@@ -10,6 +10,19 @@
 #typelistadd INT int8,int32,int16,int64;
 #typelistadd INT string, int32;
 
+int8 x(4);
+int8 y(16);
 
-A x(4);
+def INT fibr(INT n, bool stop)
+{
+	if(n == 1 | n == 2)
+		return 1;
+	return fib(n - 1) + fib(n - 2);
+}
 
+def int32 fibx(int32 n)
+{
+	return n;
+}
+
+int32 a(fibr(8));

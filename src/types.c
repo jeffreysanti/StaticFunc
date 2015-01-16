@@ -87,6 +87,7 @@ Type newBasicType(TypeBase typ)
 	t.numchildren = 0;
 	t.children = NULL;
 	t.altName = NULL;
+	t.hasTypeListParam = false;
 	return t;
 }
 
@@ -127,6 +128,7 @@ Type duplicateType(Type typ)
 	ret.mutable = typ.mutable;
 	ret.numchildren = typ.numchildren;
 	ret.altName = NULL;
+	ret.hasTypeListParam = typ.hasTypeListParam;
 	if(ret.numchildren > 0){
 		ret.children = malloc(ret.numchildren * sizeof(Type));
 		if(ret.children == NULL){
@@ -148,14 +150,32 @@ Type duplicateType(Type typ)
 	return ret;
 }
 
+Type substituteTypeTemplate(Type typ, Type temp)
+{
+	if(typ.base == TB_TYPELIST)
+		return temp;
+	Type ret = typ;
+	if(ret.numchildren > 0){
+		int i;
+		for(i=0; i<ret.numchildren; i++){
+			Type *ptr = (Type*)ret.children + i;
+			*ptr = substituteTypeTemplate(((Type*)typ.children)[i], temp);
+		}
+	}
+	return ret;
+}
+
 inline void paramFailed(PTree* t){
 	reportError("TS004", "Parameter Type Failed: Line %ld", t->tok->lineNo);
 }
 inline void paramVoid(PTree* t){
 	reportError("TS006", "Parameter Type Cannot Be Void: Line %ld", t->tok->lineNo);
 }
+inline void paramMultTypLists(PTree* t){
+	reportError("TS012", "Type cannot have multiple different type list params: Line %ld", t->tok->lineNo);
+}
 
-Type deduceType(PTree *t)
+Type deduceTypeDeclType(PTree *t)
 {
 	TypeStringMapEnt *ent;
 
@@ -186,7 +206,7 @@ Type deduceType(PTree *t)
 		int i;
 		for(i=0; i<numElms; i++){
 			treePtr = (PTree*)treePtr->child2;
-			((Type*)ret.children)[i] = deduceType((PTree*)treePtr->child1);
+			((Type*)ret.children)[i] = deduceTypeDeclType((PTree*)treePtr->child1);
 			if(((Type*)ret.children)[i].base == TB_ERROR){
 				paramFailed(t);
 				freeType(ret);
@@ -198,11 +218,15 @@ Type deduceType(PTree *t)
 				freeType(ret);
 				return newBasicType(TB_ERROR);
 			}
+			if(((Type*)ret.children)[i].base == TB_TYPELIST || ((Type*)ret.children)[i].hasTypeListParam){
+				ret.hasTypeListParam = true;
+			}
 		}
 		return ret;
 	}else if(strcmp(ident, "tuple") == 0){
 		int numElms = 0;
 		PTree *treePtr = t;
+		char *typelistTempName = NULL;
 		while(treePtr->child2 != NULL){
 			numElms ++;
 			treePtr = (PTree*)treePtr->child2;
@@ -217,7 +241,7 @@ Type deduceType(PTree *t)
 		int i;
 		for(i=0; i<numElms; i++){
 			treePtr = (PTree*)treePtr->child2;
-			((Type*)ret.children)[i] = deduceType((PTree*)treePtr->child1);
+			((Type*)ret.children)[i] = deduceTypeDeclType((PTree*)treePtr->child1);
 			if(((Type*)ret.children)[i].base == TB_ERROR){
 				paramFailed(t);
 				freeType(ret);
@@ -227,6 +251,16 @@ Type deduceType(PTree *t)
 				paramVoid(t);
 				freeType(ret);
 				return newBasicType(TB_ERROR);
+			}
+			if(((Type*)ret.children)[i].base == TB_TYPELIST || ((Type*)ret.children)[i].hasTypeListParam){
+				if(typelistTempName != NULL &&
+						strcmp(typelistTempName, getDeclTypeListName((PTree*)treePtr->child1)) != 0){
+					paramMultTypLists(t);
+					freeType(ret);
+					return newBasicType(TB_ERROR);
+				}
+				ret.hasTypeListParam = true;
+				typelistTempName = getDeclTypeListName((PTree*)treePtr->child1);
 			}
 			if(treePtr->tok != NULL){ // named param
 				ret.altName = malloc(strlen((char*)treePtr->tok->extra) + 1);
@@ -247,8 +281,8 @@ Type deduceType(PTree *t)
 			freeType(ret);
 			return newBasicType(TB_ERROR);
 		}
-		((Type*)ret.children)[0] = deduceType((PTree*)((PTree*)t->child2)->child1);
-		((Type*)ret.children)[1] = deduceType((PTree*)((PTree*)((PTree*)t->child2)->child2)->child1);
+		((Type*)ret.children)[0] = deduceTypeDeclType((PTree*)((PTree*)t->child2)->child1);
+		((Type*)ret.children)[1] = deduceTypeDeclType((PTree*)((PTree*)((PTree*)t->child2)->child2)->child1);
 		if(((Type*)ret.children)[0].base == TB_ERROR || ((Type*)ret.children)[1].base == TB_ERROR){
 			paramFailed(t);
 			freeType(ret);
@@ -258,6 +292,19 @@ Type deduceType(PTree *t)
 			paramVoid(t);
 			freeType(ret);
 			return newBasicType(TB_ERROR);
+		}
+		if(((Type*)ret.children)[0].base == TB_TYPELIST || ((Type*)ret.children)[0].hasTypeListParam ||
+				((Type*)ret.children)[1].base == TB_TYPELIST || ((Type*)ret.children)[1].hasTypeListParam){
+			// make sure they aren't different
+			if(((Type*)ret.children)[0].hasTypeListParam && ((Type*)ret.children)[1].hasTypeListParam){
+				if(strcmp(getDeclTypeListName((PTree*)((PTree*)t->child2)->child1),
+						getDeclTypeListName((PTree*)((PTree*)((PTree*)t->child2)->child2)->child1)) != 0){
+					paramMultTypLists(t);
+					freeType(ret);
+					return newBasicType(TB_ERROR);
+				}
+			}
+			ret.hasTypeListParam = true;
 		}
 		return ret;
 	}else if(strcmp(ident, "vector") == 0 || strcmp(ident, "set") == 0){
@@ -270,7 +317,7 @@ Type deduceType(PTree *t)
 			freeType(ret);
 			return newBasicType(TB_ERROR);
 		}
-		((Type*)ret.children)[0] = deduceType((PTree*)((PTree*)t->child2)->child1);
+		((Type*)ret.children)[0] = deduceTypeDeclType((PTree*)((PTree*)t->child2)->child1);
 		if((*((Type*)ret.children)).base == TB_ERROR){
 			paramFailed(t);
 			freeType(ret);
@@ -280,6 +327,9 @@ Type deduceType(PTree *t)
 			paramVoid(t);
 			freeType(ret);
 			return newBasicType(TB_ERROR);
+		}
+		if((*((Type*)ret.children)).base == TB_TYPELIST || (*((Type*)ret.children)).hasTypeListParam){
+			ret.hasTypeListParam = true;
 		}
 		return ret;
 	}
@@ -294,6 +344,15 @@ Type deduceType(PTree *t)
 		if(mutable) ret.mutable = true;
 		return ret;
 	}
+	// attempt to find if this is a type list
+	TypeListStringMapEnt *enttl;
+	HASH_FIND_STR(TLM, (char*)t->tok->extra, enttl);
+	if(enttl){ // already exists -> add to linked list
+		Type ret = newBasicType(TB_TYPELIST);
+		ret.hasTypeListParam = true;
+		return ret;
+	}
+
 	reportError("TS002", "Unrecognized Type: Line %ld", t->tok->lineNo);
 	return newBasicType(TB_ERROR);
 }
@@ -349,6 +408,40 @@ void addToTypeList(char *list, Type t)
 		ent->TL.next = NULL;
 		HASH_ADD_KEYPTR(hh, TLM, ent->typeListName, strlen(str), ent);
 	}
+}
+
+TypeList getTypeListByName(char *nm)
+{
+	TypeListStringMapEnt *enttl;
+	HASH_FIND_STR(TLM, nm, enttl);
+	if(enttl){ // already exists -> add to linked list
+		return enttl->TL;
+	}
+	fatalError("getTypeListByName: nm Does Not Exist: Logic Error\n");
+	TypeList def;
+	return def;
+}
+
+char *getDeclTypeListName(PTree *t)
+{
+	// try base case
+	Type base = deduceTypeDeclType(t);
+	if(base.base == TB_TYPELIST){
+		freeType(base);
+		return (char*)t->tok->extra;
+	}
+	PTree *treePtr = t;
+	int i;
+	for(i=0; i<base.numchildren; i++){
+		treePtr = (PTree*)treePtr->child2;
+		char *tmp = getDeclTypeListName((PTree*)treePtr->child1);
+		if(tmp != NULL){
+			freeType(base);
+			return tmp;
+		}
+	}
+	freeType(base);
+	return NULL;
 }
 
 

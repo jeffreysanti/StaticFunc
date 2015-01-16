@@ -10,7 +10,7 @@
 #include "parse.h"
 
 
-void parse(LexicalTokenList *TL)
+PTree *parse(LexicalTokenList *TL)
 {
 	PState *ps = preParse(TL);
 
@@ -18,7 +18,7 @@ void parse(LexicalTokenList *TL)
 		reportError("PS002", 	"Parse is not statement block\n");
 		freeLexicalTokenList(TL);
 		free(ps);
-		return;
+		return NULL;
 	}
 
 	ps->root = ps->child;
@@ -28,13 +28,12 @@ void parse(LexicalTokenList *TL)
 		reportError("PS004", 	"Remaining Tokens Not Parsed\n");
 		freeLexicalTokenList(TL);
 		free(ps);
-		return;
+		return NULL;
 	}
 
-	dumpParseTree(ps->root, 0);
-
-	freeParseTreeNode(ps->root);
+	PTree *ret = ps->root;
 	free(ps);
+	return ret;
 }
 
 PTree *parseTypeDef(LexicalTokenList *TL)

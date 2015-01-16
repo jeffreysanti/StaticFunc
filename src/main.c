@@ -17,6 +17,7 @@
 #include "parse.h"
 #include "io.h"
 #include "types.h"
+#include "functions.h"
 
 int main(int argc, char **argv){
 
@@ -29,6 +30,7 @@ int main(int argc, char **argv){
 	}
 
 	initTypeSystem();
+	initFunctionSystem();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -41,13 +43,22 @@ int main(int argc, char **argv){
 		outputLexicalTokenList(T);
 
 		// now parse
-		parse(T);
+		PTree *tree = parse(T);
+		if(tree != NULL){
+			//dumpParseTree(tree, 0);
+
+			seperateFunctionsFromParseTree(tree);
+
+			dumpParseTreeDet(tree, 0);
+
+			freeParseTreeNode(tree);
+		}
 
 		freeLexicalTokenList(T);
 	}
 
 	freeTypeSystem();
-
+	freeFunctionSystem();
 
 
 	return EXIT_SUCCESS;

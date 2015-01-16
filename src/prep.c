@@ -38,8 +38,8 @@ bool parsePreprocessor(char *str, int len)
 			return false;
 		}
 		LexicalToken *tokNm = T->first;
-		Type typ = deduceType(P);
-		if(typ.base == TB_ERROR){
+		Type typ = deduceTypeDeclType(P);
+		if(typ.base == TB_ERROR || typ.base == TB_TYPELIST){
 			freeLexicalTokenList(T);
 			freeParseTreeNode(P);
 			errTypeDed();
@@ -72,8 +72,8 @@ bool parsePreprocessor(char *str, int len)
 		LexicalToken *tokNm = T->first;
 		int i;
 		for(i=0; i<cnt; i++){
-			Type typ = deduceType(&(treeArr[i]));
-			if(typ.base == TB_ERROR){
+			Type typ = deduceTypeDeclType(&(treeArr[i]));
+			if(typ.base == TB_ERROR || typ.base == TB_TYPELIST){
 				freeParseTreeNode(&(treeArr[0])); // frees all (all in one block)
 				freeLexicalTokenList(T);
 				errTypeDed();
