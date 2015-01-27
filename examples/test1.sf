@@ -89,3 +89,7 @@ def int32 main(vector<string> args)
 	return 0;
 }
 
+int32 glob(35 + 456 / 3.0);
+
+return main(_args);
+

@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+
 typedef char bool;
 #define true 1
 #define false 0
@@ -22,6 +23,7 @@ typedef char bool;
 extern void fatalError(const char* format, ... );
 extern void reportError(const char *code, const char* format, ... );
 extern bool reportParseError(void *ps, const char *code, const char* format, ... );
-
+void errShowType(const char* prefix, void *typ);
+void errShowTypeStr(const char* prefix, const char *str);
 
 #endif /* STATICFUNC_SRC_IO_H_ */

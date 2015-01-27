@@ -94,7 +94,10 @@ bool isTypeList(char *list);
 
 char *getDeclTypeListName(PTree *t);
 
+Type getProgramReturnType();
 
+
+char *getTypeAsString(Type t);
 
 
 #endif /* STATICFUNC_SRC_TYPES_H_ */

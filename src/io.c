@@ -9,7 +9,7 @@
 
 #include "io.h"
 #include "parse.h"
-
+#include "types.h"
 
 void fatalError( const char* format, ... ) {
 	fprintf(stderr, "FATAL: ");
@@ -42,4 +42,15 @@ bool reportParseError(void *ps, const char *code, const char* format, ... ) {
 
     fprintf(stderr, "\n");
     return false;
+}
+
+void errShowType(const char* prefix, void * typ) {
+	fprintf(stderr, "\t  %s", prefix);
+	char *t = getTypeAsString(*((Type*)typ));
+	fprintf(stderr, "%s\n", t);
+	free(t);
+}
+
+void errShowTypeStr(const char* prefix, const char *str) {
+	fprintf(stderr, "\t  %s%s\n", prefix, str);
 }

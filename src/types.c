@@ -12,6 +12,8 @@
 TypeStringMapEnt *TM = NULL;
 TypeListStringMapEnt *TLM = NULL;
 
+Type TprogRet;
+
 void initTypeSystem()
 {
 	registerType("int8", newBasicType(TB_NATIVE_INT8));
@@ -25,6 +27,15 @@ void initTypeSystem()
 	registerType("char", newBasicType(TB_NATIVE_CHAR));
 	registerType("bool", newBasicType(TB_NATIVE_BOOL));
 	registerType("string", newBasicType(TB_NATIVE_STRING));
+
+	TprogRet = newBasicType(TB_FUNCTION);
+	allocTypeChildren(&TprogRet, 1);
+	((Type*)TprogRet.children)[0] = newBasicType(TB_NATIVE_INT32);
+}
+
+Type getProgramReturnType()
+{
+	return TprogRet;
 }
 
 void freeTypeList(TypeList t)
@@ -53,6 +64,8 @@ void freeTypeSystem()
 		freeTypeList(entlist->TL);
 		free(entlist);
 	}
+
+	freeType(TprogRet);
 }
 
 void freeType(Type t)
@@ -444,5 +457,106 @@ char *getDeclTypeListName(PTree *t)
 	return NULL;
 }
 
+
+/*TB_NATIVE_INT8,
+	TB_NATIVE_INT16,
+	TB_NATIVE_INT32,
+	TB_NATIVE_INT64,
+
+	TB_NATIVE_FLOAT32,
+	TB_NATIVE_FLOAT64,
+
+	TB_NATIVE_BOOL,
+	TB_NATIVE_CHAR,
+	TB_NATIVE_STRING,
+
+	TB_NATIVE_VOID,
+
+	TB_VECTOR,
+	TB_DICT,
+	TB_TUPLE,
+	TB_SET,
+	TB_FUNCTION,
+
+	TB_TYPELIST,
+	TB_ERROR*/
+
+char *getTypeAsString(Type t)
+{
+	int len = 0;
+	if(t.mutable)
+		len += 4;
+	if(t.base == TB_NATIVE_INT16 || t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64)
+		len += 5;
+	if(t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64)
+		len += 7;
+	if(t.base == TB_NATIVE_BOOL || t.base == TB_NATIVE_CHAR || t.base == TB_NATIVE_VOID)
+		len += 4;
+	if(t.base == TB_VECTOR)
+		len += 6;
+	if(t.base == TB_DICT)
+		len += 4;
+	if(t.base == TB_TUPLE)
+		len += 5;
+	if(t.base == TB_SET)
+		len += 3;
+	if(t.base == TB_FUNCTION)
+		len += 8;
+	if(len == 0){
+		char *ret = malloc(3*sizeof(char));
+		strcpy(ret, "???");
+		return ret;
+	}
+	if(t.numchildren > 0){
+		len += 2;
+		len += t.numchildren - 1; // commas
+		int i;
+		for(i=0; i<t.numchildren; i++){
+			char *tmp = getTypeAsString(((Type*)t.children)[i]);
+			len += strlen(tmp);
+			free(tmp);
+		}
+	}
+	if(t.altName != NULL){
+		len += 1; // colon
+		len += strlen(t.altName);
+	}
+	char *ret = calloc(len+1, sizeof(char));
+	char *ptr = ret;
+	if(t.mutable) { strcpy(ptr, "mut "); ptr += 4; }
+	if(t.base == TB_NATIVE_INT16) { strcpy(ptr, "int16"); ptr += 5; }
+	if(t.base == TB_NATIVE_INT32) { strcpy(ptr, "int32"); ptr += 5; }
+	if(t.base == TB_NATIVE_INT64) { strcpy(ptr, "int64"); ptr += 5; }
+	if(t.base == TB_NATIVE_FLOAT32) { strcpy(ptr, "float32"); ptr += 7; }
+	if(t.base == TB_NATIVE_FLOAT64) { strcpy(ptr, "float64"); ptr += 7; }
+	if(t.base == TB_NATIVE_BOOL) { strcpy(ptr, "bool"); ptr += 4; }
+	if(t.base == TB_NATIVE_CHAR) { strcpy(ptr, "char"); ptr += 4; }
+	if(t.base == TB_NATIVE_VOID) { strcpy(ptr, "void"); ptr += 4; }
+	if(t.base == TB_VECTOR) { strcpy(ptr, "vector"); ptr += 6; }
+	if(t.base == TB_DICT) { strcpy(ptr, "dict"); ptr += 4; }
+	if(t.base == TB_TUPLE) { strcpy(ptr, "tuple"); ptr += 5; }
+	if(t.base == TB_SET) { strcpy(ptr, "void"); ptr += 3; }
+	if(t.base == TB_FUNCTION) { strcpy(ptr, "function"); ptr += 8; }
+
+	if(t.numchildren > 0){
+		strcpy(ptr, "<"); ptr += 1;
+		int i;
+		for(i=0; i<t.numchildren; i++){
+			if(i>0){
+				strcpy(ptr, ","); ptr += 1;
+			}
+			char *tmp = getTypeAsString(((Type*)t.children)[i]);
+			strcpy(ptr, tmp); ptr += strlen(tmp);
+			free(tmp);
+		}
+		strcpy(ptr, ">"); ptr += 1;
+	}
+	if(t.altName != NULL){
+		strcpy(ptr, ":"); ptr += 1;
+		strcpy(ptr, t.altName); ptr += strlen(t.altName);
+	}
+
+	return ret;
+}
 
 

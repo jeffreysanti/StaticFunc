@@ -216,6 +216,28 @@ void dumpParseTreeDet(PTree *root, int level)
 }
 
 
+void cleanUpEmptyStatments(PTree **ptr)
+{
+	PTree *root = *ptr;
+	if(root == NULL)
+		return;
+	if(root->child2 == NULL)
+		return;
+	if(root->typ != PTT_STMTBLOCK){
+		cleanUpEmptyStatments((PTree**)&(root->child1));
+		cleanUpEmptyStatments((PTree**)&(root->child2));
+		return;
+	}
+	if(root->child1 == NULL){
+		PTree *next = (PTree*)root->child2;
+		next->parent = NULL;
+		root->child2 = NULL;
+		cleanUpEmptyStatments(&next);
+		*ptr = next;
+		freeParseTreeNode(root);
+	}
+}
+
 
 
 

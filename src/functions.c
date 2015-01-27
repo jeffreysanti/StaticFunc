@@ -71,7 +71,7 @@ FunctionVersion *newFunctionVersion(FunctionVersion *parent)
 	ret->defRoot = NULL;
 	ret->next = NULL;
 	ret->performReplacement = false;
-	ret->used = false;
+	ret->stat = FS_LISTED;
 	ret->sig = newBasicType(TB_NATIVE_VOID);
 	if(parent != NULL){
 		parent->next = (void*)ret;

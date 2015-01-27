@@ -18,6 +18,7 @@
 #include "io.h"
 #include "types.h"
 #include "functions.h"
+#include "funcAnaly.h"
 
 int main(int argc, char **argv){
 
@@ -48,8 +49,11 @@ int main(int argc, char **argv){
 			//dumpParseTree(tree, 0);
 
 			seperateFunctionsFromParseTree(tree);
+			cleanUpEmptyStatments(&tree);
 
 			dumpParseTreeDet(tree, 0);
+
+			semAnalyFunc(tree, true, getProgramReturnType());
 
 			freeParseTreeNode(tree);
 		}
@@ -57,6 +61,7 @@ int main(int argc, char **argv){
 		freeLexicalTokenList(T);
 	}
 
+	freeOrResetScopeSystem();
 	freeTypeSystem();
 	freeFunctionSystem();
 

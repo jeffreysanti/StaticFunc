@@ -96,5 +96,7 @@ void setParseNodeChild(PTree *parent, PTree *child, ParseChild side);
 void dumpParseTree(PTree *root, int level);
 void dumpParseTreeDet(PTree *root, int level);
 
+void cleanUpEmptyStatments(PTree **ptr);
+
 
 #endif /* STATICFUNC_SRC_PARSETREE_H_ */

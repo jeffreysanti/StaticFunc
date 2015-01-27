@@ -13,11 +13,18 @@
 #include "parsetree.h"
 #include "types.h"
 
+typedef enum{
+	FS_LISTED,
+	FS_CALLED,
+	FS_CHECKED,
+	FS_CODEGEN
+} FunctionStatus;
+
 typedef struct{
 	PTree *defRoot;
 	Type sig;
 	bool performReplacement;
-	bool used;
+	FunctionStatus stat;
 	struct FunctionVersion *next;
 }FunctionVersion;
 
