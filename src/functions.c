@@ -12,6 +12,7 @@
 NamedFunctionMapEnt *NFM = NULL;
 PTreeFreeList *FL = NULL;
 
+int lastid = 1;
 
 void initFunctionSystem()
 {
@@ -73,8 +74,10 @@ FunctionVersion *newFunctionVersion(FunctionVersion *parent)
 	ret->performReplacement = false;
 	ret->stat = FS_LISTED;
 	ret->sig = newBasicType(TB_NATIVE_VOID);
+	ret->verid = 1;
 	if(parent != NULL){
 		parent->next = (void*)ret;
+		ret->verid = parent->verid + 1;
 	}
 	return ret;
 }
@@ -101,6 +104,8 @@ FunctionVersion *newFunctionVersionByName(char *nm)
 	}
 	ent->funcName = nmcpy;
 	ent->V = newFunctionVersion(NULL);
+	ent->nameid = lastid;
+	lastid ++;
 	HASH_ADD_KEYPTR(hh, NFM, ent->funcName, strlen(ent->funcName), ent);
 	return (FunctionVersion*)ent->V;
 }
@@ -217,4 +222,12 @@ void seperateFunctionsFromParseTree(PTree *root)
 		}
 		root = (PTree*)root->child2;
 	}
+}
+
+
+NamedFunctionMapEnt *getFunctionVersions(char *nm)
+{
+	NamedFunctionMapEnt  *ent;
+	HASH_FIND_STR(NFM, nm, ent);
+	return ent;
 }

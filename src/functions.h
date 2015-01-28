@@ -24,12 +24,14 @@ typedef struct{
 	PTree *defRoot;
 	Type sig;
 	bool performReplacement;
+	int verid;
 	FunctionStatus stat;
 	struct FunctionVersion *next;
 }FunctionVersion;
 
 typedef struct{
 	char *funcName;
+	int nameid;
 	FunctionVersion *V;
 	UT_hash_handle hh;
 }NamedFunctionMapEnt;
@@ -51,5 +53,8 @@ void freeFunctionSystem();
 void seperateFunctionsFromParseTree(PTree *root);
 
 void addTreeToFreeList(PTree *root);
+
+NamedFunctionMapEnt *getFunctionVersions(char *nm);
+
 
 #endif /* STATICFUNC_SRC_FUNCTIONS_H_ */

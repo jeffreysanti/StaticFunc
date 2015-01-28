@@ -19,9 +19,11 @@ typedef enum{
 	TB_NATIVE_INT16,
 	TB_NATIVE_INT32,
 	TB_NATIVE_INT64,
+	TB_ANY_INT,
 
 	TB_NATIVE_FLOAT32,
 	TB_NATIVE_FLOAT64,
+	TB_ANY_FLOAT,
 
 	TB_NATIVE_BOOL,
 	TB_NATIVE_CHAR,
@@ -76,6 +78,8 @@ void freeTypeList(TypeList t);
 Type newBasicType(TypeBase typ);
 bool typesEqual(Type t1, Type t2);
 
+bool typesEqualMostly(Type t1, Type t2);
+
 bool isTypeRegistered(char *nm);
 void registerType(char *nm, Type t);
 
@@ -86,6 +90,7 @@ Type substituteTypeTemplate(Type typ, Type temp);
 
 
 Type deduceTypeDeclType(PTree *t);
+Type deduceTypeExpr(PTree *t);
 
 TypeList getTypeListByName(char *nm);
 

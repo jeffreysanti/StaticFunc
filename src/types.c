@@ -369,7 +369,20 @@ Type deduceTypeDeclType(PTree *t)
 	reportError("TS002", "Unrecognized Type: Line %ld", t->tok->lineNo);
 	return newBasicType(TB_ERROR);
 }
-
+/*
+Type deduceTypeExpr(PTree *t)
+{
+	if(t == NULL){
+		reportError("TS020", "Type Is Undeducable");
+		return newBasicType(TB_ERROR);
+	}
+	if(t->typ == PTT_INT){
+		return newBasicType(TB_ANY_INT);
+	}if(t->typ == PTT_FLOAT){
+		return newBasicType(TB_ANY_FLOAT);
+	}
+}
+*/
 bool typesEqual(Type t1, Type t2)
 {
 	if(t1.base != t2.base) return false;
@@ -381,6 +394,29 @@ bool typesEqual(Type t1, Type t2)
 		int i;
 		for(i=0; i<t1.numchildren; i++){
 			if(!typesEqual(((Type*)t1.children)[i], ((Type*)t2.children)[i])) return false;
+		}
+	}
+	return true;
+}
+
+// does not care if metadata(typename/flags) match, and supports lazy numeric types
+bool typesEqualMostly(Type t1, Type t2)
+{
+	if(t1.base != t2.base){
+		if((t1.base == TB_ANY_INT && (t2.base == TB_NATIVE_INT8 || t2.base == TB_NATIVE_INT16 || t2.base == TB_NATIVE_INT32 || t2.base == TB_NATIVE_INT64)) ||
+				(t1.base == TB_ANY_FLOAT && (t2.base == TB_NATIVE_FLOAT32 || t2.base == TB_NATIVE_FLOAT64)) ||
+				(t2.base == TB_ANY_INT && (t1.base == TB_NATIVE_INT8 || t1.base == TB_NATIVE_INT16 || t1.base == TB_NATIVE_INT32 || t1.base == TB_NATIVE_INT64)) ||
+				(t2.base == TB_ANY_FLOAT && (t1.base == TB_NATIVE_FLOAT32 || t1.base == TB_NATIVE_FLOAT64))){
+			// acceptable
+		}else{
+			return false;
+		}
+	}
+	if(t1.numchildren != t2.numchildren) return false;
+	if(t1.numchildren > 0){
+		int i;
+		for(i=0; i<t1.numchildren; i++){
+			if(!typesEqualMostly(((Type*)t1.children)[i], ((Type*)t2.children)[i])) return false;
 		}
 	}
 	return true;
