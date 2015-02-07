@@ -12,6 +12,7 @@
 
 #include "parsetree.h"
 #include "types.h"
+#include "uthash/utarray.h"
 
 typedef enum{
 	FS_LISTED,
@@ -28,6 +29,7 @@ typedef struct{
 	FunctionStatus stat;
 	struct FunctionVersion *next;
 }FunctionVersion;
+extern UT_icd FunctionVersion_icd;
 
 typedef struct{
 	char *funcName;
@@ -55,6 +57,9 @@ void seperateFunctionsFromParseTree(PTree *root);
 void addTreeToFreeList(PTree *root);
 
 NamedFunctionMapEnt *getFunctionVersions(char *nm);
+
+void markFunctionVersionUsed(FunctionVersion *fver);
+FunctionVersion *markFirstUsedVersionChecked();
 
 
 #endif /* STATICFUNC_SRC_FUNCTIONS_H_ */

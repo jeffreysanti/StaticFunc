@@ -41,7 +41,7 @@ int main(int argc, char **argv){
 	fclose(fp);
 
 	if(T != NULL){
-		outputLexicalTokenList(T);
+		//outputLexicalTokenList(T);
 
 		// now parse
 		PTree *tree = parse(T);
@@ -51,7 +51,7 @@ int main(int argc, char **argv){
 			seperateFunctionsFromParseTree(tree);
 			cleanUpEmptyStatments(&tree);
 
-			dumpParseTreeDet(tree, 0);
+			//dumpParseTreeDet(tree, 0);
 
 			semAnalyFunc(tree, true, getProgramReturnType());
 

@@ -89,8 +89,7 @@ bool semAnalyExpr(PTree *root, Type expect, bool silent)
 					param = (PTree*)param->child2;
 				}
 				if(found && pNo == ver->sig.numchildren - 1){
-					// mark used
-					printf("FUNCTION USED!!!!\n"); // TODO
+					markFunctionVersionUsed(ver); // mark used
 					return true;
 				}
 			}
@@ -149,8 +148,15 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	int errs = 0;
 	PTree *body = root;
 	if(!global){
-		/// ...
 		enterScope();
+		// need to push locals onto stack
+		dumpParseTreeDet(root, 0);
+		int i;
+		for(i=1; i<sig.numchildren; i++){
+
+		}
+
+
 	}else{
 		enterGlobalSpace();
 	}
@@ -167,5 +173,16 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	}
 	if(errs > 0)
 		return false;
+
+	if(global){
+		bool ret = true;
+		while(true){
+			FunctionVersion *v = markFirstUsedVersionChecked();
+			if(v == NULL)
+				return ret;
+			semAnalyFunc(v->defRoot, false, v->sig);
+		}
+		printf("DONE!");
+	}
 	return true;
 }

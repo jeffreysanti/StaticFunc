@@ -9,14 +9,18 @@
 
 #include "functions.h"
 
+UT_icd FunctionVersion_icd = {sizeof(FunctionVersion), NULL, NULL, NULL};
+
 NamedFunctionMapEnt *NFM = NULL;
 PTreeFreeList *FL = NULL;
+
+UT_array *FUSED = NULL;
 
 int lastid = 1;
 
 void initFunctionSystem()
 {
-
+	utarray_new(FUSED, &FunctionVersion_icd);
 }
 
 void freeFreeList(PTreeFreeList *f){
@@ -36,6 +40,8 @@ void freeFunctionSystem()
 		freeFunctionVersion(ent->V);
 		free(ent);
 	}
+
+	utarray_free(FUSED);
 }
 
 void addTreeToFreeList(PTree *root)
@@ -230,4 +236,22 @@ NamedFunctionMapEnt *getFunctionVersions(char *nm)
 	NamedFunctionMapEnt  *ent;
 	HASH_FIND_STR(NFM, nm, ent);
 	return ent;
+}
+
+void markFunctionVersionUsed(FunctionVersion *fver)
+{
+	if(fver->stat == FS_LISTED){
+		fver->stat = FS_CALLED;
+		utarray_push_back(FUSED, fver);
+	}
+}
+
+FunctionVersion *markFirstUsedVersionChecked()
+{
+	FunctionVersion *ret = (FunctionVersion *)utarray_back(FUSED);
+	if(ret == NULL)
+		return NULL;
+	utarray_pop_back(FUSED); // remove from the used list
+	ret->stat = FS_CHECKED;
+	return ret;
 }
