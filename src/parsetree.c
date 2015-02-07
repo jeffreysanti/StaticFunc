@@ -11,6 +11,55 @@
 #include "lextokens.h"
 
 
+char * PTLookup[] = {
+		"PTT_NOTYPE",
+		"PTT_EXPR",
+		"PTT_ADD",
+		"PTT_SUB",
+		"PTT_MULT",
+		"PTT_DIV",
+		"PTT_MOD",
+		"PTT_XOR",
+		"PTT_AND",
+		"PTT_OR",
+		"PTT_NOT",
+		"PTT_EXP",
+		"PTT_INT",
+		"PTT_STRING",
+		"PTT_FLOAT",
+		"PTT_EQUAL",
+		"PTT_NOT_EQUAL",
+		"PTT_GTE",
+		"PTT_GT",
+		"PTT_LTE",
+		"PTT_LT",
+		"PTT_SHR",
+		"PTT_SHL",
+		"PTT_IDENTIFIER",
+		"PTT_DOT",
+		"PTT_ARR_ACCESS",
+		"PTT_PARAM_CONT",
+		"PTT_ARRAY_ELM",
+		"PTT_ARRAY_COMP",
+		"PTT_ARRAY_COMP_IN",
+		"PTT_ARRAY_COMP_OUT",
+		"PTT_DECL_MOD",
+		"PTT_DECL_TYPE",
+		"PTT_DECL_PARAM",
+		"PTT_DECL",
+		"PTT_STMTBLOCK",
+		"PTT_ASSIGN",
+		"PTT_IF",
+		"PTT_IFELSE_SWITCH",
+		"PTT_FOR",
+		"PTT_WHILE",
+		"PTT_FOR_COND",
+		"PTT_RETURN",
+		"PTT_FUNCTION",
+		"PTT_FUNCTION_TYPE",
+		"PTT_LAMBDA"
+};
+
 PTree *newParseTreeNode()
 {
 	PTree *pTree = malloc(sizeof(PTree));
@@ -180,11 +229,12 @@ void dumpParseTree(PTree *root, int level)
 	else
 		printf("NODE %d\n", root->typ);
 */
+	printf("{%s}", PTLookup[root->typ]);
 	if(root->tok != NULL){
 		outputToken((LexicalToken*)root->tok);
 		printf("\n");
 	}else{
-		printf("? %d\n", root->typ);
+		printf("\n");
 	}
 
 	dumpParseTree((PTree*)root->child1, level+1);
@@ -204,11 +254,11 @@ void dumpParseTreeDet(PTree *root, int level)
 	}
 
 	if(root->tok != NULL){
-		printf("{%d} ", root->typ);
+		printf("{%s} ", PTLookup[root->typ]);
 		outputToken((LexicalToken*)root->tok);
 		printf("\n");
 	}else{
-		printf("{%d} ??\n", root->typ);
+		printf("{%s}\n", PTLookup[root->typ]);
 	}
 
 	dumpParseTreeDet((PTree*)root->child1, level+1);
