@@ -15,7 +15,7 @@
 #include "lextokens.h"
 
 typedef enum{
-	PTT_NOTYPE,
+	PTT_NOTYPE = 0,
 	PTT_EXPR,
 	PTT_ADD,
 	PTT_SUB,

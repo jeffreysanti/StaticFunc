@@ -46,7 +46,7 @@ int main(int argc, char **argv){
 		// now parse
 		PTree *tree = parse(T);
 		if(tree != NULL){
-			//dumpParseTree(tree, 0);
+			dumpParseTree(tree, 0);
 
 			seperateFunctionsFromParseTree(tree);
 			cleanUpEmptyStatments(&tree);
