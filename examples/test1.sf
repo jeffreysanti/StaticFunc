@@ -88,10 +88,12 @@ def int32 main(vector<string> args)
 
 def int32 main2(int32 par1){
 	println(string(par1));
+	println(string(glob));
+	println(string(fibr(par1)));
 	return par1;
 }
 
-int32 glob(35 + 456 / 3);
+int64 glob(35 + 456 / 3);
 
 return main2(glob);
 

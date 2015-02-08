@@ -25,5 +25,6 @@ extern void reportError(const char *code, const char* format, ... );
 extern bool reportParseError(void *ps, const char *code, const char* format, ... );
 void errShowType(const char* prefix, void *typ);
 void errShowTypeStr(const char* prefix, const char *str);
+void errRaw(const char* str);
 
 #endif /* STATICFUNC_SRC_IO_H_ */

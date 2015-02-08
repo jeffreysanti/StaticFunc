@@ -19,6 +19,7 @@
 #include "types.h"
 #include "functions.h"
 #include "funcAnaly.h"
+#include "nativeFunctions.h"
 
 int main(int argc, char **argv){
 
@@ -32,6 +33,7 @@ int main(int argc, char **argv){
 
 	initTypeSystem();
 	initFunctionSystem();
+	initalizeBuiltInFunctions();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -46,7 +48,7 @@ int main(int argc, char **argv){
 		// now parse
 		PTree *tree = parse(T);
 		if(tree != NULL){
-			dumpParseTree(tree, 0);
+			//dumpParseTreeDet(tree, 0);
 
 			seperateFunctionsFromParseTree(tree);
 			cleanUpEmptyStatments(&tree);

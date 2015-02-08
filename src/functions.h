@@ -18,7 +18,9 @@ typedef enum{
 	FS_LISTED,
 	FS_CALLED,
 	FS_CHECKED,
-	FS_CODEGEN
+	FS_CODEGEN,
+
+	FS_NATIVE
 } FunctionStatus;
 
 typedef struct{
@@ -46,6 +48,8 @@ typedef struct{
 
 FunctionVersion *newFunctionVersion(FunctionVersion *parent);
 FunctionVersion *newFunctionVersionByName(char *nm);
+
+void registerNativeFunction(char *nm, Type sig);
 
 void freeFunctionVersion(FunctionVersion *fv);
 

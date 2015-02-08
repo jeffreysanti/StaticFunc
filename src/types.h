@@ -12,7 +12,6 @@
 
 #include "uthash/uthash.h"
 #include "io.h"
-#include "parsetree.h"
 
 typedef enum{
 	TB_NATIVE_INT8,
@@ -70,6 +69,8 @@ typedef struct{
 	UT_hash_handle hh;
 } TypeListStringMapEnt;
 
+struct _PTree;
+
 void initTypeSystem();
 void freeTypeSystem();
 void freeType(Type t);
@@ -79,6 +80,7 @@ Type newBasicType(TypeBase typ);
 bool typesEqual(Type t1, Type t2);
 
 bool typesEqualMostly(Type t1, Type t2);
+bool typesMatchAllowDownConvert(Type expected, Type found);
 
 bool isTypeRegistered(char *nm);
 void registerType(char *nm, Type t);
@@ -89,20 +91,24 @@ Type duplicateType(Type typ);
 Type substituteTypeTemplate(Type typ, Type temp);
 
 
-Type deduceTypeDeclType(PTree *t);
-Type deduceTypeExpr(PTree *t);
+Type deduceTypeDeclType(struct _PTree *t);
+Type deduceTypeExpr(struct _PTree *t);
 
 TypeList getTypeListByName(char *nm);
 
 void addToTypeList(char *list, Type t);
 bool isTypeList(char *list);
 
-char *getDeclTypeListName(PTree *t);
+char *getDeclTypeListName(struct _PTree *t);
 
 Type getProgramReturnType();
 
 
 char *getTypeAsString(Type t);
 
+Type getMostGeneralType(Type t1, Type t2);
+
+Type getLogicalIntegerTypeByLiteral(char *lit);
+Type getLogicalFloatTypeByLiteral(char *lit);
 
 #endif /* STATICFUNC_SRC_TYPES_H_ */

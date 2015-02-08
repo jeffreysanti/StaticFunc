@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "lextokens.h"
+#include "types.h"
 
 typedef enum{
 	PTT_NOTYPE = 0,
@@ -63,12 +64,13 @@ typedef enum{
 	PTT_LAMBDA
 } PTType;
 
-typedef struct{
+typedef struct _PTree{
 	PTType typ;
 	struct PTree *child1;
 	struct PTree *child2;
 	struct PTree *parent;
 	LexicalToken *tok;
+	Type deducedType;
 } PTree;
 
 
@@ -98,5 +100,6 @@ void dumpParseTreeDet(PTree *root, int level);
 
 void cleanUpEmptyStatments(PTree **ptr);
 
+char *getParseNodeName(PTree *root);
 
 #endif /* STATICFUNC_SRC_PARSETREE_H_ */

@@ -833,6 +833,7 @@ bool prodStmtBlock(PState *ps){
 }bool prodStmtBlockFact1(PState *ps){
 	if(!prodStmt(ps)) return false;
 	PTree *root = newParseTree(PTT_STMTBLOCK);
+	root->tok = ps->token;
 	insertParseNodeFromList(root, PTT_STMTBLOCK, storeAndNullChildNode(ps));
 	while(true){
 		int errPre = ps->err;
@@ -853,6 +854,7 @@ bool prodStmtBlock(PState *ps){
 	return true;
 }bool prodStmtBlockFact2(PState *ps){
 	PTree *root = newParseTree(PTT_STMTBLOCK);
+	root->tok = ps->token;
 	ps->child = root;
 	return true;
 }

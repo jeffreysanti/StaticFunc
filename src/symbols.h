@@ -21,7 +21,6 @@ typedef struct{
 
 	long long id;
 
-	struct Symbol *next;
 	struct Symbol *prev;
 } Symbol;
 

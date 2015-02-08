@@ -71,6 +71,7 @@ PTree *newParseTreeNode()
 	pTree->parent = NULL;
 	pTree->typ = PTT_NOTYPE;
 	pTree->tok = NULL;
+	pTree->deducedType = newBasicType(TB_NATIVE_VOID);
 	return pTree;
 }
 
@@ -78,8 +79,10 @@ PTree *newParseTreeNode()
 void freeParseTreeNode(PTree *pTree)
 {
 	freeParseTreeNode_onlychildren(pTree);
-	if(pTree != NULL)
+	if(pTree != NULL){
+		freeType(pTree->deducedType);
 		free(pTree);
+	}
 }
 
 void freeParseTreeNode_onlychildren(PTree *pTree)
@@ -286,6 +289,11 @@ void cleanUpEmptyStatments(PTree **ptr)
 		*ptr = next;
 		freeParseTreeNode(root);
 	}
+}
+
+char *getParseNodeName(PTree *root)
+{
+	return PTLookup[root->typ];
 }
 
 

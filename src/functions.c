@@ -255,3 +255,12 @@ FunctionVersion *markFirstUsedVersionChecked()
 	ret->stat = FS_CHECKED;
 	return ret;
 }
+
+void registerNativeFunction(char *nm, Type sig)
+{
+	FunctionVersion *fv = newFunctionVersionByName(nm);
+	fv->defRoot = NULL;
+	fv->stat = FS_NATIVE;
+	fv->sig = sig;
+}
+

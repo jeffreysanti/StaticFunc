@@ -51,6 +51,10 @@ void errShowType(const char* prefix, void * typ) {
 	free(t);
 }
 
+void errRaw(const char* str) {
+	fprintf(stderr, "%s", str);
+}
+
 void errShowTypeStr(const char* prefix, const char *str) {
 	fprintf(stderr, "\t  %s%s\n", prefix, str);
 }

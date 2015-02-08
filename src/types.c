@@ -8,6 +8,7 @@
  */
 
 #include "types.h"
+#include "parsetree.h"
 
 TypeStringMapEnt *TM = NULL;
 TypeListStringMapEnt *TLM = NULL;
@@ -422,6 +423,31 @@ bool typesEqualMostly(Type t1, Type t2)
 	return true;
 }
 
+bool typesMatchAllowDownConvert(Type expected, Type found)
+{
+	if(expected.base != found.base){
+		if(	(expected.base == TB_ANY_INT && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16 || found.base == TB_NATIVE_INT32 || found.base == TB_NATIVE_INT64)) ||
+			(expected.base == TB_ANY_FLOAT && (found.base == TB_NATIVE_FLOAT32 || found.base == TB_NATIVE_FLOAT64)) ||
+			(expected.base == TB_NATIVE_INT64 && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16 || found.base == TB_NATIVE_INT32)) ||
+			(expected.base == TB_NATIVE_INT32 && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16)) ||
+			(expected.base == TB_NATIVE_INT16 && (found.base == TB_NATIVE_INT8)) ||
+			(expected.base == TB_NATIVE_FLOAT64 && (found.base == TB_NATIVE_FLOAT32))){
+
+			// acceptable
+		}else{
+			return false;
+		}
+	}
+	if(expected.numchildren != found.numchildren) return false;
+	if(expected.numchildren > 0){
+		int i;
+		for(i=0; i<expected.numchildren; i++){
+			if(!typesMatchAllowDownConvert(((Type*)expected.children)[i], ((Type*)found.children)[i])) return false;
+		}
+	}
+	return true;
+}
+
 void addToTypeList(char *list, Type t)
 {
 	TypeListStringMapEnt *entTmp;
@@ -522,13 +548,15 @@ char *getTypeAsString(Type t)
 	int len = 0;
 	if(t.mutable)
 		len += 4;
+	if(t.base == TB_NATIVE_INT8)
+		len += 4;
 	if(t.base == TB_NATIVE_INT16 || t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64)
 		len += 5;
 	if(t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64)
 		len += 7;
 	if(t.base == TB_NATIVE_BOOL || t.base == TB_NATIVE_CHAR || t.base == TB_NATIVE_VOID)
 		len += 4;
-	if(t.base == TB_VECTOR)
+	if(t.base == TB_VECTOR || t.base == TB_NATIVE_STRING)
 		len += 6;
 	if(t.base == TB_DICT)
 		len += 4;
@@ -538,8 +566,12 @@ char *getTypeAsString(Type t)
 		len += 3;
 	if(t.base == TB_FUNCTION)
 		len += 8;
+	if(t.base == TB_ANY_INT)
+		len += 6;
+	if(t.base == TB_ANY_FLOAT)
+			len += 8;
 	if(len == 0){
-		char *ret = malloc(3*sizeof(char));
+		char *ret = malloc(4*sizeof(char));
 		strcpy(ret, "???");
 		return ret;
 	}
@@ -560,6 +592,7 @@ char *getTypeAsString(Type t)
 	char *ret = calloc(len+1, sizeof(char));
 	char *ptr = ret;
 	if(t.mutable) { strcpy(ptr, "mut "); ptr += 4; }
+	if(t.base == TB_NATIVE_INT8) { strcpy(ptr, "int8"); ptr += 4; }
 	if(t.base == TB_NATIVE_INT16) { strcpy(ptr, "int16"); ptr += 5; }
 	if(t.base == TB_NATIVE_INT32) { strcpy(ptr, "int32"); ptr += 5; }
 	if(t.base == TB_NATIVE_INT64) { strcpy(ptr, "int64"); ptr += 5; }
@@ -568,11 +601,14 @@ char *getTypeAsString(Type t)
 	if(t.base == TB_NATIVE_BOOL) { strcpy(ptr, "bool"); ptr += 4; }
 	if(t.base == TB_NATIVE_CHAR) { strcpy(ptr, "char"); ptr += 4; }
 	if(t.base == TB_NATIVE_VOID) { strcpy(ptr, "void"); ptr += 4; }
+	if(t.base == TB_NATIVE_STRING) { strcpy(ptr, "string"); ptr += 6; }
 	if(t.base == TB_VECTOR) { strcpy(ptr, "vector"); ptr += 6; }
 	if(t.base == TB_DICT) { strcpy(ptr, "dict"); ptr += 4; }
 	if(t.base == TB_TUPLE) { strcpy(ptr, "tuple"); ptr += 5; }
 	if(t.base == TB_SET) { strcpy(ptr, "void"); ptr += 3; }
 	if(t.base == TB_FUNCTION) { strcpy(ptr, "function"); ptr += 8; }
+	if(t.base == TB_ANY_INT) { strcpy(ptr, "anyint"); ptr += 6; }
+	if(t.base == TB_ANY_FLOAT) { strcpy(ptr, "anyfloat"); ptr += 8; }
 
 	if(t.numchildren > 0){
 		strcpy(ptr, "<"); ptr += 1;
@@ -594,5 +630,36 @@ char *getTypeAsString(Type t)
 
 	return ret;
 }
+
+Type getMostGeneralType(Type t1, Type t2)
+{
+	if(t1.base == TB_NATIVE_FLOAT64 || t2.base == TB_NATIVE_FLOAT64)
+		return newBasicType(TB_NATIVE_FLOAT64);
+	if(t1.base == TB_NATIVE_FLOAT32 || t2.base == TB_NATIVE_FLOAT32)
+			return newBasicType(TB_NATIVE_FLOAT32);
+	if(t1.base == TB_NATIVE_INT64 || t2.base == TB_NATIVE_INT64)
+			return newBasicType(TB_NATIVE_INT64);
+	if(t1.base == TB_NATIVE_INT32 || t2.base == TB_NATIVE_INT32)
+			return newBasicType(TB_NATIVE_INT32);
+	if(t1.base == TB_NATIVE_INT16 || t2.base == TB_NATIVE_INT16)
+			return newBasicType(TB_NATIVE_INT16);
+	if(t1.base == TB_NATIVE_INT8 || t2.base == TB_NATIVE_INT8)
+			return newBasicType(TB_NATIVE_INT8);
+
+	// ??
+	fatalError("getMostGeneralType : With Unknown Base Type");
+	return t1;
+}
+
+Type getLogicalIntegerTypeByLiteral(char *lit)
+{
+	return newBasicType(TB_NATIVE_INT8); // TODO
+}
+
+Type getLogicalFloatTypeByLiteral(char *lit)
+{
+	return newBasicType(TB_NATIVE_FLOAT32); // TODO
+}
+
 
 

@@ -24,9 +24,9 @@ void exitScope()
 	level --;
 	while(S != NULL && S->level > level){
 		if(S->prev != NULL){
+			Symbol *sOld = S;
 			S = (Symbol*)S->prev;
-			free(S->next);
-			S->next = NULL;
+			free(sOld);
 		}else{
 			free(S);
 			S = NULL;
@@ -53,7 +53,8 @@ void addSymbol(char *sym, Type typ)
 	if(S == NULL){
 		S = sb;
 	}else{
-		S->next = (void*)sb;
+		sb->prev = (void*)S;
+		S = sb;
 	}
 }
 
