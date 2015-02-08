@@ -10,6 +10,8 @@
 #include "functions.h"
 
 UT_icd FunctionVersion_icd = {sizeof(FunctionVersion), NULL, NULL, NULL};
+UT_icd SearchAndReplace_icd = {sizeof(SearchAndReplace), NULL, NULL, NULL};
+
 
 NamedFunctionMapEnt *NFM = NULL;
 PTreeFreeList *FL = NULL;
@@ -126,11 +128,11 @@ void freeFunctionVersion(FunctionVersion *fv)
 
 
 
-inline void registerFunction(PTree *root, int paramCnt, char *needle, Type haystack)
+inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
 {
 	FunctionVersion *fVer = newFunctionVersionByName((char*)root->tok->extra);
 	fVer->defRoot = root;
-	fVer->performReplacement = (needle != NULL);
+	fVer->performReplacement = (sr != NULL);
 	Type sig = newBasicType(TB_FUNCTION);
 	allocTypeChildren(&sig, paramCnt + 1);
 	PTree *typeTree = (PTree*)root->child1;
@@ -139,7 +141,13 @@ inline void registerFunction(PTree *root, int paramCnt, char *needle, Type hayst
 
 	// First, Return Type
 	if(fVer->performReplacement && getDeclTypeListName(retTypeTree) != NULL){
-		((Type*)sig.children)[0] = substituteTypeTemplate(deduceTypeDeclType(retTypeTree), haystack);
+		SearchAndReplace *sar;
+		((Type*)sig.children)[0] = deduceTypeDeclType(retTypeTree);
+		for(sar=(SearchAndReplace*)utarray_front(sr);sar!=NULL; sar=(SearchAndReplace*)utarray_next(sr,sar)) {
+			((Type*)sig.children)[0] = substituteTypeTemplate(((Type*)sig.children)[0],
+											sar->replace,
+											sar->ident);
+		}
 	}else{
 		((Type*)sig.children)[0] = deduceTypeDeclType(retTypeTree);
 	}
@@ -147,8 +155,14 @@ inline void registerFunction(PTree *root, int paramCnt, char *needle, Type hayst
 	int i;
 	for(i=1; i<=paramCnt; i++){
 		PTree *pTempRoot = (PTree*)((PTree*)paramTypeTree->child1)->child1;
-		if(fVer->performReplacement && strcmp(needle, (char*)pTempRoot->tok->extra) == 0){
-			((Type*)sig.children)[i] = substituteTypeTemplate(deduceTypeDeclType(pTempRoot), haystack);
+		if(fVer->performReplacement){
+			SearchAndReplace *sar;
+			((Type*)sig.children)[i] = deduceTypeDeclType(pTempRoot);
+			for(sar=(SearchAndReplace*)utarray_front(sr);sar!=NULL; sar=(SearchAndReplace*)utarray_next(sr,sar)) {
+				((Type*)sig.children)[i] = substituteTypeTemplate(((Type*)sig.children)[i],
+												sar->replace,
+												sar->ident);
+			}
 		}else{
 			((Type*)sig.children)[i] = deduceTypeDeclType(pTempRoot);
 		}
@@ -156,6 +170,56 @@ inline void registerFunction(PTree *root, int paramCnt, char *needle, Type hayst
 	}
 	fVer->sig = sig;
 	printf("Registerd Function: %s\n", (char*)fVer->defRoot->tok->extra);
+}
+
+int typeListLength(TypeList tl){
+	int cnt = 1;
+	TypeList *ptr = (TypeList *)tl.next;
+	while(ptr != NULL){
+		cnt ++;
+		ptr = (TypeList *)ptr->next;
+	}
+	return cnt;
+}
+Type typeListGet(TypeList tl, int i){
+	TypeList *ptr = &tl;
+	int x = 0;
+	while(x < i){
+		ptr = (TypeList *)ptr->next;
+		x ++;
+	}
+	return ptr->T;
+}
+
+void registerAllTemplateVersions(PTree *root, int pCount, UT_array *templateList, int tNo, UT_array *sr)
+{
+	char *search = *((char**)utarray_eltptr(templateList, tNo));
+	TypeList tl = getTypeListByName(search);
+	int entCount = typeListLength(tl);
+
+	int tCnt = utarray_len(templateList);
+	if(tCnt-1 == tNo){ // end case
+		int ent;
+		for(ent=0; ent<entCount; ent++){
+			SearchAndReplace sar;
+			sar.ident = search;
+			sar.replace = duplicateType(typeListGet(tl, ent));
+			utarray_push_back(sr, &sar);
+			// REGISTER IT
+			registerFunction(root, pCount, sr);
+			utarray_pop_back(sr);
+		}
+	}else{ // branch
+		int ent;
+		for(ent=0; ent<entCount; ent++){
+			SearchAndReplace sar;
+			sar.ident = search;
+			sar.replace = duplicateType(typeListGet(tl, ent));
+			utarray_push_back(sr, &sar);
+			registerAllTemplateVersions(root, pCount, templateList, tNo+1, sr); // RECURSE
+			utarray_pop_back(sr);
+		}
+	}
 }
 
 void seperateFunctionsFromParseTree(PTree *root)
@@ -170,17 +234,22 @@ void seperateFunctionsFromParseTree(PTree *root)
 			PTree *typeTree = (PTree*)funcRoot->child1;
 			PTree *paramTypeTree = (PTree*)typeTree->child2;
 			bool isTemplate = false;
-			char *templateIdent = NULL;
+
+			UT_array *templateIdentList;
+			utarray_new(templateIdentList, &ut_str_icd);
+
 			Type Treturn = deduceTypeDeclType((PTree*)typeTree->child1); // return type
 			if(Treturn.base == TB_ERROR){
 				reportError("FS001", "Function has invalid return type: Line %ld", funcRoot->tok->lineNo);
 				root = (PTree*)root->child2;
 				freeType(Treturn);
+				utarray_free(templateIdentList);
 				continue;
 			}
 			if(Treturn.hasTypeListParam){
 				isTemplate = true;
-				templateIdent = getDeclTypeListName((PTree*)typeTree->child1);
+				char *tmp = getDeclTypeListName((PTree*)typeTree->child1);
+				utarray_push_back(templateIdentList, &tmp);
 			}
 			int paramCnt = 0;
 			bool err = false;
@@ -193,38 +262,53 @@ void seperateFunctionsFromParseTree(PTree *root)
 					err = true;
 					break;
 				}
-				if(isTemplate && tempParamType.hasTypeListParam &&
+				/*if(isTemplate && tempParamType.hasTypeListParam &&
 						strcmp(getDeclTypeListName((PTree*)((PTree*)paramTypeTree->child1)->child1), templateIdent) != 0){
 					reportError("FS003", "Function cannot have multiple template params: Line %ld",
 												funcRoot->tok->lineNo);
 					err = true;
 					break;
-				}
+				}*/
 				if(tempParamType.hasTypeListParam){
 					isTemplate = true;
-					templateIdent = getDeclTypeListName((PTree*)typeTree->child1);
+					char *tmp = getDeclTypeListName((PTree*)((PTree*)paramTypeTree->child1)->child1);
+					char **p;
+					bool toAdd = true;
+					while ( (p=(char**)utarray_next(templateIdentList,p))) {
+						if(strcmp(*p, tmp) == 0)
+							toAdd = false;
+					}
+					if(toAdd)
+						utarray_push_back(templateIdentList, &tmp);
 				}
 				freeType(tempParamType);
 				paramTypeTree = (PTree*)paramTypeTree->child2;
 			}
 			if(err){
 				freeType(Treturn);
+				utarray_free(templateIdentList);
 				root = (PTree*)root->child2;
 				continue;
 			}
 			//printf("%d ARGS\n", paramCnt);
 			if(isTemplate){
-				TypeList tl = getTypeListByName(templateIdent);
+				/*TypeList tl = getTypeListByName(templateIdent);
 				registerFunction(funcRoot, paramCnt, templateIdent, tl.T);
 				TypeList *tlptr = (TypeList*)tl.next;
 				while(tlptr != NULL){
 					registerFunction(funcRoot, paramCnt, templateIdent, tlptr->T);
 					tlptr = (TypeList*)tlptr->next;
-				}
+				}*/
+
+				UT_array *sr;
+				utarray_new(sr, &SearchAndReplace_icd);
+				registerAllTemplateVersions(funcRoot, paramCnt, templateIdentList, 0, sr);
+				utarray_free(sr);
 			}else{
-				registerFunction(funcRoot, paramCnt, NULL, newBasicType(TB_NATIVE_VOID));
+				registerFunction(funcRoot, paramCnt, NULL);
 			}
 			freeType(Treturn);
+			utarray_free(templateIdentList);
 		}
 		root = (PTree*)root->child2;
 	}
@@ -238,10 +322,31 @@ NamedFunctionMapEnt *getFunctionVersions(char *nm)
 	return ent;
 }
 
+PTree *copyTree(PTree *orig){
+	PTree *node = newParseTree(orig->typ);
+	node->deducedType = duplicateType(orig->deducedType);
+	node->tok = orig->tok;
+	if(orig->child1 != NULL){
+		node->child1 = (void*)copyTree((PTree*)orig->child1);
+		((PTree*)node->child1)->parent = (void*)node;
+	}
+	if(orig->child2 != NULL){
+		node->child2 = (void*)copyTree((PTree*)orig->child2);
+		((PTree*)node->child2)->parent = (void*)node;
+	}
+	return node;
+}
+
 void markFunctionVersionUsed(FunctionVersion *fver)
 {
 	if(fver->stat == FS_LISTED){
 		fver->stat = FS_CALLED;
+
+		// need to split parse tree
+		PTree *copy = copyTree(fver->defRoot);
+		fver->defRoot = copy;
+		addTreeToFreeList(copy);
+
 		utarray_push_back(FUSED, fver);
 	}
 }

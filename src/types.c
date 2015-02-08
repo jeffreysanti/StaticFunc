@@ -82,6 +82,9 @@ void freeType(Type t)
 	if(t.altName != NULL){
 		free(t.altName);
 	}
+	if(t.typelistName != NULL){
+		free(t.typelistName);
+	}
 }
 
 void allocTypeChildren(Type *in, int n)
@@ -102,6 +105,7 @@ Type newBasicType(TypeBase typ)
 	t.children = NULL;
 	t.altName = NULL;
 	t.hasTypeListParam = false;
+	t.typelistName = NULL;
 	return t;
 }
 
@@ -142,6 +146,7 @@ Type duplicateType(Type typ)
 	ret.mutable = typ.mutable;
 	ret.numchildren = typ.numchildren;
 	ret.altName = NULL;
+	ret.typelistName = NULL;
 	ret.hasTypeListParam = typ.hasTypeListParam;
 	if(ret.numchildren > 0){
 		ret.children = malloc(ret.numchildren * sizeof(Type));
@@ -161,19 +166,30 @@ Type duplicateType(Type typ)
 		}
 		strcpy(ret.altName, typ.altName);
 	}
+	if(typ.typelistName != NULL){
+		ret.typelistName = malloc(strlen(typ.typelistName) + 1);
+		if(ret.typelistName == NULL){
+			fatalError("Out of Memory [duplicateType : typelistName]\n");
+		}
+		strcpy(ret.typelistName, typ.typelistName);
+	}
 	return ret;
 }
 
-Type substituteTypeTemplate(Type typ, Type temp)
+Type substituteTypeTemplate(Type typ, Type temp, char *search)
 {
-	if(typ.base == TB_TYPELIST)
+	if(typ.base == TB_TYPELIST && strcmp(search, typ.typelistName) == 0){
+		freeType(typ);
 		return temp;
+	}
+	else if(typ.base == TB_TYPELIST)
+		return typ; // do not change -> another substitution
 	Type ret = typ;
 	if(ret.numchildren > 0){
 		int i;
 		for(i=0; i<ret.numchildren; i++){
 			Type *ptr = (Type*)ret.children + i;
-			*ptr = substituteTypeTemplate(((Type*)typ.children)[i], temp);
+			*ptr = substituteTypeTemplate(((Type*)typ.children)[i], temp, search);
 		}
 	}
 	return ret;
@@ -363,6 +379,8 @@ Type deduceTypeDeclType(PTree *t)
 	HASH_FIND_STR(TLM, (char*)t->tok->extra, enttl);
 	if(enttl){ // already exists -> add to linked list
 		Type ret = newBasicType(TB_TYPELIST);
+		ret.typelistName = malloc(1+strlen((char*)t->tok->extra));
+		strcpy(ret.typelistName, (char*)t->tok->extra);
 		ret.hasTypeListParam = true;
 		return ret;
 	}

@@ -51,7 +51,6 @@ void freeLexicalTokenList(LexicalTokenList *lst);
 void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ, long ln);
 void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char* dta);
 
-
 void outputLexicalTokenList(LexicalTokenList *lst);
 void outputToken(LexicalToken *tok);
 

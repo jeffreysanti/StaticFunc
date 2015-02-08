@@ -23,18 +23,46 @@
 
 typedef struct{
 	UT_array *types;
+	UT_array *extra;
+	void *extraPtr1;
+	void *extraPtr2;
+	void *extraPtr3;
+	void (*onChooseDeduction)(void *, int);
 }TypeDeductions;
 static UT_icd TypeDeductions_icd = {sizeof(Type), NULL, NULL, NULL};
-
 
 static TypeDeductions newTypeDeductions(){
 	TypeDeductions ret;
 	utarray_new(ret.types, &TypeDeductions_icd);
+	ret.extra = NULL;
+	ret.onChooseDeduction = NULL;
+	ret.extraPtr1 = NULL;
+	ret.extraPtr2 = NULL;
+	ret.extraPtr3 = NULL;
 	return ret;
 }
 
 static void freeTypeDeductions(TypeDeductions ret){
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(ret.types,p))){
+		freeType(*p);
+	}
 	utarray_free(ret.types);
+	if(ret.extra != NULL){
+		utarray_free(ret.extra);
+	}
+}
+static Type freeTypeDeductionsExcept(TypeDeductions ret, Type leave){
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(ret.types,p))){
+		if(!(typesEqual(leave, (*p))))
+			freeType(*p);
+	}
+	utarray_free(ret.types);
+	if(ret.extra != NULL){
+		utarray_free(ret.extra);
+	}
+	return leave;
 }
 
 static TypeDeductions singleType(Type t){
@@ -43,13 +71,6 @@ static TypeDeductions singleType(Type t){
 	return ret;
 }
 
-static void showTypeVsErr(TypeDeductions expected, Type recvd){
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(expected.types,p))){
-		errShowType("EXPECTED [OR LESS]: ",p);
-	}
-	errShowType("FOUND             : ",&recvd);
-}
 static void showTypeDeductionOption(TypeDeductions op){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(op.types,p))){
@@ -74,35 +95,24 @@ static void showTypeVsErr_multboth(TypeDeductions expected, TypeDeductions recvd
 	}
 }
 
-static Type findDeductionMatching(TypeDeductions expected, Type found){
-	Type ret = newBasicType(TB_ERROR);
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(expected.types,p))){
-		if(typesMatchAllowDownConvert(*p, found)){
-			ret = *p;
-			freeTypeDeductions(expected);
-			return ret;
-		}
-	}
-	reportError("SA012", "No Type Deduction Matched");
-	showTypeVsErr(expected, found);
-	freeTypeDeductions(expected);
-	return ret;
-}
-
 static Type findDeductionMatching_multboth(TypeDeductions expected, TypeDeductions found){
 	Type ret = newBasicType(TB_ERROR);
 	Type *pf = NULL;
 	Type *pe = NULL;
+	int i = 0;
 	while((pf=(Type*)utarray_next(found.types,pf))){
 		while((pe=(Type*)utarray_next(expected.types,pe))){
 			if(typesMatchAllowDownConvert(*pe, *pf)){
 				ret = *pf;
+				if(found.onChooseDeduction != NULL){
+					found.onChooseDeduction(&found, i);
+				}
 				freeTypeDeductions(expected);
-				freeTypeDeductions(found);
+				freeTypeDeductionsExcept(found, ret);
 				return ret;
 			}
 		}
+		i ++;
 	}
 	reportError("SA012", "No Type Deduction Matched");
 	showTypeVsErr_multboth(expected, found);
@@ -111,33 +121,59 @@ static Type findDeductionMatching_multboth(TypeDeductions expected, TypeDeductio
 	return ret;
 }
 
-static Type findDeductionMatching_multrecv(Type expected, TypeDeductions found){
+static Type findDeductionMatching_multrecv_silent_nofree(Type expected, TypeDeductions found){
 	Type ret = newBasicType(TB_ERROR);
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(found.types,p))){
 		if(typesMatchAllowDownConvert(expected, *p)){
 			ret = *p;
-			freeTypeDeductions(found);
 			return ret;
 		}
+	}
+	return ret;
+}
+
+static Type findDeductionMatching_multrecv(Type expected, TypeDeductions found){
+
+	Type ret = newBasicType(TB_ERROR);
+	Type *p = NULL;
+	int i = 0;
+	while((p=(Type*)utarray_next(found.types,p))){
+		if(typesMatchAllowDownConvert(expected, *p)){
+			ret = *p;
+			if(found.onChooseDeduction != NULL){
+				found.onChooseDeduction(&found, i);
+			}
+			freeTypeDeductionsExcept(found, ret);
+			freeType(expected);
+			return ret;
+		}
+		i++;
 	}
 	reportError("SA012", "No Type Deduction Matched");
 	showTypeVsErr_multrecv(expected, found);
 	freeTypeDeductions(found);
+	freeType(expected);
 	return ret;
 }
 
-static Type findDeductionMatching_multrecv_silent(Type expected, TypeDeductions found){
+static Type findDeductionMatching_any(TypeDeductions found){
 	Type ret = newBasicType(TB_ERROR);
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(found.types,p))){
-		if(typesMatchAllowDownConvert(expected, *p)){
-			ret = *p;
-			freeTypeDeductions(found);
-			return ret;
-		}
+	if(utarray_len(found.types) > 1){
+		reportError("#SA020", "Warning: Multiple Type Deductions Found");
 	}
-	return ret;
+	if(utarray_len(found.types) == 0){
+		reportError("SA021", "No Type Deductions Exist");
+		freeTypeDeductions(found);
+		return ret;
+	}
+	Type *first_ptr = (Type*)utarray_front(found.types);
+	Type first = *first_ptr;
+	if(found.onChooseDeduction != NULL){
+		found.onChooseDeduction(&found, 0);
+	}
+	freeTypeDeductionsExcept(found, first);
+	return first;
 }
 
 
@@ -147,6 +183,8 @@ bool semAnalyExpr(PTree *root, Type expect, bool silent);
 TypeDeductions handleFunctCall(PTree *root, int *err);
 
 TypeDeductions deduceTreeType(PTree *root, int *err);
+
+bool blockUnit(PTree *root, Type sig);
 
 
 

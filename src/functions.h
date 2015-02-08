@@ -41,6 +41,11 @@ typedef struct{
 }NamedFunctionMapEnt;
 
 typedef struct{
+	char *ident;
+	Type replace;
+}SearchAndReplace;
+
+typedef struct{
 	PTree *tree;
 	struct PTreeFreeList *next;
 }PTreeFreeList;

@@ -49,6 +49,7 @@ typedef struct{
 	struct Type *children;
 
 	char *altName; // in case of tuple
+	char *typelistName;
 } Type;
 
 
@@ -88,7 +89,7 @@ void registerType(char *nm, Type t);
 void allocTypeChildren(Type *in, int n);
 
 Type duplicateType(Type typ);
-Type substituteTypeTemplate(Type typ, Type temp);
+Type substituteTypeTemplate(Type typ, Type temp, char *search);
 
 
 Type deduceTypeDeclType(struct _PTree *t);
