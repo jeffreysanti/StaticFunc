@@ -286,7 +286,7 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	//PTree *defn = NULL;
 	int errs = 0;
 	PTree *body = root;
-	dumpParseTreeDet(root, 0);
+	//dumpParseTreeDet(root, 0);
 	if(!global){
 
 

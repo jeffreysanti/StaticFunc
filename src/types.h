@@ -106,6 +106,7 @@ Type getProgramReturnType();
 
 
 char *getTypeAsString(Type t);
+struct _PTree *getTypeAsPTree(Type t);
 
 Type getMostGeneralType(Type t1, Type t2);
 

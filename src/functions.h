@@ -29,6 +29,7 @@ typedef struct{
 	bool performReplacement;
 	int verid;
 	FunctionStatus stat;
+	UT_array *sr;
 	struct FunctionVersion *next;
 }FunctionVersion;
 extern UT_icd FunctionVersion_icd;

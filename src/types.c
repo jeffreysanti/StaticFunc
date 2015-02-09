@@ -207,6 +207,10 @@ inline void paramMultTypLists(PTree* t){
 
 Type deduceTypeDeclType(PTree *t)
 {
+	if(t->typ == PTT_DECL_TYPE_DEDUCED){
+		return duplicateType(t->deducedType);
+	}
+
 	TypeStringMapEnt *ent;
 
 	bool mutable = false;
@@ -679,5 +683,12 @@ Type getLogicalFloatTypeByLiteral(char *lit)
 	return newBasicType(TB_NATIVE_FLOAT32); // TODO
 }
 
+
+PTree *getTypeAsPTree(Type t)
+{
+	PTree *tree = newParseTree(PTT_DECL_TYPE_DEDUCED);
+	tree->deducedType = duplicateType(t);
+	return tree;
+}
 
 

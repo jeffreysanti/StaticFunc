@@ -61,7 +61,9 @@ typedef enum{
 	PTT_RETURN,
 	PTT_FUNCTION,
 	PTT_FUNCTION_TYPE,
-	PTT_LAMBDA
+	PTT_LAMBDA,
+
+	PTT_DECL_TYPE_DEDUCED
 } PTType;
 
 typedef struct _PTree{

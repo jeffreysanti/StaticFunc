@@ -83,6 +83,7 @@ FunctionVersion *newFunctionVersion(FunctionVersion *parent)
 	ret->stat = FS_LISTED;
 	ret->sig = newBasicType(TB_NATIVE_VOID);
 	ret->verid = 1;
+	ret->sr = NULL;
 	if(parent != NULL){
 		parent->next = (void*)ret;
 		ret->verid = parent->verid + 1;
@@ -123,6 +124,14 @@ void freeFunctionVersion(FunctionVersion *fv)
 	if(fv == NULL) return;
 	freeFunctionVersion((FunctionVersion*)fv->next);
 	freeType(fv->sig);
+	if(fv->sr != NULL){
+		SearchAndReplace *sar;
+		for(sar=(SearchAndReplace*)utarray_front(fv->sr);sar!=NULL; sar=(SearchAndReplace*)utarray_next(fv->sr,sar)) {
+			free(sar->ident);
+			freeType(sar->replace);
+		}
+		utarray_free(fv->sr);
+	}
 	free(fv);
 }
 
@@ -169,6 +178,18 @@ inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
 		paramTypeTree = (PTree*)paramTypeTree->child2;
 	}
 	fVer->sig = sig;
+	if(fVer->performReplacement){
+		utarray_new(fVer->sr, &SearchAndReplace_icd);
+		SearchAndReplace *sar;
+		for(sar=(SearchAndReplace*)utarray_front(sr);sar!=NULL; sar=(SearchAndReplace*)utarray_next(sr,sar)) {
+			SearchAndReplace sar_cpy;
+			sar_cpy.ident = malloc(sizeof(char) * (strlen(sar->ident) + 1));
+			strcpy(sar_cpy.ident, sar->ident);
+			sar_cpy.replace = duplicateType(sar->replace);
+			utarray_push_back(fVer->sr, &sar_cpy);
+		}
+	}
+
 	printf("Registerd Function: %s\n", (char*)fVer->defRoot->tok->extra);
 }
 
@@ -322,16 +343,27 @@ NamedFunctionMapEnt *getFunctionVersions(char *nm)
 	return ent;
 }
 
-PTree *copyTree(PTree *orig){
+PTree *copyTreeSubTemplate(PTree *orig, UT_array *sr){
 	PTree *node = newParseTree(orig->typ);
+	if(node->typ == PTT_DECL_TYPE){
+		SearchAndReplace *sar;
+		for(sar=(SearchAndReplace*)utarray_front(sr);sar!=NULL; sar=(SearchAndReplace*)utarray_next(sr,sar)) {
+			if(strcmp(sar->ident, (char*)orig->tok->extra) == 0){
+				freeParseTreeNode(node);
+				node = (PTree*)getTypeAsPTree(sar->replace);
+				return node;
+			}
+		}
+	}
+
 	node->deducedType = duplicateType(orig->deducedType);
 	node->tok = orig->tok;
 	if(orig->child1 != NULL){
-		node->child1 = (void*)copyTree((PTree*)orig->child1);
+		node->child1 = (void*)copyTreeSubTemplate((PTree*)orig->child1, sr);
 		((PTree*)node->child1)->parent = (void*)node;
 	}
 	if(orig->child2 != NULL){
-		node->child2 = (void*)copyTree((PTree*)orig->child2);
+		node->child2 = (void*)copyTreeSubTemplate((PTree*)orig->child2, sr);
 		((PTree*)node->child2)->parent = (void*)node;
 	}
 	return node;
@@ -342,10 +374,12 @@ void markFunctionVersionUsed(FunctionVersion *fver)
 	if(fver->stat == FS_LISTED){
 		fver->stat = FS_CALLED;
 
-		// need to split parse tree
-		PTree *copy = copyTree(fver->defRoot);
-		fver->defRoot = copy;
-		addTreeToFreeList(copy);
+		if(fver->performReplacement){
+			// need to split parse tree
+			PTree *copy = copyTreeSubTemplate(fver->defRoot, fver->sr);
+			fver->defRoot = copy;
+			addTreeToFreeList(copy);
+		}
 
 		utarray_push_back(FUSED, fver);
 	}
