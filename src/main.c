@@ -50,8 +50,7 @@ int main(int argc, char **argv){
 		if(tree != NULL){
 			//dumpParseTreeDet(tree, 0);
 
-			seperateFunctionsFromParseTree(tree);
-			cleanUpEmptyStatments(&tree);
+			seperateFunctionsFromParseTree(&tree, false);
 
 			//dumpParseTreeDet(tree, 0);
 

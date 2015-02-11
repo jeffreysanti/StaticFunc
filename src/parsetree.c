@@ -271,26 +271,35 @@ void dumpParseTreeDet(PTree *root, int level)
 }
 
 
-void cleanUpEmptyStatments(PTree **ptr)
+void cleanUpEmptyStatments(PTree *ptr)
 {
-	PTree *root = *ptr;
-	if(root == NULL)
+	if(ptr == NULL)
 		return;
-	if(root->child2 == NULL)
-		return;
-	if(root->typ != PTT_STMTBLOCK){
-		cleanUpEmptyStatments((PTree**)&(root->child1));
-		cleanUpEmptyStatments((PTree**)&(root->child2));
-		return;
+	if(ptr->typ != PTT_STMTBLOCK){
+		cleanUpEmptyStatments((PTree*)ptr->child2);
+		cleanUpEmptyStatments((PTree*)ptr->child1);
 	}
-	if(root->child1 == NULL){
-		PTree *next = (PTree*)root->child2;
-		next->parent = NULL;
-		root->child2 = NULL;
-		cleanUpEmptyStatments(&next);
-		*ptr = next;
-		freeParseTreeNode(root);
+	else if(ptr->child1 != NULL){
+		cleanUpEmptyStatments((PTree*)ptr->child2);
+		cleanUpEmptyStatments((PTree*)ptr->child1);
+	}else if(ptr->child2 != NULL){
+		PTree *par = ptr;
+		PTree *chl = (PTree*)par->child2;
+		par->child1 = chl->child1;
+		par->child2 = chl->child2;
+		if(par->child1 != NULL){
+			((PTree*)par->child1)->parent = (void*)par;
+		}if(par->child2 != NULL){
+			((PTree*)par->child2)->parent = (void*)par;
+		}
+		chl->child1 = NULL;
+		chl->child2 = NULL;
+		chl->parent = NULL;
+		freeParseTreeNode(chl);
+		cleanUpEmptyStatments(ptr);
 	}
+
+
 }
 
 char *getParseNodeName(PTree *root)

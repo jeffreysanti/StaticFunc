@@ -2,10 +2,30 @@
 #typelistadd I int32, int64;
 #typelistadd P2 string, int32;
 
-// recursive version	float16 fl2(.16);
 
+def int32 dblFunc(int32 x)
+{
+
+}
+
+def int32 dblFunc(int32 x)
+{
+
+}
+
+
+// recursive version	float16 fl2(.16);
 def I fibr(I n, P2 var)
 {
+	if(n == 1 | n == 2)
+		return 1;
+	return fibr(n - 1, var) + fibr(n - 2, var);
+}
+
+// more specfic example
+def int32 fibr(int32 n, string var)
+{
+	println(var);
 	if(n == 1 | n == 2)
 		return 1;
 	return fibr(n - 1, var) + fibr(n - 2, var);
@@ -61,6 +81,7 @@ def tuple<int8, int16, int32, I, vector<I>> T()
 	return 0; // Will be an error in semantic analysis stage
 }
 
+
 def int32 main(vector<string> args)
 {
 	int32 oct(043);
@@ -91,7 +112,7 @@ def int32 main2(int32 par1){
 	println(string(par1));
 	println(string(glob));
 	println(string(fibr(par1, 2)));
-	fibr(par1, "TEST");
+	int64 res(fibi(par1));
 	return par1;
 }
 

@@ -157,10 +157,14 @@ static Type findDeductionMatching_multrecv(Type expected, TypeDeductions found){
 	return ret;
 }
 
-static Type findDeductionMatching_any(TypeDeductions found){
+static Type findDeductionMatching_any(TypeDeductions found, int lineno){
 	Type ret = newBasicType(TB_ERROR);
 	if(utarray_len(found.types) > 1){
-		reportError("#SA020", "Warning: Multiple Type Deductions Found");
+		reportError("#SA020", "Warning: Multiple Type Deductions Found: Line %d", lineno);
+		Type *p = NULL;
+		while((p=(Type*)utarray_next(found.types,p))){
+			errShowType("TYPE: ", p);
+		}
 	}
 	if(utarray_len(found.types) == 0){
 		reportError("SA021", "No Type Deductions Exist");
@@ -184,7 +188,7 @@ TypeDeductions handleFunctCall(PTree *root, int *err);
 
 TypeDeductions deduceTreeType(PTree *root, int *err);
 
-bool blockUnit(PTree *root, Type sig);
+bool blockUnit(PTree *root, Type sig, bool global);
 
 
 

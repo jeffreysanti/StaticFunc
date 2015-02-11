@@ -203,7 +203,10 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 
 bool semAnalyStmt(PTree *root, Type sig)
 {
-	printf("STMT: %s\n", (char*)root->tok->extra);
+	if(root == NULL)
+		return false;
+	if(root->tok != NULL && root->tok->extra != NULL)
+		printf("STMT: %s\n", (char*)root->tok->extra);
 	int err = 0;
 	if(root->typ == PTT_RETURN){
 		Type ret = findDeductionMatching_multrecv(((Type*)sig.children)[0],
@@ -232,7 +235,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 			}
 		}
 	}else if(root->typ == PTT_PARAM_CONT){
-		Type retval = findDeductionMatching_any(handleFunctCall(root, &err));
+		Type retval = findDeductionMatching_any(handleFunctCall(root, &err), root->tok->lineNo);
 		if(retval.base == TB_ERROR || err > 0){
 			reportError("SA001", "Function Call Failed: Line %d", root->tok->lineNo);
 			return false;
@@ -250,10 +253,31 @@ bool semAnalyStmt(PTree *root, Type sig)
 			return false;
 		}
 		if(branch->typ == PTT_IFELSE_SWITCH){
-			return blockUnit((PTree*)branch->child1, sig) && blockUnit((PTree*)branch->child2, sig);
+			return blockUnit((PTree*)branch->child1, sig, false) && blockUnit((PTree*)branch->child2, sig, false);
 		}else{
-			return blockUnit(branch, sig);
+			return blockUnit(branch, sig, false);
 		}
+	}else if(root->typ == PTT_FOR){
+		dumpParseTreeDet(root, 0);
+		PTree *cond = (PTree*)root->child1;
+		PTree *branch = (PTree*)root->child2;
+		PTree *decl = (PTree*)cond->child1;
+		PTree *arr = (PTree*)cond->child2;
+		/*Type booleanType = newBasicType(TB_ANY_INT);
+		Type condtype = findDeductionMatching_multrecv(booleanType,
+							deduceTreeType(cond, &err));
+		if(condtype.base == TB_ERROR || err > 0){
+			reportError("SA025", "If Condition Must Evaluate To Integer Type: Line %d", cond->tok->lineNo);
+			return false;
+		}
+		if(branch->typ == PTT_IFELSE_SWITCH){
+			return blockUnit((PTree*)branch->child1, sig, false) && blockUnit((PTree*)branch->child2, sig, false);
+		}else{
+			return blockUnit(branch, sig, false);
+		}*/
+
+		return false;
+
 	}else{
 		reportError("SA009", "Unknown Statement: %s", getParseNodeName(root));
 		return false;
@@ -262,8 +286,10 @@ bool semAnalyStmt(PTree *root, Type sig)
 	return (err == 0);
 }
 
-bool blockUnit(PTree *root, Type sig)
+bool blockUnit(PTree *root, Type sig, bool global)
 {
+	if(!global)
+		enterScope();
 	int errs = 0;
 	if(root->typ != PTT_STMTBLOCK){
 		if(!semAnalyStmt(root, sig)){
@@ -278,6 +304,8 @@ bool blockUnit(PTree *root, Type sig)
 			body = (PTree*)body->child2;
 		}
 	}
+	if(!global)
+		exitScope();
 	return (errs == 0);
 }
 
@@ -303,7 +331,8 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 		enterGlobalSpace();
 	}
 
-	blockUnit(body, sig);
+	if(!blockUnit(body, sig, global))
+		errs ++;
 
 	if(!global){
 		exitScope();
@@ -321,5 +350,5 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 		}
 		printf("DONE!");
 	}
-	return true;
+	return (errs == 0);
 }

@@ -71,7 +71,7 @@ void addTreeToFreeList(PTree *root)
 }
 
 
-FunctionVersion *newFunctionVersion(FunctionVersion *parent)
+FunctionVersion *newFunctionVersion()
 {
 	FunctionVersion *ret = malloc(sizeof(FunctionVersion));
 	if(ret == NULL){
@@ -84,23 +84,49 @@ FunctionVersion *newFunctionVersion(FunctionVersion *parent)
 	ret->sig = newBasicType(TB_NATIVE_VOID);
 	ret->verid = 1;
 	ret->sr = NULL;
-	if(parent != NULL){
-		parent->next = (void*)ret;
-		ret->verid = parent->verid + 1;
-	}
+	//if(parent != NULL){
+		//parent->next = (void*)ret;
+		//ret->verid = parent->verid + 1;
+	//}
+	ret->verid = 0;
 	return ret;
 }
 
-FunctionVersion *newFunctionVersionByName(char *nm)
+inline bool addFunctionVerToList_checkAlreadyExists(char *nm, FunctionVersion *verOld, FunctionVersion *ver)
+{
+	if(typesEqualMostly(ver->sig, verOld->sig)){
+		if(ver->performReplacement){
+			reportError("@FS051", "Notice: Function template overridden: %s\n"
+					"\t\tUsing line %d instead of line %d",
+					nm, verOld->defRoot->tok->lineNo, ver->defRoot->tok->lineNo);
+			errShowType("\tSIGNATURE: ", (void*)&ver->sig);
+		}else{
+			reportError("#FS050", "Warning: Function already defined %s\n"
+					"\t\tUsing line %d instead of line %d",
+					nm, verOld->defRoot->tok->lineNo, ver->defRoot->tok->lineNo);
+			errShowType("\tSIGNATURE: ", (void*)&ver->sig);
+		}
+		freeFunctionVersion(ver);
+		return false;
+	}
+	return true;
+}
+
+bool addFunctionVerToList(char *nm, FunctionVersion *ver)
 {
 	NamedFunctionMapEnt  *ent;
 	HASH_FIND_STR(NFM, nm, ent);
 	if(ent){
 		FunctionVersion *fVer = ent->V;
+		if(!addFunctionVerToList_checkAlreadyExists(nm, fVer, ver))
+			return false;
 		while(fVer->next != NULL){
+			if(!addFunctionVerToList_checkAlreadyExists(nm, fVer, ver))
+				return false;
 			fVer = (FunctionVersion*)fVer->next;
 		}
-		return newFunctionVersion(fVer);
+		fVer->next = (void*)ver;
+		return true;
 	}
 	char *nmcpy = malloc(strlen(nm)+1);
 	strcpy(nmcpy, nm);
@@ -112,11 +138,10 @@ FunctionVersion *newFunctionVersionByName(char *nm)
 		fatalError("Out of Memory [newFunctionVersionByName : ent]\n");
 	}
 	ent->funcName = nmcpy;
-	ent->V = newFunctionVersion(NULL);
+	ent->V = ver;
 	ent->nameid = lastid;
 	lastid ++;
 	HASH_ADD_KEYPTR(hh, NFM, ent->funcName, strlen(ent->funcName), ent);
-	return (FunctionVersion*)ent->V;
 }
 
 void freeFunctionVersion(FunctionVersion *fv)
@@ -139,7 +164,7 @@ void freeFunctionVersion(FunctionVersion *fv)
 
 inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
 {
-	FunctionVersion *fVer = newFunctionVersionByName((char*)root->tok->extra);
+	FunctionVersion *fVer = newFunctionVersion();
 	fVer->defRoot = root;
 	fVer->performReplacement = (sr != NULL);
 	Type sig = newBasicType(TB_FUNCTION);
@@ -190,7 +215,9 @@ inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
 		}
 	}
 
-	printf("Registerd Function: %s\n", (char*)fVer->defRoot->tok->extra);
+	if(addFunctionVerToList((char*)fVer->defRoot->tok->extra, fVer)){
+		printf("Registerd Function: %s\n", (char*)fVer->defRoot->tok->extra);
+	}
 }
 
 int typeListLength(TypeList tl){
@@ -243,15 +270,16 @@ void registerAllTemplateVersions(PTree *root, int pCount, UT_array *templateList
 	}
 }
 
-void seperateFunctionsFromParseTree(PTree *root)
+void seperateFunctionsFromParseTree(PTree **topRoot, bool templatePass)
 {
+	PTree *root = *topRoot;
+
 	// transverse parse tree finding all functions at root level
 	while(root != NULL && root->child1 != NULL){
 		if(((PTree*)root->child1)->typ == PTT_FUNCTION){ // bingo
 			PTree *funcRoot = (PTree*)root->child1;
 			funcRoot->parent = NULL;
 			root->child1 = NULL;
-			addTreeToFreeList(funcRoot);
 			PTree *typeTree = (PTree*)funcRoot->child1;
 			PTree *paramTypeTree = (PTree*)typeTree->child2;
 			bool isTemplate = false;
@@ -265,6 +293,7 @@ void seperateFunctionsFromParseTree(PTree *root)
 				root = (PTree*)root->child2;
 				freeType(Treturn);
 				utarray_free(templateIdentList);
+				addTreeToFreeList(funcRoot);
 				continue;
 			}
 			if(Treturn.hasTypeListParam){
@@ -293,7 +322,7 @@ void seperateFunctionsFromParseTree(PTree *root)
 				if(tempParamType.hasTypeListParam){
 					isTemplate = true;
 					char *tmp = getDeclTypeListName((PTree*)((PTree*)paramTypeTree->child1)->child1);
-					char **p;
+					char **p = NULL;
 					bool toAdd = true;
 					while ( (p=(char**)utarray_next(templateIdentList,p))) {
 						if(strcmp(*p, tmp) == 0)
@@ -306,12 +335,26 @@ void seperateFunctionsFromParseTree(PTree *root)
 				paramTypeTree = (PTree*)paramTypeTree->child2;
 			}
 			if(err){
+				addTreeToFreeList(funcRoot);
 				freeType(Treturn);
 				utarray_free(templateIdentList);
 				root = (PTree*)root->child2;
 				continue;
 			}
 			//printf("%d ARGS\n", paramCnt);
+
+			if(isTemplate && !templatePass){ // in first pass we skip templates
+				freeType(Treturn);
+				utarray_free(templateIdentList);
+
+				// add back to parse tree for now
+				root->child1 = funcRoot;
+				funcRoot->parent = root;
+
+				root = (PTree*)root->child2;
+				continue;
+			}
+			addTreeToFreeList(funcRoot);
 			if(isTemplate){
 				/*TypeList tl = getTypeListByName(templateIdent);
 				registerFunction(funcRoot, paramCnt, templateIdent, tl.T);
@@ -333,6 +376,12 @@ void seperateFunctionsFromParseTree(PTree *root)
 		}
 		root = (PTree*)root->child2;
 	}
+	if(!templatePass){
+		cleanUpEmptyStatments(*topRoot);
+		seperateFunctionsFromParseTree(topRoot, true);
+		return;
+	}
+	cleanUpEmptyStatments(*topRoot);
 }
 
 
@@ -397,9 +446,10 @@ FunctionVersion *markFirstUsedVersionChecked()
 
 void registerNativeFunction(char *nm, Type sig)
 {
-	FunctionVersion *fv = newFunctionVersionByName(nm);
+	FunctionVersion *fv = newFunctionVersion();
 	fv->defRoot = NULL;
 	fv->stat = FS_NATIVE;
 	fv->sig = sig;
+	addFunctionVerToList(nm, fv);
 }
 

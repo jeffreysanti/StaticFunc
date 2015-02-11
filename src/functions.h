@@ -52,8 +52,8 @@ typedef struct{
 }PTreeFreeList;
 
 
-FunctionVersion *newFunctionVersion(FunctionVersion *parent);
-FunctionVersion *newFunctionVersionByName(char *nm);
+FunctionVersion *newFunctionVersion();
+bool addFunctionVerToList(char *nm, FunctionVersion *ver);
 
 void registerNativeFunction(char *nm, Type sig);
 
@@ -62,7 +62,7 @@ void freeFunctionVersion(FunctionVersion *fv);
 void initFunctionSystem();
 void freeFunctionSystem();
 
-void seperateFunctionsFromParseTree(PTree *root);
+void seperateFunctionsFromParseTree(PTree **root, bool templatePass);
 
 void addTreeToFreeList(PTree *root);
 

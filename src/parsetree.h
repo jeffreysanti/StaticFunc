@@ -100,7 +100,7 @@ void setParseNodeChild(PTree *parent, PTree *child, ParseChild side);
 void dumpParseTree(PTree *root, int level);
 void dumpParseTreeDet(PTree *root, int level);
 
-void cleanUpEmptyStatments(PTree **ptr);
+void cleanUpEmptyStatments(PTree *ptr);
 
 char *getParseNodeName(PTree *root);
 
