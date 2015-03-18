@@ -28,7 +28,10 @@ void initFunctionSystem()
 void freeFreeList(PTreeFreeList *f){
 	if(f == NULL) return;
 	freeFreeList((PTreeFreeList*)f->next);
-	if(f->tree != NULL) freeParseTreeNode(f->tree);
+	if(f->tree != NULL){
+		//dumpParseTreeDet(f->tree, 0);
+		freeParseTreeNode(f->tree);
+	}
 	free(f);
 }
 
@@ -84,6 +87,7 @@ FunctionVersion *newFunctionVersion()
 	ret->sig = newBasicType(TB_NATIVE_VOID);
 	ret->verid = 1;
 	ret->sr = NULL;
+	ret->funcName = NULL;
 	//if(parent != NULL){
 		//parent->next = (void*)ret;
 		//ret->verid = parent->verid + 1;
@@ -126,6 +130,7 @@ bool addFunctionVerToList(char *nm, FunctionVersion *ver)
 			fVer = (FunctionVersion*)fVer->next;
 		}
 		fVer->next = (void*)ver;
+		ver->funcName = fVer->funcName;
 		return true;
 	}
 	char *nmcpy = malloc(strlen(nm)+1);
@@ -139,6 +144,7 @@ bool addFunctionVerToList(char *nm, FunctionVersion *ver)
 	}
 	ent->funcName = nmcpy;
 	ent->V = ver;
+	ver->funcName = ent->funcName;
 	ent->nameid = lastid;
 	lastid ++;
 	HASH_ADD_KEYPTR(hh, NFM, ent->funcName, strlen(ent->funcName), ent);
@@ -401,11 +407,17 @@ PTree *copyTreeSubTemplate(PTree *orig, UT_array *sr){
 			if(strcmp(sar->ident, (char*)orig->tok->extra) == 0){
 				freeParseTreeNode(node);
 				node = (PTree*)getTypeAsPTree(sar->replace);
+				if(orig->child1 != NULL && ((PTree*)orig->child1)->typ == PTT_DECL_MOD){
+					if(strcmp(((PTree*)orig->child1)->tok->extra, "mut") == 0){
+						markTypeDeductionsMutable(node->deducedTypes);
+					}
+				}
 				return node;
 			}
 		}
 	}
 
+	freeTypeDeductions(node->deducedTypes);
 	node->deducedTypes = duplicateTypeDeductions(orig->deducedTypes);
 	node->tok = orig->tok;
 	if(orig->child1 != NULL){

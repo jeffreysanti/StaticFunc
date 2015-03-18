@@ -26,8 +26,10 @@ void exitScope()
 		if(S->prev != NULL){
 			Symbol *sOld = S;
 			S = (Symbol*)S->prev;
+			freeType(sOld->sig);
 			free(sOld);
 		}else{
+			freeType(S->sig);
 			free(S);
 			S = NULL;
 		}

@@ -41,6 +41,12 @@ typedef enum{
 	TB_ERROR
 }TypeBase;
 
+typedef enum{
+	MS_RHS,
+	MS_LHS,
+	MS_NEITHER
+}MutableSide;
+
 typedef struct{
 	TypeBase base;
 	bool mutable;
@@ -90,6 +96,7 @@ void freeType(Type t);
 void freeTypeList(TypeList t);
 
 Type newBasicType(TypeBase typ);
+Type newBasicType_m(TypeBase typ, bool mut);
 Type newVectorType(Type typ);
 bool typesEqual(Type t1, Type t2);
 
@@ -132,10 +139,12 @@ Type getLogicalFloatTypeByLiteral(char *lit);
 TypeDeductions newTypeDeductions();
 void freeTypeDeductions(TypeDeductions ret);
 
+void markTypeDeductionsMutable(TypeDeductions d);
+
 TypeDeductions expandedTypeDeduction(Type type);
 TypeDeductions singleTypeDeduction(Type type);
-TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found);
-TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err);
+TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found, MutableSide ms);
+TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms);
 bool typeDeductionMergeExists(TypeDeductions expected, TypeDeductions found);
 TypeDeductions duplicateTypeDeductions(TypeDeductions d);
 void showTypeDeductionOption(TypeDeductions op);

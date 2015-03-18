@@ -165,7 +165,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
 		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
 
-		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
+		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err, MS_NEITHER);
 		if(*err > 0 || !(	typeDeductionMergeExists(overlap, tInts) ||
 							typeDeductionMergeExists(overlap, tFloats))){
 			reportError("SA011", "Operation (+-/^*&|~) Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
@@ -181,10 +181,19 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		TypeDeductions options = handleFunctCall(root,err);
 		setTypeDeductions(root, options);
 		return options;
-	}/*else if(root->typ == PTT_EQUAL){
-		// TODO
-		return singleType(newBasicType(TB_NATIVE_INT8));
-	}*/
+	}else if(root->typ == PTT_EQUAL){
+		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
+		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err, MS_NEITHER);
+		if(*err > 0){
+			reportError("SA032", "Both sides of equals must be of same type: Line %d", root->tok->lineNo);
+			(*err) ++;
+			freeTypeDeductions(overlap);
+			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
+		}
+		setTypeDeductions(root, overlap);
+		return overlap;
+	}
 
 
 
@@ -217,7 +226,7 @@ void propagateTreeType(PTree *root){
 		// nothing to do here
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
-			root->typ == PTT_XOR){
+			root->typ == PTT_XOR || root->typ == PTT_EQUAL || root->typ == PTT_ASSIGN){
 		// both sides need be same type
 		setTypeDeductions((PTree*)root->child1, duplicateTypeDeductions(final));
 		setTypeDeductions((PTree*)root->child2, duplicateTypeDeductions(final));
@@ -242,28 +251,32 @@ void propagateTreeType(PTree *root){
 				continue;
 			}
 			// check return type match
-			if(!typeDeductionMergeExists(singleTypeDeduction(((Type*)ver->sig.children)[0]),
-									root->deducedTypes)){
+			TypeDeductions tmp = singleTypeDeduction(((Type*)ver->sig.children)[0]);
+			if(!typeDeductionMergeExists(tmp, root->deducedTypes)){
 				ver = (FunctionVersion*)ver->next;
+				freeTypeDeductions(tmp);
 				continue;
 			}
+			freeTypeDeductions(tmp);
 			// parameter type match
 			int i;
 			bool success = true;
 			param = (PTree*)root->child2;
 			for(i=1; i<ver->sig.numchildren; i++){
-				if(!typeDeductionMergeExists(singleTypeDeduction(((Type*)ver->sig.children)[i]),
-						param->deducedTypes)){
+				TypeDeductions tmp = singleTypeDeduction(((Type*)ver->sig.children)[i]);
+				if(!typeDeductionMergeExists(tmp, ((PTree*)param->child1)->deducedTypes)){
 					success = false;
+					freeTypeDeductions(tmp);
 					break;
 				}
+				freeTypeDeductions(tmp);
 				param = (PTree*)param->child2;
 			}
 			if(success){ // propagate tree to each parameter
 				param = (PTree*)root->child2;
 				for(i=1; i<ver->sig.numchildren; i++){
-					setTypeDeductions(param, singleTypeDeduction(((Type*)ver->sig.children)[i]));
-					propagateTreeType(param);
+					setTypeDeductions((PTree*)param->child1, singleTypeDeduction(((Type*)ver->sig.children)[i]));
+					propagateTreeType((PTree*)param->child1);
 					param = (PTree*)param->child2;
 				}
 				markFunctionVersionUsed(ver);
@@ -271,11 +284,21 @@ void propagateTreeType(PTree *root){
 			}
 			ver = (FunctionVersion*)ver->next;
 		}
+	}else if(root->typ == PTT_RETURN){
+		setTypeDeductions((PTree*)root->child1, duplicateTypeDeductions(final));
+		propagateTreeType((PTree*)root->child1);
+	}else if(root->typ == PTT_DECL){
+		if(root->child2 != NULL){
+			setTypeDeductions((PTree*)root->child2, duplicateTypeDeductions(final));
+			propagateTreeType((PTree*)root->child2);
+		}
+	}else{
+		fatalError("No propagateTreeType for tree node!");
 	}
 }
 
 
-/*
+
 inline bool declaration(PTree *root, int *err){
 	char *sname = (char*)root->tok->extra;
 	if(symbolExistsCurrentLevel(sname)){
@@ -286,17 +309,17 @@ inline bool declaration(PTree *root, int *err){
 	}
 	Type styp = deduceTypeDeclType((PTree*)root->child1);
 	addSymbol(sname, styp);
+	setTypeDeductions(root, singleTypeDeduction(styp));
 	if(root->child2 != NULL){
-		Type initalizerType = findDeductionMatching_multrecv(styp,
-				deduceTreeType((PTree*)root->child2, err));
-		if(initalizerType.base == TB_ERROR || *err > 0){
+		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err);
+		if(*err > 0 || !typeDeductionMergeExists(root->deducedTypes, assignment)){
 			reportError("SA001", "Declaration Assignment Type Invalid: Line %d", root->tok->lineNo);
 			return false;
 		}
 	}
 	return true;
 }
-*/
+
 bool semAnalyStmt(PTree *root, Type sig)
 {
 	if(root == NULL)
@@ -307,7 +330,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 	if(root->typ == PTT_RETURN){
 		TypeDeductions deduced = deduceTreeType((PTree*)root->child1, &err);
 		TypeDeductions required = singleTypeDeduction(((Type*)sig.children)[0]);
-		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, required, &err);
+		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, required, &err, MS_NEITHER);
 		freeTypeDeductions(required);
 		setTypeDeductions(root, res);
 		if(err > 0){
@@ -315,34 +338,42 @@ bool semAnalyStmt(PTree *root, Type sig)
 			return false;
 		}
 		return finalizeSingleDeduction(root);
-	}/*else if(root->typ == PTT_DECL){
+	}else if(root->typ == PTT_DECL){
 		if(!declaration(root, &err))
 			return false;
+		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_PARAM_CONT){
-		Type retval = findDeductionMatching_any(handleFunctCall(root, &err), root->tok->lineNo);
-		if(retval.base == TB_ERROR || err > 0){
-			reportError("SA001", "Function Call Failed: Line %d", root->tok->lineNo);
+		TypeDeductions deducts = handleFunctCall(root, &err);
+		setTypeDeductions(root, deducts);
+		if(err > 0){
+			reportError("SA043", "Function Call Failed: Line %d", root->tok->lineNo);
 			return false;
 		}
-		root->deducedType = retval;
+		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_IF){
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 
-		Type booleanType = newBasicType(TB_ANY_INT);
-		Type condtype = findDeductionMatching_multrecv(booleanType,
-							deduceTreeType(cond, &err));
-		if(condtype.base == TB_ERROR || err > 0){
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
+		TypeDeductions deduced = deduceTreeType(cond, &err);
+
+		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err, MS_NEITHER);
+		freeTypeDeductions(booleanType);
+		setTypeDeductions(root, res);
+		setTypeDeductions(cond, duplicateTypeDeductions(res));
+		if(err > 0 || !finalizeSingleDeduction(cond)){
 			reportError("SA025", "If Condition Must Evaluate To Integer Type: Line %d", cond->tok->lineNo);
 			return false;
 		}
+
+		bool ret;
 		if(branch->typ == PTT_IFELSE_SWITCH){
-			return blockUnit((PTree*)branch->child1, sig, false) && blockUnit((PTree*)branch->child2, sig, false);
+			ret = blockUnit((PTree*)branch->child1, sig, false) && blockUnit((PTree*)branch->child2, sig, false);
 		}else{
-			return blockUnit(branch, sig, false);
+			ret = blockUnit(branch, sig, false);
 		}
+		return ret;
 	}else if(root->typ == PTT_FOR){
-		dumpParseTreeDet(root, 0);
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 		PTree *decl = (PTree*)cond->child1;
@@ -350,25 +381,42 @@ bool semAnalyStmt(PTree *root, Type sig)
 
 		// Declaration:
 		enterScope();
-		if(!declaration(decl, &err))
+		if(!declaration(decl, &err) || !finalizeSingleDeduction(decl))
 			return false;
 
 		// Find out what type we are iterating/expected object to iterate
 		Type typ = duplicateType(lastSymbol()->sig);
 		Type typExpected = newVectorType(typ);
+		TypeDeductions expected = singleTypeDeduction(typExpected);
+		freeType(typExpected);
 
 		// Iterated Object
-		Type iter = findDeductionMatching_multrecv(typExpected, deduceTreeType(arr, &err));
-		if(iter.base == TB_ERROR || err > 0){
+		TypeDeductions iter = deduceTreeType(arr, &err);
+
+		TypeDeductions res = mergeTypeDeductionsOrErr(expected, iter, &err, MS_NEITHER);
+		freeTypeDeductions(expected);
+		setTypeDeductions(root, res);
+		setTypeDeductions(arr, duplicateTypeDeductions(res));
+		if(err > 0 || !finalizeSingleDeduction(arr)){
 			reportError("SA051", "Array Iteration Type Invalid: Line %d", arr->tok->lineNo);
 			return false;
 		}
-		freeType(typExpected);
-
-		// block
 		return blockUnit(branch, sig, false);
-
-	}*/else{
+	}else if(root->typ == PTT_ASSIGN){
+		TypeDeductions rhs = deduceTreeType((PTree*)root->child1, &err);
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child2, &err);
+		TypeDeductions res = mergeTypeDeductionsOrErr(lhs, rhs, &err, MS_LHS);
+		setTypeDeductions(root, res);
+		if(err > 0){
+			reportError("SA052", "Assignment Invalid: Line %d", root->tok->lineNo);
+			return false;
+		}
+		if(!((Type*)utarray_front(res.types))->mutable){
+			reportError("SA053", "Cannot assign to immutable type: Line %d", root->tok->lineNo);
+			return false;
+		}
+		return finalizeSingleDeduction(root);
+	}else{
 		reportError("SA009", "Unknown Statement: %s", getParseNodeName(root));
 		return false;
 	}
@@ -435,6 +483,7 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 			FunctionVersion *v = markFirstUsedVersionChecked();
 			if(v == NULL)
 				return ret;
+			printf("Inside function: %s \n", v->funcName);
 			semAnalyFunc(v->defRoot, false, v->sig);
 		}
 		printf("DONE!");

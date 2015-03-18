@@ -19,7 +19,7 @@ def I fibr(I n, P2 var)
 {
 	if(n == 1 | n == 2)
 		return 1;
-	return fibr(n - 1, var) + fibr(n - 2, var);
+	return fibr(n - 1, var) + fibr(n - 2, var, "hey");
 }
 
 // more specfic example
@@ -123,6 +123,7 @@ def int32 main2(int32 par1){
 	return par1;
 }
 
+vector<int16> v;
 int32 glob(35 + 456 / 3);
 
 if(glob == 2){
@@ -131,5 +132,7 @@ if(glob == 2){
 	println("NO");
 }
 
+fibr(43, "h");
+
 //return main2(glob);
-return 4 + 2 * fibt(7);
+return 4 + 2 * fibi(7);

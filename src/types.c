@@ -115,6 +115,19 @@ Type newBasicType(TypeBase typ)
 	return t;
 }
 
+Type newBasicType_m(TypeBase typ, bool mut)
+{
+	Type t;
+	t.base = typ;
+	t.mutable = mut;
+	t.numchildren = 0;
+	t.children = NULL;
+	t.altName = NULL;
+	t.hasTypeListParam = false;
+	t.typelistName = NULL;
+	return t;
+}
+
 Type newVectorType(Type typ)
 {
 	Type t = newBasicType(TB_VECTOR);
@@ -221,9 +234,10 @@ inline void paramMultTypLists(PTree* t){
 
 Type deduceTypeDeclType(PTree *t)
 {
-	/*if(t->typ == PTT_DECL_TYPE_DEDUCED){
-		return duplicateType(t->deducedType);
-	}*/
+	if(t->typ == PTT_DECL_TYPE_DEDUCED){
+		Type *typ = (Type*)utarray_front(t->deducedTypes.types);
+		return duplicateType(*typ);
+	}
 
 	TypeStringMapEnt *ent;
 
@@ -692,6 +706,7 @@ Type getLogicalFloatTypeByLiteral(char *lit)
 PTree *getTypeAsPTree(Type t)
 {
 	PTree *tree = newParseTree(PTT_DECL_TYPE_DEDUCED);
+	freeTypeDeductions(tree->deducedTypes);
 	tree->deducedTypes = expandedTypeDeduction(t);
 	return tree;
 }
@@ -736,26 +751,26 @@ TypeDeductions expandedTypeDeduction(Type type)
 {
 	TypeDeductions ret = newTypeDeductions();
 	if(type.base == TB_NATIVE_INT8){
-		addType(&ret, newBasicType(TB_NATIVE_INT8));
-		addType(&ret, newBasicType(TB_NATIVE_INT16));
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT8, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT16, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
 	}else if(type.base == TB_NATIVE_INT16){
-		addType(&ret, newBasicType(TB_NATIVE_INT16));
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT16, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
 	}else if(type.base == TB_NATIVE_INT32){
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
 	}else if(type.base == TB_NATIVE_INT64){
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
 	}else if(type.base == TB_NATIVE_FLOAT32){
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT32, type.mutable));
+		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT64, type.mutable));
 	}else if(type.base == TB_NATIVE_FLOAT64){
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT64, type.mutable));
 	}else if(type.base == TB_NATIVE_STRING){
-		addType(&ret, newBasicType(TB_NATIVE_STRING));
+		addType(&ret, newBasicType_m(TB_NATIVE_STRING, type.mutable));
 	}else if(type.base == TB_VECTOR){
 		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0]);
 		Type *p = NULL;
@@ -771,7 +786,7 @@ TypeDeductions expandedTypeDeduction(Type type)
 	return ret;
 }
 
-TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found){
+TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found, MutableSide ms){
 	//Type ret = newBasicType(TB_ERROR);
 	TypeDeductions ret = newTypeDeductions();
 	Type *pf = NULL;
@@ -781,6 +796,12 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 		while((pe=(Type*)utarray_next(expected.types,pe))){
 			if(typesEqualMostly(*pe, *pf)){
 				Type typCpy = duplicateType(*pf);
+				typCpy.mutable = false;
+				if(ms == MS_RHS && pe->mutable){
+					typCpy.mutable = true;
+				}if(ms == MS_LHS && pf->mutable){
+					typCpy.mutable = true;
+				}
 				addType(&ret, typCpy);
 			}
 		}
@@ -803,8 +824,8 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 	return ret;
 }
 
-TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err){
-	TypeDeductions merged = mergeTypeDeductions(expected, found);
+TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms){
+	TypeDeductions merged = mergeTypeDeductions(expected, found, ms);
 	if(utarray_len(merged.types) == 0){
 		(*err) ++;
 		reportError("TS087", "Cannot Merge Type Deductions:");
@@ -856,6 +877,13 @@ void showTypeDeductionOption(TypeDeductions op){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(op.types,p))){
 		errShowType("  FOUND: ",p);
+	}
+}
+
+void markTypeDeductionsMutable(TypeDeductions d){
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(d.types,p))){
+		p->mutable = true;
 	}
 }
 

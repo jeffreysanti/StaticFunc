@@ -31,6 +31,7 @@ typedef struct{
 	FunctionStatus stat;
 	UT_array *sr;
 	struct FunctionVersion *next;
+	char *funcName;
 }FunctionVersion;
 extern UT_icd FunctionVersion_icd;
 

@@ -48,7 +48,7 @@ Type sig_vecx_x_x(TypeBase x){
 	allocTypeChildren(&typ, 1 + 2);
 	((Type*)typ.children)[0] = newVectorType(newBasicType(x));
 	((Type*)typ.children)[1] = newBasicType(x);
-	((Type*)typ.children)[1] = newBasicType(x);
+	((Type*)typ.children)[2] = newBasicType(x);
 	return typ;
 }
 
