@@ -911,7 +911,6 @@ bool prodDecl(PState *ps){
 		return resetChildNode(ps, root);
 	setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // params
 	ps->child = root;
-	printf("DECL ALLOC!!\n");
 	return true;
 }bool prodDeclMod(PState *ps){
 	LexicalToken *start = ps->token;

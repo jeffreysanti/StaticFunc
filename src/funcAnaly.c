@@ -77,7 +77,8 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 	if(*err != 0){
 		freeTypeDeductions(ret);
 		free(pDeds);
-		return singleTypeDeduction(newBasicType(TB_ERROR));
+		ret = singleTypeDeduction(newBasicType(TB_ERROR));
+		return ret;
 	}
 
 	FunctionVersion *ver = l->V;
@@ -101,7 +102,8 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 			freeTypeDeductions(sigParam);
 		}
 		if(success){
-			utarray_push_back(ret.types, (Type*)&((Type*)ver->sig.children)[0]);
+			Type typ = duplicateType(((Type*)ver->sig.children)[0]);
+			utarray_push_back(ret.types, &typ);
 		}
 		ver = (FunctionVersion*)ver->next;
 		verno ++;
@@ -119,11 +121,9 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 			showTypeDeductionOption(pDeds[pNum]);
 		}
 		freeTypeDeductions(ret);
-		for(pNum=0; pNum<pCount; pNum++){
-			freeTypeDeductions(pDeds[pNum]);
-		}
 		free(pDeds);
-		return singleTypeDeduction(newBasicType(TB_ERROR));
+		ret = singleTypeDeduction(newBasicType(TB_ERROR));
+		return ret;
 	}
 	free(pDeds);
 	return ret;
