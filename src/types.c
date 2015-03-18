@@ -325,6 +325,10 @@ Type deduceTypeDeclType(PTree *t)
 				typelistTempName = getDeclTypeListName((PTree*)treePtr->child1);
 			}
 			if(treePtr->tok != NULL){ // named param
+				if(ret.altName != NULL){
+					free(ret.altName);
+					ret.altName = NULL;
+				}
 				ret.altName = malloc(strlen((char*)treePtr->tok->extra) + 1);
 				if(ret.altName == NULL){
 					fatalError("Out of Memory [deduceType : tuple altname]\n");

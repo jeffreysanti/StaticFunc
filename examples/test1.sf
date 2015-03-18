@@ -85,7 +85,7 @@ def int32 sum(function<int32, int32> func, int32 n)
 
 def tuple<int8, int16, int32, I, vector<I>> T()
 {
-	return 0; // Will be an error in semantic analysis stage
+	//return [2, 4, 5, 3, [3, 1,3]]; // Will be an error in semantic analysis stage
 }
 
 
@@ -135,4 +135,18 @@ if(glob == 2){
 fibr(43, "h");
 
 //return main2(glob);
+T();
 return 4 + 2 * fibi(7);
+
+
+dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
+dict<int8, int8> mydict2([i:2*i for int8 i in range(0,3)]);
+
+tuple<string:a, string:b> mytuple([a:"the", b:"cat", c:"in"]);
+tuple<string:a, string:b> mytuple2(["the", "cat", "in"]);
+tuple<string:a, string:b> mytuple3([0:"the", 1:"cat", 2:"in"]);
+
+vector<string> myarray(["the", "cat", "in"]);
+vector<int8> myarray2([2*i for int8 i in range(0,3)]);
+
+

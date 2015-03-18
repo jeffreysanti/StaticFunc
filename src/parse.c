@@ -682,6 +682,18 @@ bool prodArrayExpr(PState *ps){
 }bool prodArrayExprFact1(PState *ps){
 	if(!prodExpr(ps))
 		return false;
+	LexicalToken *tkStart = ps->token;
+	if(termColon(ps)){
+		PTree *lhs = storeAndNullChildNode(ps);
+		if(!prodExpr(ps)){
+			resetChildNode(ps, lhs);
+			return reportParseError(ps, "PS070", "List Found Colon, but no following expr: Line %d\n", tkStart->lineNo);
+		}
+		PTree *rhs = storeAndNullChildNode(ps);
+		ps->child = newParseTree(PTT_ARRAY_ELM_PAIR);
+		((PTree*)ps->child)->child1 = (void*)lhs;
+		((PTree*)ps->child)->child2 = (void*)rhs;
+	}
 	PTree *root = newParseTree(PTT_ARRAY_ELM);
 	insertParseNodeFromList(root, PTT_ARRAY_ELM, storeAndNullChildNode(ps)); // first param
 	ps->child = root;
@@ -744,6 +756,18 @@ bool prodArrayExprAux(PState *ps){
 		if(!prodExpr(ps)){
 			resetChildNode(ps, NULL);
 			return reportParseError(ps, "PS012", "Element Listed in Array Not Expression: Line %d\n", tkStart->lineNo);
+		}
+		tkStart = ps->token;
+		if(termColon(ps)){
+			PTree *lhs = storeAndNullChildNode(ps);
+			if(!prodExpr(ps)){
+				resetChildNode(ps, lhs);
+				return reportParseError(ps, "PS070", "List Found Colon, but no following expr: Line %d\n", tkStart->lineNo);
+			}
+			PTree *rhs = storeAndNullChildNode(ps);
+			ps->child = newParseTree(PTT_ARRAY_ELM_PAIR);
+			((PTree*)ps->child)->child1 = (void*)lhs;
+			((PTree*)ps->child)->child2 = (void*)rhs;
 		}
 		insertParseNodeFromList(root, PTT_ARRAY_ELM, storeAndNullChildNode(ps));
 	}

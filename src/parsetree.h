@@ -63,7 +63,8 @@ typedef enum{
 	PTT_FUNCTION_TYPE,
 	PTT_LAMBDA,
 
-	PTT_DECL_TYPE_DEDUCED
+	PTT_DECL_TYPE_DEDUCED,
+	PTT_ARRAY_ELM_PAIR
 } PTType;
 
 typedef struct _PTree{

@@ -70,10 +70,10 @@ ExprK		:	( ExprA )
 			|	Val
 
 
-ArrayExpr		:	Expr ArrayExprAux
+ArrayExpr		:	Expr {OPTIONAL ":" Expr} ArrayExprAux
 				|	#
 ArrayExprAux	:	for Decl in Expr {where Expr}
-				|	{ , Expr }
+				|	{ , Expr {OPTIONAL ":" Expr} }
 
 ParamExpr		:	Expr { , Expr }
 				|	#
