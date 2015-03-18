@@ -72,7 +72,7 @@ typedef struct _PTree{
 	struct PTree *child2;
 	struct PTree *parent;
 	LexicalToken *tok;
-	Type deducedType;
+	TypeDeductions deducedTypes;
 } PTree;
 
 
@@ -103,5 +103,7 @@ void dumpParseTreeDet(PTree *root, int level);
 void cleanUpEmptyStatments(PTree *ptr);
 
 char *getParseNodeName(PTree *root);
+
+void setTypeDeductions(PTree *root, TypeDeductions ded);
 
 #endif /* STATICFUNC_SRC_PARSETREE_H_ */

@@ -67,7 +67,7 @@ PTree *parseTypeDef(LexicalTokenList *TL)
 	return root;
 }
 
-int parseTypeList(LexicalTokenList *TL, PTree ** ret)
+int parseTypeList(LexicalTokenList *TL, PTree *** ret)
 {
 	int cnt = 1;
 	LexicalToken *tk = TL->first;
@@ -76,46 +76,56 @@ int parseTypeList(LexicalTokenList *TL, PTree ** ret)
 			cnt ++;
 		tk = (LexicalToken*)tk->next;
 	}
-	*ret = malloc(cnt*sizeof(PTree));
+	*ret = calloc(cnt, sizeof(PTree*));
+	int i;
+	for(i=0; i<cnt; i++){
+		(*ret)[i] = newParseTree(PTT_NOTYPE);
+	}
 	PState *ps = preParse(TL);
 
 	if(!termIdentifier(ps)){
 		freeLexicalTokenList(TL);
 		free(ps);
+		for(i = 0; i<cnt; i++){
+			freeParseTreeNode((*ret)[i]);
+		}
 		free(*ret);
 		return 0;
 	}
 	if(!prodDeclType(ps)){
 		freeLexicalTokenList(TL);
 		free(ps);
+		for(i = 0; i<cnt; i++){
+			freeParseTreeNode((*ret)[i]);
+		}
 		free(*ret);
 		return 0;
 	}
-	memcpy(&(*ret)[0], ps->child, sizeof(PTree));
-	free(ps->child);
+	freeParseTreeNode((*ret)[0]);
+	(*ret)[0] = ps->child;
 	ps->child = NULL;
 
-	int i = 1;
+	i = 1;
 	while(i < cnt){
 		if(!termComma(ps) || !prodDeclType(ps)){
 			int x;
-			for(x = 0; x<i; x++){
-				freeParseTreeNode_onlychildren(&((*ret)[x]));
+			for(x = 0; x<cnt; x++){
+				freeParseTreeNode((*ret)[x]);
 			}
 			freeLexicalTokenList(TL);
 			free(*ret);
 			free(ps);
 			return 0;
 		}
-		memcpy(&(*ret)[i], ps->child, sizeof(PTree));
-		free(ps->child);
+		freeParseTreeNode((*ret)[i]);
+		(*ret)[i] = ps->child;
 		ps->child = NULL;
 		i++;
 	}
 	if(!termStmtEnd(ps)){
 		freeLexicalTokenList(TL);
 		for(i=0; i<cnt; i++){
-			freeParseTreeNode_onlychildren(&((*ret)[i]));
+			freeParseTreeNode((*ret)[i]);
 		}
 		free(ps);
 		free(*ret);
@@ -125,8 +135,8 @@ int parseTypeList(LexicalTokenList *TL, PTree ** ret)
 	// is anything left
 	if(ps->token->typ != LT_EOF){
 		freeLexicalTokenList(TL);
-		for(i=0; i<cnt; i++){
-			freeParseTreeNode_onlychildren(&((*ret)[i]));
+		for(i = 0; i<cnt; i++){
+			freeParseTreeNode((*ret)[i]);
 		}
 		free(ps);
 		free(*ret);
@@ -901,6 +911,7 @@ bool prodDecl(PState *ps){
 		return resetChildNode(ps, root);
 	setParseNodeChild(root, storeAndNullChildNode(ps), PC_RIGHT); // params
 	ps->child = root;
+	printf("DECL ALLOC!!\n");
 	return true;
 }bool prodDeclMod(PState *ps){
 	LexicalToken *start = ps->token;

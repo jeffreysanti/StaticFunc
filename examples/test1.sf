@@ -31,6 +31,13 @@ def int32 fibr(int32 n, string var)
 	return fibr(n - 1, var) + fibr(n - 2, var);
 }
 
+// now repeat it
+def int32 fibr(int32 n, string var)
+{
+}
+
+
+
 // tail-recursive version
 def I fibt(I n)
 {
@@ -124,5 +131,5 @@ if(glob == 2){
 	println("NO");
 }
 
-return main2(glob);
-
+//return main2(glob);
+return 4 + 2 * fibt(7);

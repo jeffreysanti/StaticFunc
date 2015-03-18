@@ -15,43 +15,17 @@
 #include "symbols.h"
 #include "functions.h"
 
+
+/*
 #define integralType(x) (x.base == TB_NATIVE_INT8 || x.base == TB_NATIVE_INT16 || x.base == TB_NATIVE_INT32 || \
 				x.base == TB_NATIVE_INT64)
 
 #define floatingType(x) (x.base == TB_NATIVE_FLOAT32 || x.base == TB_NATIVE_FLOAT64)
 
 
-typedef struct{
-	UT_array *types;
-	UT_array *extra;
-	void *extraPtr1;
-	void *extraPtr2;
-	void *extraPtr3;
-	void (*onChooseDeduction)(void *, int);
-}TypeDeductions;
-static UT_icd TypeDeductions_icd = {sizeof(Type), NULL, NULL, NULL};
 
-static TypeDeductions newTypeDeductions(){
-	TypeDeductions ret;
-	utarray_new(ret.types, &TypeDeductions_icd);
-	ret.extra = NULL;
-	ret.onChooseDeduction = NULL;
-	ret.extraPtr1 = NULL;
-	ret.extraPtr2 = NULL;
-	ret.extraPtr3 = NULL;
-	return ret;
-}
 
-static void freeTypeDeductions(TypeDeductions ret){
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(ret.types,p))){
-		freeType(*p);
-	}
-	utarray_free(ret.types);
-	if(ret.extra != NULL){
-		utarray_free(ret.extra);
-	}
-}
+
 static Type freeTypeDeductionsExcept(TypeDeductions ret, Type leave){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(ret.types,p))){
@@ -180,6 +154,8 @@ static Type findDeductionMatching_any(TypeDeductions found, int lineno){
 	return first;
 }
 
+*/
+
 
 bool semAnalyFunc(PTree *root, bool global, Type sig);
 
@@ -187,6 +163,8 @@ bool semAnalyExpr(PTree *root, Type expect, bool silent);
 TypeDeductions handleFunctCall(PTree *root, int *err);
 
 TypeDeductions deduceTreeType(PTree *root, int *err);
+void propagateTreeType(PTree *root);
+bool finalizeSingleDeduction(PTree *root);
 
 bool blockUnit(PTree *root, Type sig, bool global);
 

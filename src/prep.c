@@ -62,7 +62,7 @@ bool parsePreprocessor(char *str, int len)
 			errLex();
 			return false;
 		}
-		PTree * treeArr;
+		PTree ** treeArr;
 		int cnt = parseTypeList(T, &treeArr);
 		if(cnt == 0){
 			freeLexicalTokenList(T);
@@ -72,16 +72,24 @@ bool parsePreprocessor(char *str, int len)
 		LexicalToken *tokNm = T->first;
 		int i;
 		for(i=0; i<cnt; i++){
-			Type typ = deduceTypeDeclType(&(treeArr[i]));
+			Type typ = deduceTypeDeclType(treeArr[i]);
 			if(typ.base == TB_ERROR || typ.base == TB_TYPELIST){
-				freeParseTreeNode(&(treeArr[0])); // frees all (all in one block)
+				int x;
+				for(x=0; x<cnt; x++){
+					freeParseTreeNode(treeArr[x]);
+				}
+				free(treeArr);
 				freeLexicalTokenList(T);
 				errTypeDed();
 				return false;
 			}
 			addToTypeList((char*)tokNm->extra, typ);
 		}
-		freeParseTreeNode(&(treeArr[0])); // frees all (all in one block)
+		int x;
+		for(x=0; x<cnt; x++){
+			freeParseTreeNode(treeArr[x]);
+		}
+		free(treeArr);
 		freeLexicalTokenList(T);
 
 		return true;

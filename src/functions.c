@@ -142,6 +142,7 @@ bool addFunctionVerToList(char *nm, FunctionVersion *ver)
 	ent->nameid = lastid;
 	lastid ++;
 	HASH_ADD_KEYPTR(hh, NFM, ent->funcName, strlen(ent->funcName), ent);
+	return true;
 }
 
 void freeFunctionVersion(FunctionVersion *fv)
@@ -348,8 +349,8 @@ void seperateFunctionsFromParseTree(PTree **topRoot, bool templatePass)
 				utarray_free(templateIdentList);
 
 				// add back to parse tree for now
-				root->child1 = funcRoot;
-				funcRoot->parent = root;
+				root->child1 = (void*)funcRoot;
+				funcRoot->parent = (void*)root;
 
 				root = (PTree*)root->child2;
 				continue;
@@ -405,7 +406,7 @@ PTree *copyTreeSubTemplate(PTree *orig, UT_array *sr){
 		}
 	}
 
-	node->deducedType = duplicateType(orig->deducedType);
+	node->deducedTypes = duplicateTypeDeductions(orig->deducedTypes);
 	node->tok = orig->tok;
 	if(orig->child1 != NULL){
 		node->child1 = (void*)copyTreeSubTemplate((PTree*)orig->child1, sr);

@@ -38,4 +38,6 @@ bool symbolExistsCurrentLevel(char *sym);
 
 void freeOrResetScopeSystem();
 
+Symbol *lastSymbol();
+
 #endif /* STATICFUNC_SRC_SYMBOLS_H_ */

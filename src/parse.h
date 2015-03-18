@@ -19,7 +19,7 @@
 
 PTree *parse(LexicalTokenList *TL);
 PTree *parseTypeDef(LexicalTokenList *TL);
-int parseTypeList(LexicalTokenList *TL, PTree ** ret);
+int parseTypeList(LexicalTokenList *TL, PTree *** ret);
 
 
 typedef struct{

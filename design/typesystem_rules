@@ -1,0 +1,40 @@
+Situations:
+
+1) x = b;
+2) x(b);
+-- 3) x(c); where c is a referenced parameter
+4) for _type_ x in y
+
+
+Source vs Destination:
+
+a) dest = src
+b) x(b):: b is the source, formal parameter is the destination
+4) for _type_ dest in src
+
+Destination must be more general than source!
+  * This means bigger in size
+
+Conversion Modes:
+-- a) Strict
+b) 
+
+
+PROCEDURE:
+* Analyze Each Statement Type
+* Expressions likely need to be type deduced
+
+Type Deduction of Expressions:
+* Descend Tree
+
+
+
+
+int32 x(2 + 12 / func(4));
+decl => eval inside::
+	+ ==> eval 2[anyint], /
+	/ ==> eval 12[anyint], func
+	func ==> list of possibles
+
+
+

@@ -102,6 +102,11 @@ bool symbolExistsCurrentLevel(char *sym)
 	return false;
 }
 
+Symbol *lastSymbol()
+{
+	return S;
+}
+
 
 
 
