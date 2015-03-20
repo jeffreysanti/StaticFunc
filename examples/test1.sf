@@ -142,9 +142,7 @@ return 4 + 2 * fibi(7);
 dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
 dict<int8, int8> mydict2([i:2*i for int8 i in range(0,3)]);
 
-tuple<string:a, string:b> mytuple([a:"the", b:"cat", c:"in"]);
-tuple<string:a, string:b> mytuple2(["the", "cat", "in"]);
-tuple<string:a, string:b> mytuple3([0:"the", 1:"cat", 2:"in"]);
+tuple<string:a, int16:b> mytuple2(["the", 5]);
 
 vector<string> myarray(["the", "cat", "in"]);
 vector<int8> myarray2([2*i for int8 i in range(0,3)]);

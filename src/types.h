@@ -98,6 +98,7 @@ void freeTypeList(TypeList t);
 Type newBasicType(TypeBase typ);
 Type newBasicType_m(TypeBase typ, bool mut);
 Type newVectorType(Type typ);
+Type newDictionaryType(Type keytype, Type valtype);
 bool typesEqual(Type t1, Type t2);
 
 bool typesEqualMostly(Type t1, Type t2);
@@ -146,7 +147,13 @@ TypeDeductions singleTypeDeduction(Type type);
 TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found, MutableSide ms);
 TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms);
 bool typeDeductionMergeExists(TypeDeductions expected, TypeDeductions found);
+void showTypeDeductionMergeError(TypeDeductions expected, TypeDeductions found);
 TypeDeductions duplicateTypeDeductions(TypeDeductions d);
 void showTypeDeductionOption(TypeDeductions op);
+
+void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in);
+void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDeductions values);
+void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, int cnt);
+
 
 #endif /* STATICFUNC_SRC_TYPES_H_ */

@@ -136,6 +136,15 @@ Type newVectorType(Type typ)
 	return t;
 }
 
+Type newDictionaryType(Type keytype, Type valtype)
+{
+	Type t = newBasicType(TB_DICT);
+	allocTypeChildren(&t, 2);
+	((Type*)t.children)[0] = keytype;
+	((Type*)t.children)[1] = valtype;
+	return t;
+}
+
 bool isTypeRegistered(char *nm)
 {
 	TypeStringMapEnt *entTmp;
@@ -828,6 +837,19 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 	return ret;
 }
 
+void showTypeDeductionMergeError(TypeDeductions expected, TypeDeductions found)
+{
+	reportError("TS087", "Cannot Merge Type Deductions:");
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(expected.types,p))){
+		errShowType("     LHS: ",p);
+	}
+	p = NULL;
+	while((p=(Type*)utarray_next(found.types,p))){
+		errShowType("     RHS: ",p);
+	}
+}
+
 TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms){
 	TypeDeductions merged = mergeTypeDeductions(expected, found, ms);
 	if(utarray_len(merged.types) == 0){
@@ -888,6 +910,57 @@ void markTypeDeductionsMutable(TypeDeductions d){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(d.types,p))){
 		p->mutable = true;
+	}
+}
+
+void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
+{
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(in.types,p))){
+		Type t = duplicateType(*p);
+		Type v = newVectorType(t);
+		addType(dest, v);
+	}
+}
+
+void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDeductions values){
+	Type *k = NULL;
+	Type *v = NULL;
+	while((k=(Type*)utarray_next(keys.types,k))){
+		while((v=(Type*)utarray_next(values.types,v))){
+			Type tkey = duplicateType(*k);
+			Type tval = duplicateType(*v);
+			Type v = newDictionaryType(tkey, tval);
+			addType(dest, v);
+		}
+	}
+}
+
+inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions *array, int cnt, int curlen, Type* tarr){
+	if(cnt <= 0){
+		Type tuple = newBasicType(TB_TUPLE);
+		tuple.numchildren = curlen;
+		tuple.children = (void*)tarr;
+		addType(dest, tuple);
+		return;
+	}
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(array[curlen].types,p))){
+		Type *type = malloc(sizeof(Type)*(curlen+1));
+		memcpy(type, tarr, sizeof(Type)*curlen);
+		*(type+curlen) = duplicateType(*p);
+		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, curlen+1, type);
+	}
+	free(tarr);
+}
+
+void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, int cnt)
+{
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(array[0].types,p))){
+		Type *type = malloc(sizeof(Type));
+		*type = duplicateType(*p);
+		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, 1, type);
 	}
 }
 

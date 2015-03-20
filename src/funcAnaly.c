@@ -193,6 +193,98 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		}
 		setTypeDeductions(root, overlap);
 		return overlap;
+	}else if(root->typ == PTT_ARRAY_ELM){
+		PTree *node = root;
+		bool paired = false;
+		TypeDeductions tdPair;
+		TypeDeductions tdElms;
+
+		PTree *param = root;
+		int pCount = 0;
+		while(param != NULL){
+			pCount ++;
+			param = (PTree*)param->child2;
+		}
+		TypeDeductions *elmDeds = calloc(pCount, sizeof(TypeDeductions));
+		if(elmDeds == NULL){
+			fatalError("Out of Memory [handleFunctCall]\n");
+		}
+		int i = 0;
+		for(i=0; i<pCount; i++){
+			elmDeds[i] = newTypeDeductions();
+		}
+		i = 0;
+		while(node != NULL){
+			PTree *elm = (PTree*)node->child1;
+			if(i == 0){
+				freeTypeDeductions(elmDeds[0]);
+				if(elm->typ == PTT_ARRAY_ELM_PAIR){
+					paired = true;
+					tdPair = duplicateTypeDeductions(deduceTreeType((PTree*)elm->child1, err));
+					elmDeds[0] = deduceTreeType((PTree*)elm->child2, err);
+					tdElms = duplicateTypeDeductions(elmDeds[0]);
+				}else{
+					elmDeds[0] = deduceTreeType(elm, err);
+					tdElms = duplicateTypeDeductions(elmDeds[0]);
+				}
+			}else{
+				if((paired && elm->typ != PTT_ARRAY_ELM_PAIR) ||
+						(!paired && elm->typ == PTT_ARRAY_ELM_PAIR)){
+					reportError("SA037", "Cannot mix paired/unpaired elements in list: Line %d", root->tok->lineNo);
+					(*err) ++;
+					continue;
+				}
+				if(paired){
+					TypeDeductions tmp = deduceTreeType((PTree*)elm->child1, err);
+					TypeDeductions tmp2 = mergeTypeDeductions(tdPair, tmp, MS_NEITHER);
+					freeTypeDeductions(tdPair);
+					tdPair = tmp2;
+					freeTypeDeductions(elmDeds[i]);
+					elmDeds[i] = deduceTreeType((PTree*)elm->child2, err);
+					tmp = mergeTypeDeductions(tdElms, elmDeds[i], MS_NEITHER);
+					freeTypeDeductions(tdElms);
+					tdElms = tmp;
+				}else{
+					freeTypeDeductions(elmDeds[i]);
+					elmDeds[i] = deduceTreeType(elm, err);
+					TypeDeductions tmp = mergeTypeDeductions(tdElms, elmDeds[i], MS_NEITHER);
+					freeTypeDeductions(tdElms);
+					tdElms = tmp;
+				}
+			}
+			node = (PTree*)node->child2;
+			i++;
+		}
+		// couple different possible types: tuple, dictionary, vector
+		TypeDeductions ret = newTypeDeductions();
+		if(!paired){ // tuple or vector
+			if(utarray_len(tdElms.types) > 0){ // could be a vector
+				addVectorsOfTypeDeduction(&ret, tdElms);
+			}
+			addAllTuplesOfTypeDeductions(&ret, elmDeds, pCount);
+		}else{ // it's a dictionary
+			if(utarray_len(tdElms.types) == 0 || utarray_len(tdPair.types) == 0){
+				reportError("SA038", "Must have single type key and value for dictionary: Line %d", root->tok->lineNo);
+				(*err) ++;
+			}else{
+				addDictsOfTypeDeduction(&ret, tdPair, tdElms);
+			}
+		}
+		setTypeDeductions(root, ret);
+
+		if(paired){
+			freeTypeDeductions(tdPair);
+		}
+		freeTypeDeductions(tdElms);
+		free(elmDeds);
+
+		if(*err > 0){
+			reportError("SA039", "Could not deduce list type: Line %d", root->tok->lineNo);
+			(*err) ++;
+			freeTypeDeductions(ret);
+			ret = singleTypeDeduction(newBasicType(TB_ERROR));
+		}
+		return ret;
 	}
 
 
@@ -200,7 +292,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 
 	reportError("SA010", "Unknown Tree Expression: %s", getParseNodeName(root));
 	(*err) ++;
-	TypeDeductions d;
+	TypeDeductions d = singleTypeDeduction(newBasicType(TB_ERROR));
+	setTypeDeductions(root, d);
 	return d;
 }
 
@@ -292,6 +385,34 @@ void propagateTreeType(PTree *root){
 			setTypeDeductions((PTree*)root->child2, duplicateTypeDeductions(final));
 			propagateTreeType((PTree*)root->child2);
 		}
+	}else if(root->typ == PTT_ARRAY_ELM){
+		PTree *node = root;
+		int i = 0;
+		while(node != NULL){
+			PTree *elm = (PTree*)node->child1;
+			if(((Type*)utarray_front(final.types))->base == TB_DICT){
+				Type tkey = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[0]);
+				Type tval = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[1]);
+				PTree *key = (PTree*)elm->child1;
+				PTree *val = (PTree*)elm->child2;
+				setTypeDeductions(key, singleTypeDeduction(tkey));
+				propagateTreeType(key);
+				setTypeDeductions(val, singleTypeDeduction(tval));
+				propagateTreeType(val);
+			}else if(((Type*)utarray_front(final.types))->base == TB_TUPLE){
+				Type t = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[i]);
+				setTypeDeductions(elm, singleTypeDeduction(t));
+				propagateTreeType(elm);
+			}else{ // vector
+				Type t = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[0]);
+				setTypeDeductions(elm, singleTypeDeduction(t));
+				propagateTreeType(elm);
+			}
+			node = (PTree*)node->child2;
+			i++;
+		}
+
+
 	}else{
 		fatalError("No propagateTreeType for tree node!");
 	}
@@ -313,6 +434,7 @@ inline bool declaration(PTree *root, int *err){
 	if(root->child2 != NULL){
 		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err);
 		if(*err > 0 || !typeDeductionMergeExists(root->deducedTypes, assignment)){
+			showTypeDeductionMergeError(root->deducedTypes, assignment);
 			reportError("SA001", "Declaration Assignment Type Invalid: Line %d", root->tok->lineNo);
 			return false;
 		}
