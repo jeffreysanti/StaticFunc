@@ -742,6 +742,7 @@ bool prodArrayExprAux(PState *ps){
 		setParseNodeChild(rootOut, storeAndNullChildNode(ps), PC_RIGHT); // range expression
 	}
 	PTree *root = newParseTree(PTT_ARRAY_COMP);
+	root->tok = tkStart;
 	setParseNodeChild(root, rootIn, PC_LEFT);
 	setParseNodeChild(root, rootOut, PC_RIGHT);
 	ps->child = root;

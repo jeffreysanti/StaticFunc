@@ -140,11 +140,13 @@ return 4 + 2 * fibi(7);
 
 
 dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
-dict<int8, int8> mydict2([i:2*i for int8 i in range(0,3)]);
+dict<int8, int8> mydict2([ci:2*ci for int8 ci in [0,1,2,3,4,5] where ci % 2 == 0]);
+
+dict<int8, string> testmap([s:string(s) for int8 s in range(0, 100)]);
 
 tuple<string:a, int16:b> mytuple2(["the", 5]);
 
 vector<string> myarray(["the", "cat", "in"]);
-vector<int8> myarray2([2*i for int8 i in range(0,3)]);
+vector<int8> myarray2([2*ci for int8 ci in range(0,3)]);
 
 

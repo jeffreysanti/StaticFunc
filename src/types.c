@@ -923,6 +923,20 @@ void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 	}
 }
 
+void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in)
+{
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(in.types,p))){
+		if(p->base != TB_VECTOR){
+			continue;
+		}
+		Type t = duplicateType(((Type*)p->children)[0]);
+		addType(dest, t);
+	}
+}
+
+
+
 void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDeductions values){
 	Type *k = NULL;
 	Type *v = NULL;
