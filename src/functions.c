@@ -319,13 +319,6 @@ void seperateFunctionsFromParseTree(PTree **topRoot, bool templatePass)
 					err = true;
 					break;
 				}
-				/*if(isTemplate && tempParamType.hasTypeListParam &&
-						strcmp(getDeclTypeListName((PTree*)((PTree*)paramTypeTree->child1)->child1), templateIdent) != 0){
-					reportError("FS003", "Function cannot have multiple template params: Line %ld",
-												funcRoot->tok->lineNo);
-					err = true;
-					break;
-				}*/
 				if(tempParamType.hasTypeListParam){
 					isTemplate = true;
 					char *tmp = getDeclTypeListName((PTree*)((PTree*)paramTypeTree->child1)->child1);

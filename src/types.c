@@ -791,6 +791,8 @@ TypeDeductions expandedTypeDeduction(Type type)
 			addType(&ret, newVectorType(duplicateType(*p)));
 		}
 		freeTypeDeductions(innerDeductions);
+	}else if(type.base == TB_FUNCTION){
+		addType(&ret, duplicateType(type));
 	}else{
 		fatalError("Unknown Type Base in expandedTypeDeduction");
 		return singleTypeDeduction(newBasicType(TB_ERROR));

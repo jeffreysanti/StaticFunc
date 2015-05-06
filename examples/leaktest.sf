@@ -1,0 +1,7 @@
+
+
+def int32 test(vector<int32> as){
+	return 4;
+}
+
+return test([3, 2, 1]);
