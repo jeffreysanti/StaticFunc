@@ -793,6 +793,18 @@ TypeDeductions expandedTypeDeduction(Type type)
 		freeTypeDeductions(innerDeductions);
 	}else if(type.base == TB_FUNCTION){
 		addType(&ret, duplicateType(type));
+	}else if(type.base == TB_DICT){
+		TypeDeductions innerDeductionsKey = expandedTypeDeduction(((Type*)type.children)[0]);
+		TypeDeductions innerDeductionsVal = expandedTypeDeduction(((Type*)type.children)[1]);
+		Type *p = NULL;
+		Type *q = NULL;
+		while((p=(Type*)utarray_next(innerDeductionsKey.types,p))){
+			while((q=(Type*)utarray_next(innerDeductionsVal.types,q))){
+				addType(&ret, newDictionaryType(duplicateType(*p), duplicateType(*q)));
+			}
+		}
+		freeTypeDeductions(innerDeductionsKey);
+		freeTypeDeductions(innerDeductionsVal);
 	}else{
 		fatalError("Unknown Type Base in expandedTypeDeduction");
 		return singleTypeDeduction(newBasicType(TB_ERROR));
@@ -935,6 +947,14 @@ void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 		Type t = duplicateType(((Type*)p->children)[0]);
 		addType(dest, t);
 	}
+}
+
+void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in){
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(in.types,p))){
+		addType(dest, *p);
+	}
+	freeTypeDeductions(in);
 }
 
 

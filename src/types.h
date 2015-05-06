@@ -157,5 +157,7 @@ void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, i
 
 void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in);
 
+void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in);
+
 
 #endif /* STATICFUNC_SRC_TYPES_H_ */

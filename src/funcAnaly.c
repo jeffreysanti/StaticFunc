@@ -505,6 +505,66 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		TypeDeductions options = handleLambdaCreation(root,err);
 		setTypeDeductions(root, options);
 		return options;
+	}else if(root->typ == PTT_ARR_ACCESS){
+		// ...lhs[rhs]...
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err);
+		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions tmpret = newTypeDeductions();
+		if(*err > 0){
+			reportError("SA120", "Array Access Failed (previous error): Line %d", root->tok->lineNo);
+			freeTypeDeductions(tmpret);
+			tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+			setTypeDeductions(root, tmpret);
+			return tmpret;
+		}
+
+		// need to determine structure type
+		// integer => vector
+		// anything => dictionary
+		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
+		int i = 0;
+		if(typeDeductionMergeExists(rhs, tInts)){ // lhs might be a vector
+			TypeDeductions tmptd = newTypeDeductions();
+			singlesOfVectorsTypeDeduction(&tmptd, lhs);
+			addVectorsOfTypeDeduction(&tmpret, tmptd);
+			freeTypeDeductions(tmptd);
+			i++;
+		}
+		freeTypeDeductions(tInts);
+		Type *p = NULL;
+		while((p=(Type*)utarray_next(lhs.types,p))){ // dictionaries
+			if(p->base != TB_DICT){
+				continue;
+			}
+			TypeDeductions key = singleTypeDeduction(((Type*)p->children)[0]);
+			if(typeDeductionMergeExists(key, rhs)){ // needs to have matching key type
+				Type val = newDictionaryType(duplicateType(((Type*)p->children)[0]),
+						duplicateType(((Type*)p->children)[1]));
+				utarray_push_back(tmpret.types, &val);
+				i++;
+			}
+			freeTypeDeductions(key);
+		}
+		TypeDeductions ret = mergeTypeDeductionsOrErr(lhs, tmpret, err, MS_LHS);
+		freeTypeDeductions(tmpret);
+		tmpret = newTypeDeductions();
+		if(*err > 0){
+			(*err) ++;
+			reportError("SA121", "No Array Access Deduction Found: Line %d", root->tok->lineNo);
+			freeTypeDeductions(tmpret);
+			tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+		}
+		p = NULL;
+		while((p=(Type*)utarray_next(ret.types,p))){
+			if(p->base == TB_DICT){
+				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[1]));
+			}else{
+				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[0]));
+			}
+		}
+		setTypeDeductions((PTree*)root->child1, ret); // perserve it for propagate
+		setTypeDeductions(root, tmpret);
+		return tmpret;
 	}
 
 
@@ -683,6 +743,37 @@ void propagateTreeType(PTree *root){
 		propagateTreeType((PTree*)root->child2);
 	}else if(root->typ == PTT_LAMBDA){ // lambda function
 		// nothing to do here
+	}else if(root->typ == PTT_ARR_ACCESS){
+		TypeDeductions lhs = ((PTree*)root->child1)->deducedTypes;
+
+		Type *p = NULL;
+		while((p=(Type*)utarray_next(lhs.types,p))){ // all posibilities
+			if(p->base == TB_DICT){
+				TypeDeductions tmp = singleTypeDeduction(((Type*)p->children)[1]);
+				if(typeDeductionMergeExists(tmp, final)){ // success -- here's the key & value
+					PTree *treeL = (PTree*)root->child1;
+					PTree *treeR = (PTree*)root->child2;
+					setTypeDeductions(treeR, singleTypeDeduction(((Type*)p->children)[0]));
+					setTypeDeductions(treeL, singleTypeDeduction(*p));
+					freeTypeDeductions(tmp);
+					break;
+				}
+				freeTypeDeductions(tmp);
+			}else{ // vector
+				TypeDeductions tmp = singleTypeDeduction(((Type*)p->children)[0]);
+				if(typeDeductionMergeExists(tmp, final)){ // success -- here's the key & value
+					PTree *treeL = (PTree*)root->child1;
+					PTree *treeR = (PTree*)root->child2;
+					setTypeDeductions(treeR, singleTypeDeduction(newBasicType(TB_NATIVE_INT64)));
+					setTypeDeductions(treeL, singleTypeDeduction(*p));
+					freeTypeDeductions(tmp);
+					break;
+				}
+				freeTypeDeductions(tmp);
+			}
+		}
+		propagateTreeType((PTree*)root->child1);
+		propagateTreeType((PTree*)root->child2);
 	}else{
 		fatalError("No propagateTreeType for tree node!");
 	}
