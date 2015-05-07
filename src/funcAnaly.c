@@ -567,6 +567,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		return tmpret;
 	}else if(root->typ == PTT_DOT){
 		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err);
+
 		PTree *rhs = (PTree*)root->child2;
 		if(*err > 0){
 			reportError("SA121", "Tuple Dot Access Failed (Prev Error): Line %d", root->tok->lineNo);
@@ -604,14 +605,6 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 			setTypeDeductions(root, tmpret);
 			return tmpret;
 		}
-		p = NULL;
-		while((p=(Type*)utarray_next(((PTree*)root->child1)->deducedTypes.types,p))){
-			int i;
-			for(i=0; i<p->numchildren; i++){
-				errShowType("TYP: ", p);
-			}
-		}
-
 		setTypeDeductions(root, ret);
 		setTypeDeductions((PTree*)root->child1, tuples);
 		return ret;
@@ -765,7 +758,7 @@ void propagateTreeType(PTree *root){
 				setTypeDeductions(val, singleTypeDeduction(tval));
 				propagateTreeType(val);
 			}else if(((Type*)utarray_front(final.types))->base == TB_TUPLE){
-				Type t = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[i]);
+				Type t = ((Type*)((Type*)utarray_front(final.types))->children)[i];
 				setTypeDeductions(elm, singleTypeDeduction(t));
 				propagateTreeType(elm);
 			}else{ // vector
@@ -824,6 +817,30 @@ void propagateTreeType(PTree *root){
 		}
 		propagateTreeType((PTree*)root->child1);
 		propagateTreeType((PTree*)root->child2);
+	}else if(root->typ == PTT_DOT){
+		// the correct return value has been chosen, so pick right key-value
+		TypeDeductions lhs = ((PTree*)root->child1)->deducedTypes;
+		PTree *rhs = (PTree*)root->child2;
+		Type chosenVal = *((Type*)utarray_front(final.types));
+		Type *p=NULL;
+		while((p=(Type*)utarray_next(lhs.types,p))){
+			int i;
+			bool done=false;
+			for(i=0; i<p->numchildren; i++){
+				if(((Type*)p->children)[i].altName == NULL)
+					continue;
+				if(strcmp(((Type*)p->children)[i].altName, (char*)rhs->tok->extra)==0){
+					if(typesEqual(((Type*)p->children)[i], chosenVal)){ // found
+						done = true;
+						setTypeDeductions((PTree*)root->child1, singleTypeDeduction(*p));
+					}
+				}
+			}
+			if(done)
+				break;
+		}
+		propagateTreeType((PTree*)root->child1);
+		// nothing on RHS except token
 	}else{
 		fatalError("No propagateTreeType for tree node!");
 	}

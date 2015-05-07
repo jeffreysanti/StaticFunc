@@ -1,7 +1,13 @@
 
+def void testFunc(tuple<string: x, int16: y> tups){
+	println("heyy");
+}
 
-def int32 test(vector<int32> as){
+def int32 test(){
+	tuple<string:a, int16:b> mytuple2(["the", 5]);
+	testFunc(mytuple2);
+	println(mytuple2.a);
 	return 4;
 }
 
-return test([3, 2, 1]);
+return test();

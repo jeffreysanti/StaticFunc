@@ -58,14 +58,15 @@ int main(int argc, char **argv){
 
 			freeParseTreeNode(tree);
 		}
-
-		freeLexicalTokenList(T);
 	}
 
 	freeOrResetScopeSystem();
 	freeTypeSystem();
 	freeFunctionSystem();
 
+	if(T != NULL){
+		freeLexicalTokenList(T);
+	}
 
 	return EXIT_SUCCESS;
 

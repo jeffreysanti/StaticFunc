@@ -73,7 +73,7 @@ void freeTypeSystem()
 
 void freeType(Type t)
 {
-	if(t.numchildren > 0){
+	if(t.numchildren > 0 && t.children != NULL){
 		int i;
 		for(i=0; i<t.numchildren; i++){
 			freeType(((Type*)t.children)[i]);
@@ -744,8 +744,12 @@ TypeDeductions newTypeDeductions(){
 
 void freeTypeDeductions(TypeDeductions ret){
 	Type *p = NULL;
+	int i=0;
 	while((p=(Type*)utarray_next(ret.types,p))){
+		//printf("Freeing type # %d\n", i);
 		freeType(*p);
+		//errShowType("NOT REALL:",p);
+		i++;
 	}
 	utarray_free(ret.types);
 	if(ret.extra != NULL){
@@ -1007,9 +1011,16 @@ inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(array[curlen].types,p))){
 		Type *type = malloc(sizeof(Type)*(curlen+1));
-		memcpy(type, tarr, sizeof(Type)*curlen);
+		int i;
+		for(i=0; i<curlen; i++){
+			*(type+i) = duplicateType(*(tarr+i));
+		}
 		*(type+curlen) = duplicateType(*p);
 		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, curlen+1, type);
+	}
+	int i;
+	for(i=0; i<curlen; i++){
+		freeType(*(tarr+i));
 	}
 	free(tarr);
 }
@@ -1017,10 +1028,10 @@ inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions
 void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, int cnt)
 {
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(array[0].types,p))){
+	while((p=(Type*)utarray_next(array[0].types,p))){ // first element
 		Type *type = malloc(sizeof(Type));
 		*type = duplicateType(*p);
-		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, 1, type);
+		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, 1, type); // second element
 	}
 }
 

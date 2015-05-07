@@ -83,6 +83,7 @@ void freeParseTreeNode(PTree *pTree)
 {
 	freeParseTreeNode_onlychildren(pTree);
 	if(pTree != NULL){
+		freeTypeDeductions(pTree->deducedTypes);
 		free(pTree);
 	}
 }
@@ -93,7 +94,6 @@ void freeParseTreeNode_onlychildren(PTree *pTree)
 		return;
 	//if(pTree->extra != NULL) // managed by token list TODO
 	//	free(pTree->extra);
-	freeTypeDeductions(pTree->deducedTypes);
 	if(pTree->child1 != NULL){
 		freeParseTreeNode((PTree*)pTree->child1);
 		pTree->child1 = NULL;
