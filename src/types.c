@@ -83,6 +83,7 @@ void freeType(Type t)
 	}
 	if(t.altName != NULL){
 		free(t.altName);
+		t.altName = NULL;
 	}
 	if(t.typelistName != NULL){
 		free(t.typelistName);
@@ -182,6 +183,7 @@ Type duplicateType(Type typ)
 	ret.mutable = typ.mutable;
 	ret.numchildren = typ.numchildren;
 	ret.altName = NULL;
+	ret.children = NULL;
 	ret.typelistName = NULL;
 	ret.hasTypeListParam = typ.hasTypeListParam;
 	if(ret.numchildren > 0){
@@ -333,16 +335,18 @@ Type deduceTypeDeclType(PTree *t)
 				ret.hasTypeListParam = true;
 				typelistTempName = getDeclTypeListName((PTree*)treePtr->child1);
 			}
-			if(treePtr->tok != NULL){ // named param
-				if(ret.altName != NULL){
-					free(ret.altName);
-					ret.altName = NULL;
+			if(treePtr->tok != NULL){
+				if(treePtr->tok->extra != NULL && strlen(treePtr->tok->extra) > 0){ // named param
+					if(((Type*)ret.children)[i].altName != NULL){
+						free(((Type*)ret.children)[i].altName);
+						((Type*)ret.children)[i].altName = NULL;
+					}
+					((Type*)ret.children)[i].altName = malloc(strlen((char*)treePtr->tok->extra) + 1);
+					if(((Type*)ret.children)[i].altName == NULL){
+						fatalError("Out of Memory [deduceType : tuple altname]\n");
+					}
+					strcpy(((Type*)ret.children)[i].altName, (char*)treePtr->tok->extra);
 				}
-				ret.altName = malloc(strlen((char*)treePtr->tok->extra) + 1);
-				if(ret.altName == NULL){
-					fatalError("Out of Memory [deduceType : tuple altname]\n");
-				}
-				strcpy(ret.altName, (char*)treePtr->tok->extra);
 			}
 		}
 		return ret;
@@ -800,16 +804,36 @@ TypeDeductions expandedTypeDeduction(Type type)
 		Type *q = NULL;
 		while((p=(Type*)utarray_next(innerDeductionsKey.types,p))){
 			while((q=(Type*)utarray_next(innerDeductionsVal.types,q))){
-				addType(&ret, newDictionaryType(duplicateType(*p), duplicateType(*q)));
+				Type tmp =  newDictionaryType(duplicateType(*p), duplicateType(*q));
+				addType(&ret, tmp);
 			}
 		}
 		freeTypeDeductions(innerDeductionsKey);
 		freeTypeDeductions(innerDeductionsVal);
+	}else if(type.base == TB_TUPLE){
+		TypeDeductions *arr = malloc(sizeof(TypeDeductions) * type.numchildren);
+		int i;
+		for(i=0; i<type.numchildren; i++){
+			arr[i] = expandedTypeDeduction(((Type*)type.children)[i]);
+		}
+		addAllTuplesOfTypeDeductions(&ret, arr, type.numchildren);
+		for(i=0; i<type.numchildren; i++){
+			freeTypeDeductions(arr[i]);
+		}
+		free(arr);
 	}else{
 		fatalError("Unknown Type Base in expandedTypeDeduction");
 		return singleTypeDeduction(newBasicType(TB_ERROR));
 	}
-
+	if(type.altName != NULL && strlen(type.altName) > 0){
+		Type *p = NULL;
+		while((p=(Type*)utarray_next(ret.types,p))){
+			if(p->altName != NULL)
+				free(p->altName);
+			p->altName = malloc(strlen(type.altName)+1);
+			strcpy(p->altName, type.altName);
+		}
+	}
 	return ret;
 }
 

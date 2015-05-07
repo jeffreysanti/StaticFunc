@@ -123,9 +123,11 @@ def int32 main(vector<string> args)
 	vector<string> myarray(["the", "cat", "in"]);
 	vector<int8> myarray2([2*ci for int8 ci in range(0,3)]);
 	
+	def string tmp(mytuple2.a);
+	
 	println(mydict["b"]);
 	println(string(mydict2[1+1]));
-	println(string(mytuple2.b)+mytuple2.a);
+	println(mytuple2.a);
 	println(myarray[0]);
 	
 	

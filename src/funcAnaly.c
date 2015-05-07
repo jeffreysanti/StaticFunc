@@ -565,6 +565,56 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		setTypeDeductions((PTree*)root->child1, ret); // perserve it for propagate
 		setTypeDeductions(root, tmpret);
 		return tmpret;
+	}else if(root->typ == PTT_DOT){
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err);
+		PTree *rhs = (PTree*)root->child2;
+		if(*err > 0){
+			reportError("SA121", "Tuple Dot Access Failed (Prev Error): Line %d", root->tok->lineNo);
+			TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+			setTypeDeductions(root, tmpret);
+			return tmpret;
+		}
+
+		TypeDeductions ret = newTypeDeductions();
+		TypeDeductions tuples = newTypeDeductions();
+
+		Type *p = NULL;
+		int cnt = 0;
+		while((p=(Type*)utarray_next(lhs.types,p))){
+			int i;
+			for(i=0; i<p->numchildren; i++){
+				if(((Type*)p->children)[i].altName == NULL)
+					continue;
+				if(strcmp(((Type*)p->children)[i].altName, (char*)rhs->tok->extra)==0){
+					Type t = duplicateType(((Type*)p->children)[i]);
+					Type p2 = duplicateType(*p);
+					utarray_push_back(ret.types, &t);
+					utarray_push_back(tuples.types, &p2);
+					cnt++;
+					break;
+				}
+			}
+		}
+		if(cnt == 0){
+			reportError("SA122", "Tuple Dot Access Failed: No Element '%s': Line %d",
+					rhs->tok->extra, root->tok->lineNo);
+			freeTypeDeductions(ret);
+			freeTypeDeductions(tuples);
+			TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+			setTypeDeductions(root, tmpret);
+			return tmpret;
+		}
+		p = NULL;
+		while((p=(Type*)utarray_next(((PTree*)root->child1)->deducedTypes.types,p))){
+			int i;
+			for(i=0; i<p->numchildren; i++){
+				errShowType("TYP: ", p);
+			}
+		}
+
+		setTypeDeductions(root, ret);
+		setTypeDeductions((PTree*)root->child1, tuples);
+		return ret;
 	}
 
 
