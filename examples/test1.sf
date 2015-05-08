@@ -53,8 +53,8 @@ def I fibi(I n)
 	if(n == 1 | n == 2)
 		return 1;
 
-	mut I last(1);
-	mut I lastlast(1);
+	I last(1);
+	I lastlast(1);
 	for(I x in range(3, n))
 	{
 		I tmp(last);
@@ -120,10 +120,12 @@ def int32 main(vector<string> args)
 	
 	tuple<string:a, int16:b> mytuple2(["the", 5]);
 	
+	mytuple2.b = 3;
+	
 	vector<string> myarray(["the", "cat", "in"]);
 	vector<int8> myarray2([2*ci for int8 ci in range(0,3)]);
 	
-	def string tmp(mytuple2.a);
+	string tmp(mytuple2.a);
 	
 	println(mydict["b"]);
 	println(string(mydict2[1+1]));

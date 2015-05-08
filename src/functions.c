@@ -401,9 +401,6 @@ PTree *copyTreeSubTemplate(PTree *orig, UT_array *sr){
 				freeParseTreeNode(node);
 				node = (PTree*)getTypeAsPTree(sar->replace);
 				if(orig->child1 != NULL && ((PTree*)orig->child1)->typ == PTT_DECL_MOD){
-					if(strcmp(((PTree*)orig->child1)->tok->extra, "mut") == 0){
-						markTypeDeductionsMutable(node->deducedTypes);
-					}
 				}
 				return node;
 			}

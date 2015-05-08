@@ -281,7 +281,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
 		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
 
-		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err, MS_NEITHER);
+		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0 || !(	typeDeductionMergeExists(overlap, tInts) ||
 							typeDeductionMergeExists(overlap, tFloats))){
 			reportError("SA011", "Operation (+-/^*&|~%) Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
@@ -306,7 +306,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 	}else if(root->typ == PTT_EQUAL){
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
 		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
-		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err, MS_NEITHER);
+		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0){
 			reportError("SA032", "Both sides of equals must be of same type: Line %d", root->tok->lineNo);
 			(*err) ++;
@@ -358,18 +358,18 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 				}
 				if(paired){
 					TypeDeductions tmp = deduceTreeType((PTree*)elm->child1, err);
-					TypeDeductions tmp2 = mergeTypeDeductions(tdPair, tmp, MS_NEITHER);
+					TypeDeductions tmp2 = mergeTypeDeductions(tdPair, tmp);
 					freeTypeDeductions(tdPair);
 					tdPair = tmp2;
 					freeTypeDeductions(elmDeds[i]);
 					elmDeds[i] = deduceTreeType((PTree*)elm->child2, err);
-					tmp = mergeTypeDeductions(tdElms, elmDeds[i], MS_NEITHER);
+					tmp = mergeTypeDeductions(tdElms, elmDeds[i]);
 					freeTypeDeductions(tdElms);
 					tdElms = tmp;
 				}else{
 					freeTypeDeductions(elmDeds[i]);
 					elmDeds[i] = deduceTreeType(elm, err);
-					TypeDeductions tmp = mergeTypeDeductions(tdElms, elmDeds[i], MS_NEITHER);
+					TypeDeductions tmp = mergeTypeDeductions(tdElms, elmDeds[i]);
 					freeTypeDeductions(tdElms);
 					tdElms = tmp;
 				}
@@ -433,7 +433,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		singlesOfVectorsTypeDeduction(&dataSingles, dataDeduction);
 
 		// check compadibility
-		TypeDeductions finalElm = mergeTypeDeductionsOrErr(tmpVar->deducedTypes, dataSingles, err, MS_NEITHER);
+		TypeDeductions finalElm = mergeTypeDeductionsOrErr(tmpVar->deducedTypes, dataSingles, err);
 		freeTypeDeductions(dataSingles);
 		if(*err > 0){
 			exitScope();
@@ -457,7 +457,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 			TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
 			TypeDeductions deduced = deduceTreeType(cond, err);
 
-			TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, err, MS_NEITHER);
+			TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, err);
 			freeTypeDeductions(booleanType);
 			setTypeDeductions(cond, res);
 			if(*err > 0){
@@ -545,7 +545,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 			}
 			freeTypeDeductions(key);
 		}
-		TypeDeductions ret = mergeTypeDeductionsOrErr(lhs, tmpret, err, MS_LHS);
+		TypeDeductions ret = mergeTypeDeductionsOrErr(lhs, tmpret, err);
 		freeTypeDeductions(tmpret);
 		tmpret = newTypeDeductions();
 		if(*err > 0){
@@ -628,7 +628,7 @@ bool finalizeSingleDeduction(PTree *root)
 		return false;
 	}
 	if(utarray_len(root->deducedTypes.types) > 1){
-		reportError("#SA053", "Warning: Multiple sDeduction Found, Choosing First");
+		reportError("#SA053", "Warning: Multiple Deduction Found, Choosing First");
 		showTypeDeductionOption(root->deducedTypes);
 	}
 	propagateTreeType(root);
@@ -830,9 +830,10 @@ void propagateTreeType(PTree *root){
 				if(((Type*)p->children)[i].altName == NULL)
 					continue;
 				if(strcmp(((Type*)p->children)[i].altName, (char*)rhs->tok->extra)==0){
-					if(typesEqual(((Type*)p->children)[i], chosenVal)){ // found
+					if(typesEqualMostly(((Type*)p->children)[i], chosenVal)){ // found
 						done = true;
 						setTypeDeductions((PTree*)root->child1, singleTypeDeduction(*p));
+						break;
 					}
 				}
 			}
@@ -860,7 +861,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 	if(root->typ == PTT_RETURN){
 		TypeDeductions deduced = deduceTreeType((PTree*)root->child1, &err);
 		TypeDeductions required = singleTypeDeduction(((Type*)sig.children)[0]);
-		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, required, &err, MS_NEITHER);
+		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, required, &err);
 		freeTypeDeductions(required);
 		setTypeDeductions(root, res);
 		if(err > 0){
@@ -887,7 +888,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
 		TypeDeductions deduced = deduceTreeType(cond, &err);
 
-		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err, MS_NEITHER);
+		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);
 		freeTypeDeductions(booleanType);
 		setTypeDeductions(root, res);
 		setTypeDeductions(cond, duplicateTypeDeductions(res));
@@ -923,7 +924,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		// Iterated Object
 		TypeDeductions iter = deduceTreeType(arr, &err);
 
-		TypeDeductions res = mergeTypeDeductionsOrErr(expected, iter, &err, MS_NEITHER);
+		TypeDeductions res = mergeTypeDeductionsOrErr(expected, iter, &err);
 		freeTypeDeductions(expected);
 		setTypeDeductions(root, res);
 		setTypeDeductions(arr, duplicateTypeDeductions(res));
@@ -935,14 +936,10 @@ bool semAnalyStmt(PTree *root, Type sig)
 	}else if(root->typ == PTT_ASSIGN){
 		TypeDeductions rhs = deduceTreeType((PTree*)root->child1, &err);
 		TypeDeductions lhs = deduceTreeType((PTree*)root->child2, &err);
-		TypeDeductions res = mergeTypeDeductionsOrErr(lhs, rhs, &err, MS_LHS);
+		TypeDeductions res = mergeTypeDeductionsOrErr(lhs, rhs, &err);
 		setTypeDeductions(root, res);
 		if(err > 0){
 			reportError("SA052", "Assignment Invalid: Line %d", root->tok->lineNo);
-			return false;
-		}
-		if(!((Type*)utarray_front(res.types))->mutable){
-			reportError("SA053", "Cannot assign to immutable type: Line %d", root->tok->lineNo);
 			return false;
 		}
 		return finalizeSingleDeduction(root);

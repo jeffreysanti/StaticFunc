@@ -945,8 +945,8 @@ bool prodDecl(PState *ps){
 }bool prodDeclModFact1(PState *ps){
 	resetChildNode(ps, NULL);
 	if(termDeclMutable(ps)){
-		ps->child = newParseTree(PTT_DECL_MOD);
-		((PTree*)ps->child)->tok = (LexicalToken*)ps->token->prev;
+		//ps->child = newParseTree(PTT_DECL_MOD);
+		//((PTree*)ps->child)->tok = (LexicalToken*)ps->token->prev;
 		return true;
 	}
 	return false;

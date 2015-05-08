@@ -107,20 +107,6 @@ Type newBasicType(TypeBase typ)
 {
 	Type t;
 	t.base = typ;
-	t.mutable = false;
-	t.numchildren = 0;
-	t.children = NULL;
-	t.altName = NULL;
-	t.hasTypeListParam = false;
-	t.typelistName = NULL;
-	return t;
-}
-
-Type newBasicType_m(TypeBase typ, bool mut)
-{
-	Type t;
-	t.base = typ;
-	t.mutable = mut;
 	t.numchildren = 0;
 	t.children = NULL;
 	t.altName = NULL;
@@ -180,7 +166,6 @@ Type duplicateType(Type typ)
 {
 	Type ret;
 	ret.base = typ.base;
-	ret.mutable = typ.mutable;
 	ret.numchildren = typ.numchildren;
 	ret.altName = NULL;
 	ret.children = NULL;
@@ -251,13 +236,6 @@ Type deduceTypeDeclType(PTree *t)
 	}
 
 	TypeStringMapEnt *ent;
-
-	bool mutable = false;
-	if(t->child1 != NULL && ((PTree*)t->child1)->typ == PTT_DECL_MOD){
-		if(strcmp(((PTree*)t->child1)->tok->extra, "mut") == 0){
-			mutable = true;
-		}
-	}
 
 	char *ident = (char*)t->tok->extra;
 	if(strcmp(ident, "void") == 0){
@@ -420,7 +398,6 @@ Type deduceTypeDeclType(PTree *t)
 	HASH_FIND_STR(TM, (char*)t->tok->extra, ent);
 	if(ent){
 		Type ret = duplicateType(ent->T);
-		if(mutable) ret.mutable = true;
 		return ret;
 	}
 	// attempt to find if this is a type list
@@ -454,7 +431,6 @@ Type deduceTypeExpr(PTree *t)
 bool typesEqual(Type t1, Type t2)
 {
 	if(t1.base != t2.base) return false;
-	if(t1.mutable != t2.mutable) return false;
 	if(t1.numchildren != t2.numchildren) return false;
 	if((t1.altName == NULL && t2.altName != NULL) || (t1.altName != NULL && t2.altName == NULL)) return false;
 	if(t1.altName != NULL && strcmp(t1.altName, t2.altName) != 0) return false;
@@ -604,8 +580,6 @@ char *getDeclTypeListName(PTree *t)
 char *getTypeAsString(Type t)
 {
 	int len = 0;
-	if(t.mutable)
-		len += 4;
 	if(t.base == TB_NATIVE_INT8)
 		len += 4;
 	if(t.base == TB_NATIVE_INT16 || t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64)
@@ -649,7 +623,6 @@ char *getTypeAsString(Type t)
 	}
 	char *ret = calloc(len+1, sizeof(char));
 	char *ptr = ret;
-	if(t.mutable) { strcpy(ptr, "mut "); ptr += 4; }
 	if(t.base == TB_NATIVE_INT8) { strcpy(ptr, "int8"); ptr += 4; }
 	if(t.base == TB_NATIVE_INT16) { strcpy(ptr, "int16"); ptr += 5; }
 	if(t.base == TB_NATIVE_INT32) { strcpy(ptr, "int32"); ptr += 5; }
@@ -772,26 +745,26 @@ TypeDeductions expandedTypeDeduction(Type type)
 {
 	TypeDeductions ret = newTypeDeductions();
 	if(type.base == TB_NATIVE_INT8){
-		addType(&ret, newBasicType_m(TB_NATIVE_INT8, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT16, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_INT8));
+		addType(&ret, newBasicType(TB_NATIVE_INT16));
+		addType(&ret, newBasicType(TB_NATIVE_INT32));
+		addType(&ret, newBasicType(TB_NATIVE_INT64));
 	}else if(type.base == TB_NATIVE_INT16){
-		addType(&ret, newBasicType_m(TB_NATIVE_INT16, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_INT16));
+		addType(&ret, newBasicType(TB_NATIVE_INT32));
+		addType(&ret, newBasicType(TB_NATIVE_INT64));
 	}else if(type.base == TB_NATIVE_INT32){
-		addType(&ret, newBasicType_m(TB_NATIVE_INT32, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_INT32));
+		addType(&ret, newBasicType(TB_NATIVE_INT64));
 	}else if(type.base == TB_NATIVE_INT64){
-		addType(&ret, newBasicType_m(TB_NATIVE_INT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_INT64));
 	}else if(type.base == TB_NATIVE_FLOAT32){
-		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT32, type.mutable));
-		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
 	}else if(type.base == TB_NATIVE_FLOAT64){
-		addType(&ret, newBasicType_m(TB_NATIVE_FLOAT64, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
 	}else if(type.base == TB_NATIVE_STRING){
-		addType(&ret, newBasicType_m(TB_NATIVE_STRING, type.mutable));
+		addType(&ret, newBasicType(TB_NATIVE_STRING));
 	}else if(type.base == TB_VECTOR){
 		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0]);
 		Type *p = NULL;
@@ -841,7 +814,7 @@ TypeDeductions expandedTypeDeduction(Type type)
 	return ret;
 }
 
-TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found, MutableSide ms){
+TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found){
 	//Type ret = newBasicType(TB_ERROR);
 	TypeDeductions ret = newTypeDeductions();
 	Type *pf = NULL;
@@ -851,12 +824,6 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 		while((pe=(Type*)utarray_next(expected.types,pe))){
 			if(typesEqualMostly(*pe, *pf)){
 				Type typCpy = duplicateType(*pf);
-				typCpy.mutable = false;
-				if(ms == MS_RHS && pe->mutable){
-					typCpy.mutable = true;
-				}if(ms == MS_LHS && pf->mutable){
-					typCpy.mutable = true;
-				}
 				addType(&ret, typCpy);
 			}
 		}
@@ -882,29 +849,28 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 void showTypeDeductionMergeError(TypeDeductions expected, TypeDeductions found)
 {
 	reportError("TS087", "Cannot Merge Type Deductions:");
+	reportTypeDeductions("LHS", expected);
+	reportTypeDeductions("RHS", found);
+}
+
+void reportTypeDeductions(char *prefix, TypeDeductions td)
+{
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(expected.types,p))){
-		errShowType("     LHS: ",p);
-	}
-	p = NULL;
-	while((p=(Type*)utarray_next(found.types,p))){
-		errShowType("     RHS: ",p);
+	while((p=(Type*)utarray_next(td.types,p))){
+		char *pref = malloc(8+strlen(prefix));
+		sprintf(pref, "     %s: ",prefix);
+		errShowType(pref,p);
+		free(pref);
 	}
 }
 
-TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms){
-	TypeDeductions merged = mergeTypeDeductions(expected, found, ms);
+TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err){
+	TypeDeductions merged = mergeTypeDeductions(expected, found);
 	if(utarray_len(merged.types) == 0){
 		(*err) ++;
 		reportError("TS087", "Cannot Merge Type Deductions:");
-		Type *p = NULL;
-		while((p=(Type*)utarray_next(expected.types,p))){
-			errShowType("     LHS: ",p);
-		}
-		p = NULL;
-		while((p=(Type*)utarray_next(found.types,p))){
-			errShowType("     RHS: ",p);
-		}
+		reportTypeDeductions("LHS", expected);
+		reportTypeDeductions("RHS", found);
 	}
 	return merged;
 }
@@ -945,13 +911,6 @@ void showTypeDeductionOption(TypeDeductions op){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(op.types,p))){
 		errShowType("  FOUND: ",p);
-	}
-}
-
-void markTypeDeductionsMutable(TypeDeductions d){
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(d.types,p))){
-		p->mutable = true;
 	}
 }
 

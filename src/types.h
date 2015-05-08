@@ -41,15 +41,8 @@ typedef enum{
 	TB_ERROR
 }TypeBase;
 
-typedef enum{
-	MS_RHS,
-	MS_LHS,
-	MS_NEITHER
-}MutableSide;
-
 typedef struct{
 	TypeBase base;
-	bool mutable;
 	bool hasTypeListParam;
 
 	int numchildren;
@@ -96,7 +89,6 @@ void freeType(Type t);
 void freeTypeList(TypeList t);
 
 Type newBasicType(TypeBase typ);
-Type newBasicType_m(TypeBase typ, bool mut);
 Type newVectorType(Type typ);
 Type newDictionaryType(Type keytype, Type valtype);
 bool typesEqual(Type t1, Type t2);
@@ -144,8 +136,9 @@ void markTypeDeductionsMutable(TypeDeductions d);
 
 TypeDeductions expandedTypeDeduction(Type type);
 TypeDeductions singleTypeDeduction(Type type);
-TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found, MutableSide ms);
-TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err, MutableSide ms);
+TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found);
+TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err);
+void reportTypeDeductions(char *prefix, TypeDeductions td);
 bool typeDeductionMergeExists(TypeDeductions expected, TypeDeductions found);
 void showTypeDeductionMergeError(TypeDeductions expected, TypeDeductions found);
 TypeDeductions duplicateTypeDeductions(TypeDeductions d);
