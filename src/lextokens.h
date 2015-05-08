@@ -54,4 +54,6 @@ void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char*
 void outputLexicalTokenList(LexicalTokenList *lst);
 void outputToken(LexicalToken *tok);
 
+LexicalToken *duplicateAndPlaceAfterToken(LexicalToken *orig);
+
 #endif /* STATICFUNC_SRC_LEXTOKENS_H_ */

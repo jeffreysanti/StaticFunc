@@ -118,4 +118,22 @@ void outputLexicalTokenList(LexicalTokenList *lst)
 	}
 }
 
+// NOTE: Does not copy "extra" data
+LexicalToken *duplicateAndPlaceAfterToken(LexicalToken *orig)
+{
+	LexicalToken *tok = malloc(sizeof(LexicalToken));
+	if(tok == NULL){
+		fatalError("Out of Memory [duplicateAndPlaceToken]\n");
+	}
+	tok->extra = NULL;
+	tok->typ = orig->typ;
+	tok->lineNo = orig->lineNo;
+	tok->prev = orig;
+	tok->next = orig->next;
+
+	((LexicalToken*)tok->next)->prev = tok;
+	orig->next = tok;
+	return tok;
+}
+
 

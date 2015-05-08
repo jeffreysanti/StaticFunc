@@ -2,36 +2,13 @@
 #typelistadd I int32, int64;
 #typelistadd P2 string, int32;
 
-
-def int32 dblFunc(int32 x)
-{
-
-}
-
-
-// recursive version	float16 fl2(.16);
-def I fibr(I n, P2 var)
+// recursive version
+def I fibr(I n)
 {
 	if(n == 1 | n == 2)
 		return 1;
-	return fibr(n - 1, var) + fibr(n - 2, var, "hey");
+	return fibr(n - 1) + fibr(n - 2);
 }
-
-// more specfic example
-def int32 fibr(int32 n, string var)
-{
-	println(var);
-	if(n == 1 | n == 2)
-		return 1;
-	return fibr(n - 1, var) + fibr(n - 2, var);
-}
-
-// now repeat it
-def int32 fibr(int32 n, string var)
-{
-}
-
-
 
 // tail-recursive version
 def I fibt(I n)
@@ -40,12 +17,29 @@ def I fibt(I n)
 	{
 		if(n_cur == n)
 			return last + lastlast;
-		aux(n_cur + 1, last + lastlast, last);
+		return aux(n_cur + 1, last + lastlast, last);
 	}
+	
+	aux = lambda(I(I a, I b, I c){
+						println("change of plans");
+						return fibi(n);
+					});
+	
 	if(n == 1 | n == 2)
 		return 1;
 	return aux(3, 1, 1);
 }
+
+function<function<int32, int32>,int32> mylambda(lambda(function<int32, int32>(int32 a){
+	return lambda(int32(int32 x){
+		return a+x+7;
+	});
+}));
+
+function<int32, int32> tmp(mylambda(5));
+tmp(2);
+
+mylambda(5)(2);
 
 // iterative (mutable)
 def I fibi(I n)
@@ -78,17 +72,13 @@ def int32 sum(function<int32, int32> func, int32 n)
 		return func(n) + sum(func, n - 1);
 }
 
-def tuple<int8, int16, int32, I, vector<I>> T()
-{
-	//return [2, 4, 5, 3, [3, 1,3]]; // Will be an error in semantic analysis stage
-}
-
-def I first(vector<I> arr){
-	return arr[0];
-}
 
 def int32 main(vector<string> args)
 {
+	fibi(8);
+	fibt(8);
+	fibr(8);
+	
 	int32 oct(043);
 	int32 hex(0x2E);
 	int32 hexneg(-0x2E);
@@ -110,7 +100,7 @@ def int32 main(vector<string> args)
 		println(string(x));
 		println("Test");
 	}
-	println(string(first([1,2,3,4])));
+	//println(string(first([1,2,3,4])));
 	
 	
 	dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
@@ -138,15 +128,6 @@ def int32 main(vector<string> args)
 	
 	return 0;
 }
-
-def int32 main2(int32 par1){
-	println(string(par1));
-	println(string(glob));
-	println(string(fibr(par1, 2)));
-	int64 res(fibi(par1));
-	return par1;
-}
-
 
 main(["hi", "world"]);
 

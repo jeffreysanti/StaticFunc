@@ -52,7 +52,7 @@ int main(int argc, char **argv){
 
 			seperateFunctionsFromParseTree(&tree, false);
 
-			//dumpParseTreeDet(tree, 0);
+			dumpParseTreeDet(tree, 0);
 
 			semAnalyFunc(tree, true, getProgramReturnType());
 

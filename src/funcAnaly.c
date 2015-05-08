@@ -628,7 +628,10 @@ bool finalizeSingleDeduction(PTree *root)
 		return false;
 	}
 	if(utarray_len(root->deducedTypes.types) > 1){
-		reportError("#SA053", "Warning: Multiple Deduction Found, Choosing First");
+		if(root->tok != NULL)
+			reportError("#SA053", "Warning: Multiple Deduction Found, Choosing First: Line %d", root->tok->lineNo);
+		else
+			reportError("#SA053", "Warning: Multiple Deduction Found, Choosing First");
 		showTypeDeductionOption(root->deducedTypes);
 	}
 	propagateTreeType(root);
@@ -943,6 +946,50 @@ bool semAnalyStmt(PTree *root, Type sig)
 			return false;
 		}
 		return finalizeSingleDeduction(root);
+	}else if(root->typ == PTT_FUNCTION){
+		// functions here are named essentially lambdas mixed into a declaration
+		// so we reorder the syntax tree as such
+
+		// store original function type for later
+		int paramCnt = 0;
+		PTree *paramTypeTree = ((PTree*)root->child1)->child2;
+		while(paramTypeTree != NULL){
+			paramCnt ++;
+			paramTypeTree = (PTree*)paramTypeTree->child2;
+		}
+
+		Type sig = newBasicType(TB_FUNCTION);
+		allocTypeChildren(&sig, paramCnt + 1);
+		((Type*)sig.children)[0] = deduceTypeDeclType(((PTree*)root->child1)->child1);
+
+		paramTypeTree = ((PTree*)root->child1)->child2;
+		int i;
+		for(i=1; i<=paramCnt; i++){
+			PTree *pTempRoot = (PTree*)((PTree*)paramTypeTree->child1)->child1;
+			((Type*)sig.children)[i] = deduceTypeDeclType(pTempRoot);
+			paramTypeTree = (PTree*)paramTypeTree->child2;
+		}
+
+		PTree *decl = newParseTree(PTT_DECL);
+		decl->parent = root->parent;
+		((PTree*)decl->parent)->child1 = decl;
+
+		decl->tok = root->tok; // move declaration symbol name to new node
+
+		// old root is now the default value for declaration
+		root->tok = duplicateAndPlaceAfterToken(decl->tok);
+		root->typ = PTT_LAMBDA;
+		decl->child2 = root;
+		root->parent = decl;
+
+		// now we need deduce the type of declaration
+		PTree *declType = newParseTree(PTT_DECL_TYPE_DEDUCED);
+		declType->parent = decl;
+		decl->child1 = declType;
+		setTypeDeductions(declType, singleTypeDeduction(sig));
+		freeType(sig);
+
+		return semAnalyStmt(decl, sig); // not start over with declaration & lambda
 	}else{
 		reportError("SA009", "Unknown Statement: %s", getParseNodeName(root));
 		return false;
