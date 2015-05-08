@@ -58,7 +58,7 @@ inline bool declaration(PTree *root, int *err){
 	addSymbol(sname, styp);
 	setTypeDeductions(root, singleTypeDeduction(styp));
 	if(root->child2 != NULL){
-		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err, CAST_UP);
 		if(*err > 0 || !typeDeductionMergeExists(root->deducedTypes, assignment)){
 			showTypeDeductionMergeError(root->deducedTypes, assignment);
 			reportError("SA001", "Declaration Assignment Type Invalid: Line %d", root->tok->lineNo);
@@ -86,7 +86,7 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 	param = (PTree*)root->child2;
 	int pNum;
 	for(pNum=0; pNum<pCount; pNum++){
-		pDeds[pNum] = deduceTreeType((PTree*)param->child1, err); // get all deductions for this param
+		pDeds[pNum] = deduceTreeType((PTree*)param->child1, err, CAST_UP); // get all deductions for this param
 		param = (PTree*)param->child2;
 	}
 	if(*err != 0){
@@ -245,21 +245,21 @@ TypeDeductions handleLambdaCreation(PTree *root, int *err){
 	return ret;
 }
 
-TypeDeductions deduceTreeType(PTree *root, int *err)
+TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 {
 	if(root->child1 == NULL && root->child2 == NULL){
 		if(root->typ == PTT_INT){
 			setTypeDeductions(root,
-					expandedTypeDeduction(getLogicalIntegerTypeByLiteral((char*)root->tok)));
+					expandedTypeDeduction(getLogicalIntegerTypeByLiteral((char*)root->tok), cd));
 			return root->deducedTypes;
 		}
 		else if(root->typ == PTT_FLOAT){
 			setTypeDeductions(root,
-					expandedTypeDeduction(getLogicalFloatTypeByLiteral((char*)root->tok)));
+					expandedTypeDeduction(getLogicalFloatTypeByLiteral((char*)root->tok), cd));
 			return root->deducedTypes;
 		}
 		else if(root->typ == PTT_STRING){
-			setTypeDeductions(root, expandedTypeDeduction(newBasicType(TB_NATIVE_STRING)));
+			setTypeDeductions(root, expandedTypeDeduction(newBasicType(TB_NATIVE_STRING), cd));
 			return root->deducedTypes;
 		}
 		else if(root->typ == PTT_IDENTIFIER){
@@ -269,17 +269,17 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 				setTypeDeductions(root, singleTypeDeduction(newBasicType(TB_ERROR)));
 			}
 			setTypeDeductions(root,
-					expandedTypeDeduction(getSymbolType((char*)root->tok->extra, root->tok->lineNo)));
+					expandedTypeDeduction(getSymbolType((char*)root->tok->extra, root->tok->lineNo), cd));
 			return root->deducedTypes;
 		}
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD){
-		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
-		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32));
+		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
 
-		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
-		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
+		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
 
 		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0 || !(	typeDeductionMergeExists(overlap, tInts) ||
@@ -304,8 +304,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		setTypeDeductions(root, options);
 		return options;
 	}else if(root->typ == PTT_EQUAL){
-		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err);
-		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
+		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
 		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0){
 			reportError("SA032", "Both sides of equals must be of same type: Line %d", root->tok->lineNo);
@@ -342,11 +342,11 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 				freeTypeDeductions(elmDeds[0]);
 				if(elm->typ == PTT_ARRAY_ELM_PAIR){
 					paired = true;
-					tdPair = duplicateTypeDeductions(deduceTreeType((PTree*)elm->child1, err));
-					elmDeds[0] = deduceTreeType((PTree*)elm->child2, err);
+					tdPair = duplicateTypeDeductions(deduceTreeType((PTree*)elm->child1, err, cd));
+					elmDeds[0] = deduceTreeType((PTree*)elm->child2, err, cd);
 					tdElms = duplicateTypeDeductions(elmDeds[0]);
 				}else{
-					elmDeds[0] = deduceTreeType(elm, err);
+					elmDeds[0] = deduceTreeType(elm, err, cd);
 					tdElms = duplicateTypeDeductions(elmDeds[0]);
 				}
 			}else{
@@ -357,18 +357,18 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 					continue;
 				}
 				if(paired){
-					TypeDeductions tmp = deduceTreeType((PTree*)elm->child1, err);
+					TypeDeductions tmp = deduceTreeType((PTree*)elm->child1, err, cd);
 					TypeDeductions tmp2 = mergeTypeDeductions(tdPair, tmp);
 					freeTypeDeductions(tdPair);
 					tdPair = tmp2;
 					freeTypeDeductions(elmDeds[i]);
-					elmDeds[i] = deduceTreeType((PTree*)elm->child2, err);
+					elmDeds[i] = deduceTreeType((PTree*)elm->child2, err, cd);
 					tmp = mergeTypeDeductions(tdElms, elmDeds[i]);
 					freeTypeDeductions(tdElms);
 					tdElms = tmp;
 				}else{
 					freeTypeDeductions(elmDeds[i]);
-					elmDeds[i] = deduceTreeType(elm, err);
+					elmDeds[i] = deduceTreeType(elm, err, cd);
 					TypeDeductions tmp = mergeTypeDeductions(tdElms, elmDeds[i]);
 					freeTypeDeductions(tdElms);
 					tdElms = tmp;
@@ -413,7 +413,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		PTree *dataIn = (PTree*)root->child1;
 		PTree *tmpVar = (PTree*)dataIn->child1;
 		PTree *actualData = (PTree*)dataIn->child2;
-		TypeDeductions dataDeduction = deduceTreeType(actualData, err);
+		TypeDeductions dataDeduction = deduceTreeType(actualData, err, cd);
 		if(*err != 0){
 			reportError("SA080", "Comprehension source deduction failed: Line %d", root->tok->lineNo);
 			TypeDeductions ret = singleTypeDeduction(newBasicType(TB_ERROR));
@@ -454,8 +454,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		PTree *cond = (PTree*)dataOut->child2;
 
 		if(cond != NULL){
-			TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
-			TypeDeductions deduced = deduceTreeType(cond, err);
+			TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+			TypeDeductions deduced = deduceTreeType(cond, err, cd);
 
 			TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, err);
 			freeTypeDeductions(booleanType);
@@ -472,8 +472,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		// finally we can typecheck the output
 		TypeDeductions finalRet = newTypeDeductions();
 		if(outVar->typ == PTT_ARRAY_ELM_PAIR){
-			TypeDeductions deducedKey = deduceTreeType((PTree*)outVar->child1, err);
-			TypeDeductions deducedVal = deduceTreeType((PTree*)outVar->child2, err);
+			TypeDeductions deducedKey = deduceTreeType((PTree*)outVar->child1, err, cd);
+			TypeDeductions deducedVal = deduceTreeType((PTree*)outVar->child2, err, cd);
 			if(*err > 0){
 				exitScope();
 				reportError("SA084", "Comprehension Eval (for dict) Failed: Line %d", root->tok->lineNo);
@@ -484,7 +484,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 			}
 			addDictsOfTypeDeduction(&finalRet, deducedKey, deducedVal);
 		}else{
-			TypeDeductions deduced = deduceTreeType(outVar, err);
+			TypeDeductions deduced = deduceTreeType(outVar, err, cd);
 			if(*err > 0){
 				exitScope();
 				reportError("SA084", "Comprehension Eval Failed: Line %d", root->tok->lineNo);
@@ -507,8 +507,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		return options;
 	}else if(root->typ == PTT_ARR_ACCESS){
 		// ...lhs[rhs]...
-		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err);
-		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, err);
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd);
+		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, err, CAST_UP);
 		TypeDeductions tmpret = newTypeDeductions();
 		if(*err > 0){
 			reportError("SA120", "Array Access Failed (previous error): Line %d", root->tok->lineNo);
@@ -521,7 +521,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		// need to determine structure type
 		// integer => vector
 		// anything => dictionary
-		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
+		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		int i = 0;
 		if(typeDeductionMergeExists(rhs, tInts)){ // lhs might be a vector
 			TypeDeductions tmptd = newTypeDeductions();
@@ -557,16 +557,16 @@ TypeDeductions deduceTreeType(PTree *root, int *err)
 		p = NULL;
 		while((p=(Type*)utarray_next(ret.types,p))){
 			if(p->base == TB_DICT){
-				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[1]));
+				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[1], cd));
 			}else{
-				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[0]));
+				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[0], cd));
 			}
 		}
 		setTypeDeductions((PTree*)root->child1, ret); // perserve it for propagate
 		setTypeDeductions(root, tmpret);
 		return tmpret;
 	}else if(root->typ == PTT_DOT){
-		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err);
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd);
 
 		PTree *rhs = (PTree*)root->child2;
 		if(*err > 0){
@@ -637,15 +637,20 @@ bool finalizeSingleDeduction(PTree *root)
 
 // The called tree has it's final type deduced, so now job is to propagate this down the tree
 void propagateTreeType(PTree *root){
-	TypeDeductions final = root->deducedTypes;
+	Type final = root->finalType;
+	if(final.base == TB_ERROR){
+		setFinalTypeDeduction(root, duplicateType(*(Type*)utarray_front(root->deducedTypes.types)));
+		final = root->finalType;
+	}
+
 	if(root->child1 == NULL && root->child2 == NULL){
 		// nothing to do here
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD || root->typ == PTT_EQUAL || root->typ == PTT_ASSIGN){
 		// both sides need be same type
-		setTypeDeductions((PTree*)root->child1, duplicateTypeDeductions(final));
-		setTypeDeductions((PTree*)root->child2, duplicateTypeDeductions(final));
+		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
+		setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
 		propagateTreeType((PTree*)root->child1);
 		propagateTreeType((PTree*)root->child2);
 	}else if(root->typ == PTT_PARAM_CONT){ // function call
@@ -682,7 +687,7 @@ void propagateTreeType(PTree *root){
 					if(success){
 						param = (PTree*)root->child2;
 						for(i=1; i<sig.numchildren; i++){
-							setTypeDeductions((PTree*)param->child1, singleTypeDeduction(((Type*)sig.children)[i]));
+							setFinalTypeDeduction((PTree*)param->child1, duplicateType(((Type*)sig.children)[i]));
 							propagateTreeType((PTree*)param->child1);
 							param = (PTree*)param->child2;
 						}
@@ -726,7 +731,7 @@ void propagateTreeType(PTree *root){
 			if(success){ // propagate tree to each parameter
 				param = (PTree*)root->child2;
 				for(i=1; i<ver->sig.numchildren; i++){
-					setTypeDeductions((PTree*)param->child1, singleTypeDeduction(((Type*)ver->sig.children)[i]));
+					setFinalTypeDeduction((PTree*)param->child1, duplicateType(((Type*)ver->sig.children)[i]));
 					propagateTreeType((PTree*)param->child1);
 					param = (PTree*)param->child2;
 				}
@@ -736,11 +741,11 @@ void propagateTreeType(PTree *root){
 			ver = (FunctionVersion*)ver->next;
 		}
 	}else if(root->typ == PTT_RETURN){
-		setTypeDeductions((PTree*)root->child1, duplicateTypeDeductions(final));
+		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
 		propagateTreeType((PTree*)root->child1);
 	}else if(root->typ == PTT_DECL){
 		if(root->child2 != NULL){
-			setTypeDeductions((PTree*)root->child2, duplicateTypeDeductions(final));
+			setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
 			propagateTreeType((PTree*)root->child2);
 		}
 	}else if(root->typ == PTT_ARRAY_ELM){
@@ -748,22 +753,22 @@ void propagateTreeType(PTree *root){
 		int i = 0;
 		while(node != NULL){
 			PTree *elm = (PTree*)node->child1;
-			if(((Type*)utarray_front(final.types))->base == TB_DICT){
-				Type tkey = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[0]);
-				Type tval = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[1]);
+			if(final.base == TB_DICT){
+				Type tkey = duplicateType(((Type*)final.children)[0]);
+				Type tval = duplicateType(((Type*)final.children)[1]);
 				PTree *key = (PTree*)elm->child1;
 				PTree *val = (PTree*)elm->child2;
-				setTypeDeductions(key, singleTypeDeduction(tkey));
+				setFinalTypeDeduction(key, tkey);
 				propagateTreeType(key);
-				setTypeDeductions(val, singleTypeDeduction(tval));
+				setFinalTypeDeduction(val, tval);
 				propagateTreeType(val);
-			}else if(((Type*)utarray_front(final.types))->base == TB_TUPLE){
-				Type t = ((Type*)((Type*)utarray_front(final.types))->children)[i];
-				setTypeDeductions(elm, singleTypeDeduction(t));
+			}else if(final.base == TB_TUPLE){
+				Type t = duplicateType(((Type*)final.children)[i]);
+				setFinalTypeDeduction(elm, t);
 				propagateTreeType(elm);
 			}else{ // vector
-				Type t = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[0]);
-				setTypeDeductions(elm, singleTypeDeduction(t));
+				Type t = duplicateType(((Type*)final.children)[0]);
+				setFinalTypeDeduction(elm, t);
 				propagateTreeType(elm);
 			}
 			node = (PTree*)node->child2;
@@ -778,11 +783,11 @@ void propagateTreeType(PTree *root){
 			propagateTreeType((PTree*)((PTree*)root->child2)->child2);
 		}
 	}else if(root->typ == PTT_ARRAY_ELM_PAIR){
-		Type tkey = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[0]);
-		Type tval = duplicateType(((Type*)((Type*)utarray_front(final.types))->children)[1]);
-		setTypeDeductions((PTree*)root->child1, singleTypeDeduction(tkey));
+		Type tkey = duplicateType(((Type*)final.children)[0]);
+		Type tval = duplicateType(((Type*)final.children)[1]);
+		setFinalTypeDeduction((PTree*)root->child1, tkey);
 		propagateTreeType((PTree*)root->child1);
-		setTypeDeductions((PTree*)root->child2, singleTypeDeduction(tval));
+		setFinalTypeDeduction((PTree*)root->child2, tval);
 		propagateTreeType((PTree*)root->child2);
 	}else if(root->typ == PTT_LAMBDA){ // lambda function
 		// nothing to do here
@@ -792,27 +797,23 @@ void propagateTreeType(PTree *root){
 		Type *p = NULL;
 		while((p=(Type*)utarray_next(lhs.types,p))){ // all posibilities
 			if(p->base == TB_DICT){
-				TypeDeductions tmp = singleTypeDeduction(((Type*)p->children)[1]);
-				if(typeDeductionMergeExists(tmp, final)){ // success -- here's the key & value
+				Type tmp = ((Type*)p->children)[1];
+				if(typesEqualMostly(tmp, final)){ // success -- here's the key & value
 					PTree *treeL = (PTree*)root->child1;
 					PTree *treeR = (PTree*)root->child2;
-					setTypeDeductions(treeR, singleTypeDeduction(((Type*)p->children)[0]));
-					setTypeDeductions(treeL, singleTypeDeduction(*p));
-					freeTypeDeductions(tmp);
+					setFinalTypeDeduction(treeR, duplicateType(((Type*)p->children)[0]));
+					setFinalTypeDeduction(treeL, duplicateType(*p));
 					break;
 				}
-				freeTypeDeductions(tmp);
 			}else{ // vector
-				TypeDeductions tmp = singleTypeDeduction(((Type*)p->children)[0]);
-				if(typeDeductionMergeExists(tmp, final)){ // success -- here's the key & value
+				Type tmp = ((Type*)p->children)[0];
+				if(typesEqualMostly(tmp, final)){ // success -- here's the key & value
 					PTree *treeL = (PTree*)root->child1;
 					PTree *treeR = (PTree*)root->child2;
-					setTypeDeductions(treeR, singleTypeDeduction(newBasicType(TB_NATIVE_INT64)));
-					setTypeDeductions(treeL, singleTypeDeduction(*p));
-					freeTypeDeductions(tmp);
+					setFinalTypeDeduction(treeR, newBasicType(TB_NATIVE_INT64));
+					setFinalTypeDeduction(treeL, duplicateType(*p));
 					break;
 				}
-				freeTypeDeductions(tmp);
 			}
 		}
 		propagateTreeType((PTree*)root->child1);
@@ -821,7 +822,6 @@ void propagateTreeType(PTree *root){
 		// the correct return value has been chosen, so pick right key-value
 		TypeDeductions lhs = ((PTree*)root->child1)->deducedTypes;
 		PTree *rhs = (PTree*)root->child2;
-		Type chosenVal = *((Type*)utarray_front(final.types));
 		Type *p=NULL;
 		while((p=(Type*)utarray_next(lhs.types,p))){
 			int i;
@@ -830,9 +830,9 @@ void propagateTreeType(PTree *root){
 				if(((Type*)p->children)[i].altName == NULL)
 					continue;
 				if(strcmp(((Type*)p->children)[i].altName, (char*)rhs->tok->extra)==0){
-					if(typesEqualMostly(((Type*)p->children)[i], chosenVal)){ // found
+					if(typesEqualMostly(((Type*)p->children)[i], final)){ // found
 						done = true;
-						setTypeDeductions((PTree*)root->child1, singleTypeDeduction(*p));
+						setFinalTypeDeduction((PTree*)root->child1, duplicateType(*p));
 						break;
 					}
 				}
@@ -859,7 +859,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		printf("STMT: %s\n", (char*)root->tok->extra);
 	int err = 0;
 	if(root->typ == PTT_RETURN){
-		TypeDeductions deduced = deduceTreeType((PTree*)root->child1, &err);
+		TypeDeductions deduced = deduceTreeType((PTree*)root->child1, &err, CAST_UP);
 		TypeDeductions required = singleTypeDeduction(((Type*)sig.children)[0]);
 		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, required, &err);
 		freeTypeDeductions(required);
@@ -885,8 +885,8 @@ bool semAnalyStmt(PTree *root, Type sig)
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 
-		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8));
-		TypeDeductions deduced = deduceTreeType(cond, &err);
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions deduced = deduceTreeType(cond, &err, CAST_UP);
 
 		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);
 		freeTypeDeductions(booleanType);
@@ -922,7 +922,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		freeType(typExpected);
 
 		// Iterated Object
-		TypeDeductions iter = deduceTreeType(arr, &err);
+		TypeDeductions iter = deduceTreeType(arr, &err, CAST_UP);
 
 		TypeDeductions res = mergeTypeDeductionsOrErr(expected, iter, &err);
 		freeTypeDeductions(expected);
@@ -934,8 +934,8 @@ bool semAnalyStmt(PTree *root, Type sig)
 		}
 		return blockUnit(branch, sig, false);
 	}else if(root->typ == PTT_ASSIGN){
-		TypeDeductions rhs = deduceTreeType((PTree*)root->child1, &err);
-		TypeDeductions lhs = deduceTreeType((PTree*)root->child2, &err);
+		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, &err, CAST_DOWN);
+		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, &err, CAST_UP);
 		TypeDeductions res = mergeTypeDeductionsOrErr(lhs, rhs, &err);
 		setTypeDeductions(root, res);
 		if(err > 0){

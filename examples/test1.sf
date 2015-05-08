@@ -120,7 +120,10 @@ def int32 main(vector<string> args)
 	
 	tuple<string:a, int16:b> mytuple2(["the", 5]);
 	
-	mytuple2.b = 3;
+	int32 c(3);
+	
+	c = mytuple2.b; // okay
+	//mytuple2.b = c; // problem
 	
 	vector<string> myarray(["the", "cat", "in"]);
 	vector<int8> myarray2([2*ci for int8 ci in range(0,3)]);

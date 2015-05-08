@@ -74,6 +74,7 @@ typedef struct _PTree{
 	struct PTree *parent;
 	LexicalToken *tok;
 	TypeDeductions deducedTypes;
+	Type finalType;
 } PTree;
 
 
@@ -106,5 +107,6 @@ void cleanUpEmptyStatments(PTree *ptr);
 char *getParseNodeName(PTree *root);
 
 void setTypeDeductions(PTree *root, TypeDeductions ded);
+void setFinalTypeDeduction(PTree *root, Type typ);
 
 #endif /* STATICFUNC_SRC_PARSETREE_H_ */

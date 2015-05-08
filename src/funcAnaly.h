@@ -162,7 +162,7 @@ bool semAnalyFunc(PTree *root, bool global, Type sig);
 bool semAnalyExpr(PTree *root, Type expect, bool silent);
 TypeDeductions handleFunctCall(PTree *root, int *err);
 
-TypeDeductions deduceTreeType(PTree *root, int *err);
+TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd);
 void propagateTreeType(PTree *root);
 bool finalizeSingleDeduction(PTree *root);
 

@@ -457,31 +457,6 @@ bool typesEqualMostly(Type t1, Type t2)
 	return true;
 }
 
-bool typesMatchAllowDownConvert(Type expected, Type found)
-{
-	/*if(expected.base != found.base){
-		if(	(expected.base == TB_ANY_INT && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16 || found.base == TB_NATIVE_INT32 || found.base == TB_NATIVE_INT64)) ||
-			(expected.base == TB_ANY_FLOAT && (found.base == TB_NATIVE_FLOAT32 || found.base == TB_NATIVE_FLOAT64)) ||
-			(expected.base == TB_NATIVE_INT64 && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16 || found.base == TB_NATIVE_INT32)) ||
-			(expected.base == TB_NATIVE_INT32 && (found.base == TB_NATIVE_INT8 || found.base == TB_NATIVE_INT16)) ||
-			(expected.base == TB_NATIVE_INT16 && (found.base == TB_NATIVE_INT8)) ||
-			(expected.base == TB_NATIVE_FLOAT64 && (found.base == TB_NATIVE_FLOAT32))){
-
-			// acceptable
-		}else{
-			return false;
-		}
-	}
-	if(expected.numchildren != found.numchildren) return false;
-	if(expected.numchildren > 0){
-		int i;
-		for(i=0; i<expected.numchildren; i++){
-			if(!typesMatchAllowDownConvert(((Type*)expected.children)[i], ((Type*)found.children)[i])) return false;
-		}
-	}*/
-	return false;
-}
-
 void addToTypeList(char *list, Type t)
 {
 	TypeListStringMapEnt *entTmp;
@@ -697,7 +672,7 @@ PTree *getTypeAsPTree(Type t)
 {
 	PTree *tree = newParseTree(PTT_DECL_TYPE_DEDUCED);
 	freeTypeDeductions(tree->deducedTypes);
-	tree->deducedTypes = expandedTypeDeduction(t);
+	tree->deducedTypes = expandedTypeDeduction(t, CAST_UP); // TODO: Is CAST_UP Correct?
 	return tree;
 }
 
@@ -741,32 +716,63 @@ TypeDeductions singleTypeDeduction(Type t){
 	return ret;
 }
 
-TypeDeductions expandedTypeDeduction(Type type)
+TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 {
 	TypeDeductions ret = newTypeDeductions();
 	if(type.base == TB_NATIVE_INT8){
-		addType(&ret, newBasicType(TB_NATIVE_INT8));
-		addType(&ret, newBasicType(TB_NATIVE_INT16));
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_INT8));
+			addType(&ret, newBasicType(TB_NATIVE_INT16));
+			addType(&ret, newBasicType(TB_NATIVE_INT32));
+			addType(&ret, newBasicType(TB_NATIVE_INT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_INT8));
+		}
 	}else if(type.base == TB_NATIVE_INT16){
-		addType(&ret, newBasicType(TB_NATIVE_INT16));
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_INT16));
+			addType(&ret, newBasicType(TB_NATIVE_INT32));
+			addType(&ret, newBasicType(TB_NATIVE_INT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_INT8));
+			addType(&ret, newBasicType(TB_NATIVE_INT16));
+		}
 	}else if(type.base == TB_NATIVE_INT32){
-		addType(&ret, newBasicType(TB_NATIVE_INT32));
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_INT32));
+			addType(&ret, newBasicType(TB_NATIVE_INT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_INT8));
+			addType(&ret, newBasicType(TB_NATIVE_INT16));
+			addType(&ret, newBasicType(TB_NATIVE_INT32));
+		}
 	}else if(type.base == TB_NATIVE_INT64){
-		addType(&ret, newBasicType(TB_NATIVE_INT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_INT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_INT8));
+			addType(&ret, newBasicType(TB_NATIVE_INT16));
+			addType(&ret, newBasicType(TB_NATIVE_INT32));
+			addType(&ret, newBasicType(TB_NATIVE_INT64));
+		}
 	}else if(type.base == TB_NATIVE_FLOAT32){
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+		}
 	}else if(type.base == TB_NATIVE_FLOAT64){
-		addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		if(cd == CAST_UP){
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		}else{
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+		}
 	}else if(type.base == TB_NATIVE_STRING){
 		addType(&ret, newBasicType(TB_NATIVE_STRING));
 	}else if(type.base == TB_VECTOR){
-		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0]);
+		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0], cd);
 		Type *p = NULL;
 		while((p=(Type*)utarray_next(innerDeductions.types,p))){
 			addType(&ret, newVectorType(duplicateType(*p)));
@@ -775,8 +781,8 @@ TypeDeductions expandedTypeDeduction(Type type)
 	}else if(type.base == TB_FUNCTION){
 		addType(&ret, duplicateType(type));
 	}else if(type.base == TB_DICT){
-		TypeDeductions innerDeductionsKey = expandedTypeDeduction(((Type*)type.children)[0]);
-		TypeDeductions innerDeductionsVal = expandedTypeDeduction(((Type*)type.children)[1]);
+		TypeDeductions innerDeductionsKey = expandedTypeDeduction(((Type*)type.children)[0], cd);
+		TypeDeductions innerDeductionsVal = expandedTypeDeduction(((Type*)type.children)[1], cd);
 		Type *p = NULL;
 		Type *q = NULL;
 		while((p=(Type*)utarray_next(innerDeductionsKey.types,p))){
@@ -791,7 +797,7 @@ TypeDeductions expandedTypeDeduction(Type type)
 		TypeDeductions *arr = malloc(sizeof(TypeDeductions) * type.numchildren);
 		int i;
 		for(i=0; i<type.numchildren; i++){
-			arr[i] = expandedTypeDeduction(((Type*)type.children)[i]);
+			arr[i] = expandedTypeDeduction(((Type*)type.children)[i], cd);
 		}
 		addAllTuplesOfTypeDeductions(&ret, arr, type.numchildren);
 		for(i=0; i<type.numchildren; i++){

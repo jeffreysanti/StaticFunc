@@ -41,6 +41,11 @@ typedef enum{
 	TB_ERROR
 }TypeBase;
 
+typedef enum{
+	CAST_UP,
+	CAST_DOWN
+}CastDirection;
+
 typedef struct{
 	TypeBase base;
 	bool hasTypeListParam;
@@ -94,7 +99,6 @@ Type newDictionaryType(Type keytype, Type valtype);
 bool typesEqual(Type t1, Type t2);
 
 bool typesEqualMostly(Type t1, Type t2);
-bool typesMatchAllowDownConvert(Type expected, Type found);
 
 bool isTypeRegistered(char *nm);
 void registerType(char *nm, Type t);
@@ -134,7 +138,7 @@ void freeTypeDeductions(TypeDeductions ret);
 
 void markTypeDeductionsMutable(TypeDeductions d);
 
-TypeDeductions expandedTypeDeduction(Type type);
+TypeDeductions expandedTypeDeduction(Type type, CastDirection cd);
 TypeDeductions singleTypeDeduction(Type type);
 TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found);
 TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err);

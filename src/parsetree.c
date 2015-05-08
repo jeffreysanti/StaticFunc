@@ -75,6 +75,7 @@ PTree *newParseTreeNode()
 	pTree->typ = PTT_NOTYPE;
 	pTree->tok = NULL;
 	pTree->deducedTypes = newTypeDeductions();
+	pTree->finalType = newBasicType(TB_ERROR);
 	return pTree;
 }
 
@@ -84,6 +85,7 @@ void freeParseTreeNode(PTree *pTree)
 	freeParseTreeNode_onlychildren(pTree);
 	if(pTree != NULL){
 		freeTypeDeductions(pTree->deducedTypes);
+		freeType(pTree->finalType);
 		free(pTree);
 	}
 }
@@ -312,6 +314,11 @@ void setTypeDeductions(PTree *root, TypeDeductions ded)
 {
 	freeTypeDeductions(root->deducedTypes);
 	root->deducedTypes = ded;
+}
+
+void setFinalTypeDeduction(PTree *root, Type typ){
+	freeType(root->finalType);
+	root->finalType = typ;
 }
 
 
