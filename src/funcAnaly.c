@@ -68,6 +68,28 @@ inline bool declaration(PTree *root, int *err){
 	return true;
 }
 
+inline bool tryFuncSig(Type sig, int pCount, TypeDeductions *pDeds, TypeDeductions *ret){
+	if(sig.numchildren != 1+pCount){
+		return false;
+	}
+	int i;
+	bool success = true;
+	for(i=1; i<sig.numchildren; i++){
+		TypeDeductions sigParam = singleTypeDeduction(((Type*)sig.children)[i]);
+		if(!typeDeductionMergeExists(sigParam, pDeds[i-1])){
+			success = false;
+			freeTypeDeductions(sigParam);
+			break;
+		}
+		freeTypeDeductions(sigParam);
+	}
+	if(success){
+		Type typ = duplicateType(((Type*)sig.children)[0]);
+		utarray_push_back(ret->types, &typ);
+	}
+	return success;
+}
+
 // Deduces return types of a function call
 TypeDeductions handleFunctCall(PTree *root, int *err)
 {
@@ -96,32 +118,48 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 		return ret;
 	}
 
-	// check if this is a local function call (ie: lambda)
+	// first check temp object
 	PTree *id = (PTree*)root->child1;
-	if(symbolExists((char*)id->tok->extra)){
-		Type sig = getSymbolType((char*)id->tok->extra, id->tok->lineNo);
-		if(sig.base == TB_FUNCTION && sig.numchildren == 1+pCount){
-			int i;
-			bool success = true;
-			for(i=1; i<sig.numchildren; i++){
-				TypeDeductions sigParam = singleTypeDeduction(((Type*)sig.children)[i]);
-				if(!typeDeductionMergeExists(sigParam, pDeds[i-1])){
-					success = false;
-					freeTypeDeductions(sigParam);
-					break;
-				}
-				freeTypeDeductions(sigParam);
-			}
-			if(success){
-				Type typ = duplicateType(((Type*)sig.children)[0]);
-				utarray_push_back(ret.types, &typ);
-				free(pDeds);
-				return ret;
-			}
+	TypeDeductions callee = deduceTreeType(id, err, CAST_UP);
+	if(*err > 0){
+		reportError("SA005", "Function Call Does Not Deduce: Line %d", root->tok->lineNo);
+	}
+
+	Type *sig = NULL;
+	while((sig=(Type*)utarray_next(callee.types,sig))){
+		if(sig->base == TB_FUNCTION){
+			tryFuncSig(*sig, pCount, pDeds, &ret);
 		}
 	}
 
-	// fetch function versions
+	if(utarray_len(ret.types) == 0){
+		reportError("SA015", "No Signature Match For Function Call: Line %d", root->tok->lineNo);
+		(*err) ++;
+		sig = NULL;
+		while((sig=(Type*)utarray_next(callee.types,sig))){
+			errShowType("  SIG: ", sig);
+		}
+		for(pNum=0; pNum<pCount; pNum++){
+			errRaw("\t* PARAM\n");
+			showTypeDeductionOption(pDeds[pNum]);
+		}
+		freeTypeDeductions(ret);
+		free(pDeds);
+		ret = singleTypeDeduction(newBasicType(TB_ERROR));
+		return ret;
+	}
+	// check if this is a local function call (ie: lambda)
+	/*if(symbolExists((char*)id->tok->extra)){
+		Type sig = getSymbolType((char*)id->tok->extra, id->tok->lineNo);
+		if(sig.base == TB_FUNCTION && tryFuncSig(sig, pCount, pDeds, &ret)){
+			Type typ = duplicateType(((Type*)sig.children)[0]);
+			utarray_push_back(ret.types, &typ);
+			free(pDeds);
+			return ret;
+		}
+	}
+
+	// check if this is a global function version
 	char *fname = ((PTree*)root->child1)->tok->extra;
 	NamedFunctionMapEnt *l = getFunctionVersions(fname);
 	if(l == NULL){
@@ -139,30 +177,9 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 	}
 
 	FunctionVersion *ver = l->V;
-	int verno = 0;
 	while(ver != NULL){
-		if(ver->sig.numchildren != 1+pCount){
-			ver = (FunctionVersion*)ver->next;
-			verno ++;
-			continue;
-		}
-		int i;
-		bool success = true;
-		for(i=1; i<ver->sig.numchildren; i++){
-			TypeDeductions sigParam = singleTypeDeduction(((Type*)ver->sig.children)[i]);
-			if(!typeDeductionMergeExists(sigParam, pDeds[i-1])){
-				success = false;
-				freeTypeDeductions(sigParam);
-				break;
-			}
-			freeTypeDeductions(sigParam);
-		}
-		if(success){
-			Type typ = duplicateType(((Type*)ver->sig.children)[0]);
-			utarray_push_back(ret.types, &typ);
-		}
+		tryFuncSig(ver->sig, pCount, pDeds, &ret);
 		ver = (FunctionVersion*)ver->next;
-		verno ++;
 	}
 	if(utarray_len(ret.types) == 0){
 		reportError("SA015", "No Signature Match For Function %s: Line %d", fname, root->tok->lineNo);
@@ -180,7 +197,7 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 		free(pDeds);
 		ret = singleTypeDeduction(newBasicType(TB_ERROR));
 		return ret;
-	}
+	}*/
 	free(pDeds);
 	return ret;
 }
@@ -264,12 +281,26 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 		else if(root->typ == PTT_IDENTIFIER){
 			if(!symbolExists((char*)root->tok->extra)){
-				reportError("SA006", "Symbol Does Not Exist %s: Line %d", (char*)root->tok->extra, root->tok->lineNo);
-				(*err) ++;
-				setTypeDeductions(root, singleTypeDeduction(newBasicType(TB_ERROR)));
-			}
-			setTypeDeductions(root,
+				// perhaps it is a global function:
+				NamedFunctionMapEnt *l = getFunctionVersions((char*)root->tok->extra);
+				if(l == NULL){
+					reportError("SA006", "Symbol Does Not Exist %s: Line %d", (char*)root->tok->extra, root->tok->lineNo);
+					(*err) ++;
+					setTypeDeductions(root, singleTypeDeduction(newBasicType(TB_ERROR)));
+				}else{
+					TypeDeductions ret = newTypeDeductions();
+					FunctionVersion *ver = l->V;
+					while(ver != NULL){
+						Type typ = duplicateType(ver->sig);
+						utarray_push_back(ret.types, &typ);
+						ver = (FunctionVersion*)ver->next;
+					}
+					setTypeDeductions(root, ret);
+				}
+			}else{
+				setTypeDeductions(root,
 					expandedTypeDeduction(getSymbolType((char*)root->tok->extra, root->tok->lineNo), cd));
+			}
 			return root->deducedTypes;
 		}
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
@@ -638,6 +669,37 @@ bool finalizeSingleDeduction(PTree *root)
 	return true;
 }
 
+inline bool tryPropogateFuncSig(Type sig, int pCount, PTree *root){
+	if(sig.numchildren != 1+pCount){
+		return false;
+	}
+	if(typesEqualMostly(((Type*)sig.children)[0], root->finalType)){
+		int i;
+		bool success = true;
+		PTree *param = (PTree*)root->child2;
+		for(i=1; i<sig.numchildren; i++){
+			TypeDeductions tmp = singleTypeDeduction(((Type*)sig.children)[i]);
+			if(!typeDeductionMergeExists(tmp, ((PTree*)param->child1)->deducedTypes)){
+				success = false;
+				freeTypeDeductions(tmp);
+				break;
+			}
+			freeTypeDeductions(tmp);
+			param = (PTree*)param->child2;
+		}
+		if(success){
+			param = (PTree*)root->child2;
+			for(i=1; i<sig.numchildren; i++){
+				setFinalTypeDeduction((PTree*)param->child1, duplicateType(((Type*)sig.children)[i]));
+				propagateTreeType((PTree*)param->child1);
+				param = (PTree*)param->child2;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 // The called tree has it's final type deduced, so now job is to propagate this down the tree
 void propagateTreeType(PTree *root){
 	Type final = root->finalType;
@@ -664,84 +726,31 @@ void propagateTreeType(PTree *root){
 			param = (PTree*)param->child2;
 		}
 
-		// check local functions (lambda)
+		// first check globals
 		PTree *id = (PTree*)root->child1;
-		char *fname = id->tok->extra;
-
-		if(symbolExists(fname)){
-			Type sig = getSymbolType(fname, id->tok->lineNo);
-			if(sig.base == TB_FUNCTION && sig.numchildren == 1+pCount){
-				TypeDeductions tmp = singleTypeDeduction(((Type*)sig.children)[0]);
-				if(typeDeductionMergeExists(tmp, root->deducedTypes)){
-					freeTypeDeductions(tmp);
-					int i;
-					bool success = true;
-					param = (PTree*)root->child2;
-					for(i=1; i<sig.numchildren; i++){
-						TypeDeductions tmp = singleTypeDeduction(((Type*)sig.children)[i]);
-						if(!typeDeductionMergeExists(tmp, ((PTree*)param->child1)->deducedTypes)){
-							success = false;
-							freeTypeDeductions(tmp);
-							break;
-						}
-						freeTypeDeductions(tmp);
-						param = (PTree*)param->child2;
-					}
-					if(success){
-						param = (PTree*)root->child2;
-						for(i=1; i<sig.numchildren; i++){
-							setFinalTypeDeduction((PTree*)param->child1, duplicateType(((Type*)sig.children)[i]));
-							propagateTreeType((PTree*)param->child1);
-							param = (PTree*)param->child2;
-						}
-						return;
-					}
+		if(id->typ == PTT_IDENTIFIER && getFunctionVersions((char*)id->tok->extra) != NULL){
+			NamedFunctionMapEnt *l = getFunctionVersions((char*)id->tok->extra);
+			FunctionVersion *ver = l->V;
+			while(ver != NULL){
+				if(tryPropogateFuncSig(ver->sig, pCount, root)){
+					markFunctionVersionUsed(ver);
+					return;
 				}
-				freeTypeDeductions(tmp);
+				ver = (FunctionVersion*)ver->next;
 			}
 		}
 
-		NamedFunctionMapEnt *l = getFunctionVersions(fname);
-
-		FunctionVersion *ver = l->V;
-		while(ver != NULL){
-			if(ver->sig.numchildren != 1+pCount){
-				ver = (FunctionVersion*)ver->next;
-				continue;
-			}
-			// check return type match
-			TypeDeductions tmp = singleTypeDeduction(((Type*)ver->sig.children)[0]);
-			if(!typeDeductionMergeExists(tmp, root->deducedTypes)){
-				ver = (FunctionVersion*)ver->next;
-				freeTypeDeductions(tmp);
-				continue;
-			}
-			freeTypeDeductions(tmp);
-			// parameter type match
-			int i;
-			bool success = true;
-			param = (PTree*)root->child2;
-			for(i=1; i<ver->sig.numchildren; i++){
-				TypeDeductions tmp = singleTypeDeduction(((Type*)ver->sig.children)[i]);
-				if(!typeDeductionMergeExists(tmp, ((PTree*)param->child1)->deducedTypes)){
-					success = false;
-					freeTypeDeductions(tmp);
-					break;
+		// lambdas and temps:
+		TypeDeductions callee = id->deducedTypes;
+		Type *sig = NULL;
+		while((sig=(Type*)utarray_next(callee.types,sig))){
+			if(sig->base == TB_FUNCTION){
+				if(tryPropogateFuncSig(*sig, pCount, root)){
+					setFinalTypeDeduction(id, duplicateType(*sig));
+					propagateTreeType(id);
+					return;
 				}
-				freeTypeDeductions(tmp);
-				param = (PTree*)param->child2;
 			}
-			if(success){ // propagate tree to each parameter
-				param = (PTree*)root->child2;
-				for(i=1; i<ver->sig.numchildren; i++){
-					setFinalTypeDeduction((PTree*)param->child1, duplicateType(((Type*)ver->sig.children)[i]));
-					propagateTreeType((PTree*)param->child1);
-					param = (PTree*)param->child2;
-				}
-				markFunctionVersionUsed(ver);
-				break;
-			}
-			ver = (FunctionVersion*)ver->next;
 		}
 	}else if(root->typ == PTT_RETURN){
 		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
@@ -952,7 +961,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 
 		// store original function type for later
 		int paramCnt = 0;
-		PTree *paramTypeTree = ((PTree*)root->child1)->child2;
+		PTree *paramTypeTree = (PTree*)((PTree*)root->child1)->child2;
 		while(paramTypeTree != NULL){
 			paramCnt ++;
 			paramTypeTree = (PTree*)paramTypeTree->child2;
@@ -960,9 +969,9 @@ bool semAnalyStmt(PTree *root, Type sig)
 
 		Type sig = newBasicType(TB_FUNCTION);
 		allocTypeChildren(&sig, paramCnt + 1);
-		((Type*)sig.children)[0] = deduceTypeDeclType(((PTree*)root->child1)->child1);
+		((Type*)sig.children)[0] = deduceTypeDeclType((PTree*)((PTree*)root->child1)->child1);
 
-		paramTypeTree = ((PTree*)root->child1)->child2;
+		paramTypeTree = (PTree*)((PTree*)root->child1)->child2;
 		int i;
 		for(i=1; i<=paramCnt; i++){
 			PTree *pTempRoot = (PTree*)((PTree*)paramTypeTree->child1)->child1;
@@ -972,20 +981,20 @@ bool semAnalyStmt(PTree *root, Type sig)
 
 		PTree *decl = newParseTree(PTT_DECL);
 		decl->parent = root->parent;
-		((PTree*)decl->parent)->child1 = decl;
+		((PTree*)decl->parent)->child1 = (void*)decl;
 
 		decl->tok = root->tok; // move declaration symbol name to new node
 
 		// old root is now the default value for declaration
 		root->tok = duplicateAndPlaceAfterToken(decl->tok);
 		root->typ = PTT_LAMBDA;
-		decl->child2 = root;
-		root->parent = decl;
+		decl->child2 = (void*)root;
+		root->parent = (void*)decl;
 
 		// now we need deduce the type of declaration
 		PTree *declType = newParseTree(PTT_DECL_TYPE_DEDUCED);
-		declType->parent = decl;
-		decl->child1 = declType;
+		declType->parent = (void*)decl;
+		decl->child1 = (void*)declType;
 		setTypeDeductions(declType, singleTypeDeduction(sig));
 		freeType(sig);
 
@@ -1025,7 +1034,6 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	//PTree *defn = NULL;
 	int errs = 0;
 	PTree *body = root;
-	//dumpParseTreeDet(root, 0);
 	if(!global){
 		enterScope();
 		// need to push locals onto stack

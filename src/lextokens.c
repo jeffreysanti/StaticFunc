@@ -128,11 +128,11 @@ LexicalToken *duplicateAndPlaceAfterToken(LexicalToken *orig)
 	tok->extra = NULL;
 	tok->typ = orig->typ;
 	tok->lineNo = orig->lineNo;
-	tok->prev = orig;
-	tok->next = orig->next;
+	tok->prev = (void*)orig;
+	tok->next = (void*)orig->next;
 
-	((LexicalToken*)tok->next)->prev = tok;
-	orig->next = tok;
+	((LexicalToken*)tok->next)->prev = (void*)tok;
+	orig->next = (void*)tok;
 	return tok;
 }
 
