@@ -99,8 +99,8 @@ typedef enum {
 void setParseNodeChild(PTree *parent, PTree *child, ParseChild side);
 
 
-void dumpParseTree(PTree *root, int level);
-void dumpParseTreeDet(PTree *root, int level);
+void dumpParseTree(PTree *root, int level, FILE *f);
+void dumpParseTreeDet(PTree *root, int level, FILE *f);
 
 void cleanUpEmptyStatments(PTree *ptr);
 

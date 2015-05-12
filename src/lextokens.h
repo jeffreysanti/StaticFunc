@@ -51,8 +51,8 @@ void freeLexicalTokenList(LexicalTokenList *lst);
 void pushBasicToken(LexicalTokenList *lst, LexicalTokenType typ, long ln);
 void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char* dta);
 
-void outputLexicalTokenList(LexicalTokenList *lst);
-void outputToken(LexicalToken *tok);
+void outputLexicalTokenList(LexicalTokenList *lst, FILE *f);
+void outputToken(LexicalToken *tok, FILE *f);
 
 LexicalToken *duplicateAndPlaceAfterToken(LexicalToken *orig);
 

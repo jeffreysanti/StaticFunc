@@ -27,7 +27,7 @@ void initTypeSystem()
 	registerType("float32", newBasicType(TB_NATIVE_FLOAT32));
 	registerType("float64", newBasicType(TB_NATIVE_FLOAT64));
 
-	registerType("char", newBasicType(TB_NATIVE_CHAR));
+	//registerType("char", newBasicType(TB_NATIVE_CHAR));
 	registerType("bool", newBasicType(TB_NATIVE_BOOL));
 	registerType("string", newBasicType(TB_NATIVE_STRING));
 
@@ -561,7 +561,7 @@ char *getTypeAsString(Type t)
 		len += 5;
 	if(t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64)
 		len += 7;
-	if(t.base == TB_NATIVE_BOOL || t.base == TB_NATIVE_CHAR || t.base == TB_NATIVE_VOID)
+	if(t.base == TB_NATIVE_BOOL /*|| t.base == TB_NATIVE_CHAR*/ || t.base == TB_NATIVE_VOID)
 		len += 4;
 	if(t.base == TB_VECTOR || t.base == TB_NATIVE_STRING)
 		len += 6;
@@ -605,7 +605,7 @@ char *getTypeAsString(Type t)
 	if(t.base == TB_NATIVE_FLOAT32) { strcpy(ptr, "float32"); ptr += 7; }
 	if(t.base == TB_NATIVE_FLOAT64) { strcpy(ptr, "float64"); ptr += 7; }
 	if(t.base == TB_NATIVE_BOOL) { strcpy(ptr, "bool"); ptr += 4; }
-	if(t.base == TB_NATIVE_CHAR) { strcpy(ptr, "char"); ptr += 4; }
+	//if(t.base == TB_NATIVE_CHAR) { strcpy(ptr, "char"); ptr += 4; }
 	if(t.base == TB_NATIVE_VOID) { strcpy(ptr, "void"); ptr += 4; }
 	if(t.base == TB_NATIVE_STRING) { strcpy(ptr, "string"); ptr += 6; }
 	if(t.base == TB_VECTOR) { strcpy(ptr, "vector"); ptr += 6; }

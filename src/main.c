@@ -20,6 +20,15 @@
 #include "functions.h"
 #include "funcAnaly.h"
 #include "nativeFunctions.h"
+#include "icg.h"
+
+FILE *openOutputFile(char *outfl, char ext[3]){
+	outfl[strlen(outfl)-3] = ext[0];
+	outfl[strlen(outfl)-2] = ext[1];
+	outfl[strlen(outfl)-1] = ext[2];
+	FILE *ret = fopen(outfl, "w");
+	return ret;
+}
 
 int main(int argc, char **argv){
 
@@ -39,23 +48,44 @@ int main(int argc, char **argv){
 	if(fp == NULL){
 		fatalError("Error: Could Not Open Input File\n");
 	}
+
+	char *outfl = malloc(strlen(argv[1]) +4 +1);
+	strcpy(outfl, argv[1]);
+	outfl[strlen(argv[1]) +4] = 0;
+	outfl[strlen(argv[1])] = '.';
+	outfl[strlen(argv[1])+1] = '.';
+	outfl[strlen(argv[1])+2] = '.';
+	outfl[strlen(argv[1])+3] = '.';
+
 	LexicalTokenList *T = lexicalAnalyze(fp);
 	fclose(fp);
 
 	if(T != NULL){
-		//outputLexicalTokenList(T);
+		FILE *tmpout = openOutputFile(outfl, "lex");
+		outputLexicalTokenList(T, tmpout);
+		fclose(tmpout);
 
 		// now parse
 		PTree *tree = parse(T);
 		if(tree != NULL){
-			//dumpParseTreeDet(tree, 0);
+
+			FILE *tmpout = openOutputFile(outfl, "ps1");
+			dumpParseTreeDet(tree, 0, tmpout);
+			fclose(tmpout);
 
 			seperateFunctionsFromParseTree(&tree, false);
 
-			//dumpParseTreeDet(tree, 0);
+			if(semAnalyFunc(tree, true, getProgramReturnType())){
+				freeOrResetScopeSystem();
 
-			semAnalyFunc(tree, true, getProgramReturnType());
 
+				FILE *tmpout = openOutputFile(outfl, "ps2");
+				dumpParseTreeDet(tree, 0, tmpout);
+				fclose(tmpout);
+
+				// now generate code :D
+				icRunGen(tree);
+			}
 			freeParseTreeNode(tree);
 		}
 	}
@@ -67,6 +97,8 @@ int main(int argc, char **argv){
 	if(T != NULL){
 		freeLexicalTokenList(T);
 	}
+
+	free(outfl);
 
 	return EXIT_SUCCESS;
 

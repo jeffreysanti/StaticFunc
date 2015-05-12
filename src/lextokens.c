@@ -11,7 +11,7 @@
 
 // private functions
 LexicalToken *pushToken(LexicalTokenList *lst);
-void outputToken(LexicalToken *tok);
+void outputToken(LexicalToken *tok, FILE* f);
 
 
 LexicalTokenList *createLexicalTokenList()
@@ -87,33 +87,33 @@ void pushStringToken(LexicalTokenList *lst, LexicalTokenType typ, long ln, char 
 	tok->extra = dta;
 }
 
-void outputToken(LexicalToken *tok)
+void outputToken(LexicalToken *tok, FILE *f)
 {
 	if(tok->typ == LT_TEXT){
-		printf("[%ld] LT_TEXT: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_TEXT: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_KEYWORD){
-		printf("[%ld] LT_KEYWORD: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_KEYWORD: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_OP){
-		printf("[%ld] LT_OP: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_OP: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_IDENTIFIER){
-		printf("[%ld] LT_IDENTIFIER: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_IDENTIFIER: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_INTEGER){
-		printf("[%ld] LT_INTEGER: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_INTEGER: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_FLOAT){
-		printf("[%ld] LT_FLOAT: %s", tok->lineNo, (char*)tok->extra);
+		fprintf(f, "[%ld] LT_FLOAT: %s", tok->lineNo, (char*)tok->extra);
 	}else if(tok->typ == LT_EOF){
-		printf("[%ld] LT_EOF", tok->lineNo);
+		fprintf(f, "[%ld] LT_EOF", tok->lineNo);
 	}else{
-		printf("[%ld] UNKNOWN TOKEN [outputToken]!!!", tok->lineNo);
+		fprintf(f, "[%ld] UNKNOWN TOKEN [outputToken]!!!", tok->lineNo);
 	}
 }
 
-void outputLexicalTokenList(LexicalTokenList *lst)
+void outputLexicalTokenList(LexicalTokenList *lst, FILE *f)
 {
 	LexicalToken *tok = lst->first;
 	while(tok != NULL){
-		outputToken(tok);
-		printf("\n");
+		outputToken(tok, f);
+		fprintf(f, "\n");
 		tok = (LexicalToken*)tok->next;
 	}
 }

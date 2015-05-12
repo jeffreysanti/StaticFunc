@@ -224,53 +224,53 @@ PTree *lastRightInternalParseNode(PTree *root)
 	return root;
 }
 
-void dumpParseTree(PTree *root, int level)
+void dumpParseTree(PTree *root, int level, FILE *f)
 {
 	if(root == NULL)
 		return;
 	int i;
 	for(i=0; i<level; i++){
-		printf("  ");
+		fprintf(f,"  ");
 	}
 	/*if(root->typ == PTT_INT)
 		printf("Val: %s\n", (char*)((LexicalToken*)root->tok)->extra);
 	else
 		printf("NODE %d\n", root->typ);
 */
-	printf("{%s}", PTLookup[root->typ]);
+	fprintf(f, "{%s}", PTLookup[root->typ]);
 	if(root->tok != NULL){
-		outputToken((LexicalToken*)root->tok);
-		printf("\n");
+		outputToken((LexicalToken*)root->tok, f);
+		fprintf(f,"\n");
 	}else{
-		printf("\n");
+		fprintf(f,"\n");
 	}
 
-	dumpParseTree((PTree*)root->child1, level+1);
-	dumpParseTree((PTree*)root->child2, level+1);
+	dumpParseTree((PTree*)root->child1, level+1, f);
+	dumpParseTree((PTree*)root->child2, level+1, f);
 }
 
 
-void dumpParseTreeDet(PTree *root, int level)
+void dumpParseTreeDet(PTree *root, int level, FILE *f)
 {
 	int i;
 	for(i=0; i<level; i++){
-		printf("  ");
+		fprintf(f, "  ");
 	}
 	if(root == NULL){
-		printf("NULL\n");
+		fprintf(f, "NULL\n");
 		return;
 	}
 
 	if(root->tok != NULL){
-		printf("{%s} ", PTLookup[root->typ]);
-		outputToken((LexicalToken*)root->tok);
-		printf("\n");
+		fprintf(f, "{%s} ", PTLookup[root->typ]);
+		outputToken((LexicalToken*)root->tok, f);
+		fprintf(f, "\n");
 	}else{
-		printf("{%s}\n", PTLookup[root->typ]);
+		fprintf(f, "{%s}\n", PTLookup[root->typ]);
 	}
 
-	dumpParseTreeDet((PTree*)root->child1, level+1);
-	dumpParseTreeDet((PTree*)root->child2, level+1);
+	dumpParseTreeDet((PTree*)root->child1, level+1, f);
+	dumpParseTreeDet((PTree*)root->child2, level+1, f);
 }
 
 
