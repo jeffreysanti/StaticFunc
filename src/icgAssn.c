@@ -10,61 +10,65 @@
 #include "icg.h"
 
 ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, char *to, Type assignType){
-	char *dest = malloc(strlen(to)+1);
-	strcpy(dest, to);
+
+	ICGElmOp *result = newOp(ICGO_IDENT, to);
+
+	char *unqsym = getSymbolUniqueName(to);
+	ICGElmOp *resultb = newOpVariable(assignType, unqsym);
+	free(unqsym);
 
 	ICGElm *data = icGen(root, prev);
 	if(data->typ == ICG_LITERAL){
 		freeICGElm(data);
-		char *src = malloc(strlen((char *)root->tok->extra)+1);
-		strcpy(src, (char *)root->tok->extra);
+		ICGElmOp *op1 = newOpLiteral(assignType, (char *)root->tok->extra);
+		prev = newICGElm(prev, ICG_MOV, (PTree*)root->parent);
+		prev->result = result;
+		prev->resultb = resultb;
+		prev->op1 = op1;
+	}else if(data->typ == ICG_IDENT){
+		freeICGElm(data);
+		ICGElmOp *op1 = newOp(ICGO_IDENT, (char*)root->tok->extra);
 
-		if(assignType.base == TB_NATIVE_INT8 || assignType.base == TB_NATIVE_BOOL){
-			prev = newICGElm(prev, ICG_MOVL_INT8, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else if(assignType.base == TB_NATIVE_INT16){
-			prev = newICGElm(prev, ICG_MOVL_INT16, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else if(assignType.base == TB_NATIVE_INT32){
-			prev = newICGElm(prev, ICG_MOVL_INT32, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else if(assignType.base == TB_NATIVE_INT64){
-			prev = newICGElm(prev, ICG_MOVL_INT64, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else if(assignType.base == TB_NATIVE_FLOAT32){
-			prev = newICGElm(prev, ICG_MOVL_FLOAT32, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else if(assignType.base == TB_NATIVE_FLOAT64){
-			prev = newICGElm(prev, ICG_MOVL_FLOAT64, (PTree*)root->parent);
-			prev->result = dest;
-			prev->op1 = src;
-		}else{
-			fatalError("Unknown Literal Assignment!");
-		}
+		char *unqsym = getSymbolUniqueName((char*)root->tok->extra);
+		ICGElmOp *op1b = newOpVariable(assignType, unqsym);
+		free(unqsym);
+
+		prev = newICGElm(prev, ICG_MOV, (PTree*)root->parent);
+		prev->result = result;
+		prev->resultb = resultb;
+		prev->op1 = op1;
+		prev->op1b = op1b;
 	}else{
-		// TODO
+		prev = data;
+
+		ICGElmOp *op1 = newOpVariable(assignType, prev->result->data);
+		prev = newICGElm(prev, ICG_MOV, (PTree*)root->parent);
+		prev->result = result;
+		prev->resultb = resultb;
+		prev->op1 = op1;
 	}
 	return prev;
 }
 
 void icGenAssn_print(ICGElm *elm, FILE* f)
 {
-	if(elm->typ == ICG_MOVL_INT8){
-		fprintf(f, "movli8 %s, %s", (char*)elm->result, (char*)elm->op1);
-	}else if(elm->typ == ICG_MOVL_INT16){
-		fprintf(f, "movli16 %s, %s", (char*)elm->result, (char*)elm->op1);
-	}else if(elm->typ == ICG_MOVL_INT32){
-		fprintf(f, "movli32 %s, %s", (char*)elm->result, (char*)elm->op1);
-	}else if(elm->typ == ICG_MOVL_INT64){
-		fprintf(f, "movli64 %s, %s", (char*)elm->result, (char*)elm->op1);
-	}else if(elm->typ == ICG_MOVL_FLOAT32){
-		fprintf(f, "movlf32 %s, %s", (char*)elm->result, (char*)elm->op1);
-	}else if(elm->typ == ICG_MOVL_FLOAT64){
-		fprintf(f, "movlf64 %s, %s", (char*)elm->result, (char*)elm->op1);
+	fprintf(f, "mov");
+	ICGElmOp *op1 = elm->op1;
+	if(op1->typ == ICGO_IDENT)
+		op1 = elm->op1b;
+	if(op1->typ == ICGO_LIT_INT8 || op1->typ == ICGO_VAR_INT8)       fprintf(f, "i8 ");
+	if(op1->typ == ICGO_LIT_INT16 || op1->typ == ICGO_VAR_INT16)     fprintf(f, "i16 ");
+	if(op1->typ == ICGO_LIT_INT32 || op1->typ == ICGO_VAR_INT32)     fprintf(f, "i32 ");
+	if(op1->typ == ICGO_LIT_INT64 || op1->typ == ICGO_VAR_INT64)     fprintf(f, "i64 ");
+	if(op1->typ == ICGO_LIT_FLOAT32 || op1->typ == ICGO_VAR_FLOAT32) fprintf(f, "f32 ");
+	if(op1->typ == ICGO_LIT_FLOAT64 || op1->typ == ICGO_VAR_FLOAT64) fprintf(f, "f64 ");
+	if(op1->typ == ICGO_VAR_PTR)                                     fprintf(f, " ");
+
+	fprintf(f, "$%s, ", elm->resultb->data);
+
+	if(literalOp(op1)){
+		fprintf(f, "%s", op1->data);
+	}else{
+		fprintf(f, "$%s", op1->data);
 	}
 }

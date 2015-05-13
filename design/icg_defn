@@ -1,0 +1,53 @@
+Intermediate Code Generation::::
+
+Proccess::
+1. Generate Global Code
+2. Move all static/literal allocations to top
+3. For Each Used Global Function: Generate Code
+4. Move literal allocations to top (of program)
+5. Move local allocations to top (of function)
+
+---Variables---
+Each variable declaration is made unique in output icg code in format {var}.{uuid}
+All variables become of type: i8, i16, i32, i64, f32, f64, ptr
+
+---Declaration---
+
+int32 b(127)
+ :  di32 $b.36
+ :  movi32 $b.36, 127
+ 
+ 
+---Strings---
+Strings are mutable objects, like vectors dicts and tuples
+String literals exist in ro memory, but upon assignment copied to heap
+
+string x("Hello");
+ :  dptr @x.133
+ :  dstr #.slit8, "Hello"
+ :  ocpy $.temp23, #.slit8
+ :  mov @x.133, $.temp23
+
+string x2(x + x);
+ :  dptr @x2.134
+ :  stradd $.temp24, @x.133, @x.133
+ :  mov @x2.134, $.temp24
+
+---Arrays---
+vector<int8> v([1,2,3]);
+ :  dptr $v.92
+ :  vecalloc $.temp25, 3
+ :  
+ :
+ :  mov $v.92, $.temp25
+ :  
+
+
+
+*** NOTE: ops:
+ldi8, ldi16, ldi32, ldi64, ldf32, ldf64
+sti8 ... stf64
+
+
+
+

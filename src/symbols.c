@@ -73,6 +73,20 @@ Type getSymbolType(char *sym, int lineno)
 	return newBasicType(TB_ERROR);
 }
 
+char *getSymbolUniqueName(char *sym)
+{
+	Symbol *ptr = S;
+	while(ptr != NULL){
+		if(strcmp(sym, ptr->nm) == 0){
+			char *dest = calloc(strlen(sym)+20+1, 1);
+			sprintf(dest, "%s.%ld", sym, ptr->id);
+			return dest;
+		}
+		ptr = (Symbol*)ptr->prev;
+	}
+	return NULL;
+}
+
 void freeOrResetScopeSystem()
 {
 	while(S != NULL){

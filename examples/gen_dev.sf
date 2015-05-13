@@ -1,4 +1,6 @@
 
 int32 a(7);
 int64 b(a + 4);
+string x("Hello");
+
 

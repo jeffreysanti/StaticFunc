@@ -19,7 +19,8 @@ typedef struct{
 	Type sig;
 	char *nm;
 
-	long long id;
+	long id;
+	long long scopeID;
 
 	struct Symbol *prev;
 } Symbol;
@@ -32,6 +33,9 @@ void enterGlobalSpace();
 
 void addSymbol(char *sym, Type typ);
 Type getSymbolType(char *sym, int lineno);
+
+char *getSymbolUniqueName(char *sym);
+
 
 bool symbolExists(char *sym);
 bool symbolExistsCurrentLevel(char *sym);
