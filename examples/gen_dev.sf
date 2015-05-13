@@ -1,6 +1,12 @@
 
 int32 a(7);
-int64 b(a + 4);
-string x("Hello");
+int64 b(a);
 
+string x("Hello");
+string x2(x);
+
+int64 c(a + 4/2);
+
+c = a*2 + 34;
+x = "Hello World";
 

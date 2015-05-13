@@ -23,22 +23,28 @@ Strings are mutable objects, like vectors dicts and tuples
 String literals exist in ro memory, but upon assignment copied to heap
 
 string x("Hello");
- :  dptr @x.133
+ :  dptr $x.133
  :  dstr #.slit8, "Hello"
  :  ocpy $.temp23, #.slit8
- :  mov @x.133, $.temp23
+ :  mov $x.133, $.temp23
 
 string x2(x + x);
- :  dptr @x2.134
- :  stradd $.temp24, @x.133, @x.133
- :  mov @x2.134, $.temp24
+ :  dptr $x2.134
+ :  stradd $.temp24, $x.133, $x.133
+ :  mov $x2.134, $.temp24
 
 ---Arrays---
+
+{Examples ignores object header with length info}
 vector<int8> v([1,2,3]);
  :  dptr $v.92
- :  vecalloc $.temp25, 3
- :  
- :
+ :  vecalloc $.temp25, 3, 8
+ :  sti8 $.temp25, 1
+ :  add $.temp25, $.temp25, 8
+ :  sti8 $.temp25, 2
+ :  add $.temp25, $.temp25, 8
+ :  sti8 $.temp25, 3
+ :  add $.temp25, $.temp25, -16
  :  mov $v.92, $.temp25
  :  
 

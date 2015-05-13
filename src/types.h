@@ -156,4 +156,7 @@ void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in);
 void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in);
 
 
+
+bool isTypeNumeric(Type t);
+
 #endif /* STATICFUNC_SRC_TYPES_H_ */

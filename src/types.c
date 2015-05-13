@@ -1000,6 +1000,14 @@ void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, i
 	}
 }
 
+bool isTypeNumeric(Type t)
+{
+	return (t.base == TB_NATIVE_INT8 || t.base == TB_NATIVE_INT16 ||
+			t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64 ||
+			t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64 ||
+			t.base == TB_NATIVE_BOOL);
+}
+
 
 
 
