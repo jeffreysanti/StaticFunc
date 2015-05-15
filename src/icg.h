@@ -30,7 +30,9 @@ typedef enum{
 	ICG_DIV,
 
 	ICG_NEWVEC,
-	ICG_VECSTORE
+	ICG_VECSTORE,
+	ICG_NEWDICT,
+	ICG_DICTSTORE
 }ICGElmType;
 
 typedef enum{
@@ -64,10 +66,12 @@ typedef struct{
 	ICGElmOp *result;
 	ICGElmOp *op1;
 	ICGElmOp *op2;
+	ICGElmOp *op3;
 
 	ICGElmOp *resultb;
 	ICGElmOp *op1b;
 	ICGElmOp *op2b;
+	ICGElmOp *op3b;
 
 	ICGDataType dataType;
 
@@ -79,8 +83,8 @@ typedef struct{
 } ICGElm;
 
 struct ROStringLit {
-    const char *varname;
-    const char *rodata;
+    char *varname;
+    char *rodata;
     UT_hash_handle hh;
 };
 
@@ -97,6 +101,7 @@ void printSingleICGElm(ICGElm *elm, FILE *f);
 void printICG(ICGElm *root, FILE *f);
 
 ICGElmOp *newOp(ICGElmOpType typ, char *data);
+ICGElmOp *newOpInt(ICGElmOpType typ, int val);
 ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data);
 
 ICGDataType typeToICGDataType(Type t);

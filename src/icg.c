@@ -25,7 +25,7 @@ extern ICGElm * icGenAssn(PTree *, ICGElm *);
 extern void icGenAssn_print(ICGElm *, FILE*);
 
 extern ICGElm * icGenStringLit(PTree *root, ICGElm *prev);
-extern icGenObjCpy_print(ICGElm *, FILE*);
+extern void icGenObjCpy_print(ICGElm *, FILE*);
 
 extern ICGElm * icGenArray(PTree *root, ICGElm *prev);
 void icGenArray_print(ICGElm *elm, FILE* f);
@@ -47,10 +47,12 @@ ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 	ret->result = NULL;
 	ret->op1 = NULL;
 	ret->op2 = NULL;
+	ret->op3 = NULL;
 
 	ret->resultb = NULL;
 	ret->op1b = NULL;
 	ret->op2b = NULL;
+	ret->op3b = NULL;
 
 	ret->dataType = dt;
 
@@ -93,6 +95,12 @@ void freeICGElm(ICGElm *elm)
 		}
 		free(elm->op2);
 	}
+	if(elm->op3 != NULL){
+		if(elm->op3->typ != ICGO_IDENT){
+			free(elm->op3->data);
+		}
+		free(elm->op3);
+	}
 
 	if(elm->resultb != NULL){
 		free(elm->resultb->data);
@@ -105,6 +113,10 @@ void freeICGElm(ICGElm *elm)
 	if(elm->op2b != NULL){
 		free(elm->op2b->data);
 		free(elm->op2b);
+	}
+	if(elm->op3b != NULL){
+		free(elm->op3b->data);
+		free(elm->op3b);
 	}
 
 
@@ -123,7 +135,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}else if(elm->typ == ICG_ADD || elm->typ == ICG_SUB || elm->typ == ICG_MUL ||
 			elm->typ == ICG_DIV){
 		icGenArith_print(elm, f);
-	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE){
+	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE || elm->typ == ICG_NEWDICT ||
+			elm->typ == ICG_DICTSTORE){
 		icGenArray_print(elm, f);
 	}
 }
@@ -221,6 +234,13 @@ ICGElmOp *newOp(ICGElmOpType typ, char *data)
 	return ret;
 }
 
+ICGElmOp *newOpInt(ICGElmOpType typ, int val)
+{
+	char *str = calloc(20, 1);
+	sprintf(str, "%d", val);
+	return newOp(ICGO_LIT, str);
+}
+
 ICGDataType typeToICGDataType(Type d)
 {
 	ICGDataType dt = ICGDT_NONE;
@@ -258,7 +278,7 @@ void printICGTypeSuffix(ICGElm *elm, FILE* f){
 	}else if(elm->dataType == ICGDT_PTR){
 		fprintf(f, "p");
 	}else{
-		fprintf(f, "");
+		//fprintf(f, "");
 	}
 }
 
