@@ -27,6 +27,8 @@ extern void icGenAssn_print(ICGElm *, FILE*);
 extern ICGElm * icGenStringLit(PTree *root, ICGElm *prev);
 extern icGenObjCpy_print(ICGElm *, FILE*);
 
+extern ICGElm * icGenArray(PTree *root, ICGElm *prev);
+void icGenArray_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenArith(PTree *, ICGElm *);
 extern void icGenArith_print(ICGElm *, FILE*);
@@ -121,6 +123,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}else if(elm->typ == ICG_ADD || elm->typ == ICG_SUB || elm->typ == ICG_MUL ||
 			elm->typ == ICG_DIV){
 		icGenArith_print(elm, f);
+	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE){
+		icGenArray_print(elm, f);
 	}
 }
 
@@ -156,6 +160,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT ||
 			root->typ == PTT_DIV){
 		prev = icGenArith(root, prev);
+	}else if(root->typ == PTT_ARRAY_ELM){
+		prev = icGenArray(root, prev);
 	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));

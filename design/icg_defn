@@ -38,13 +38,10 @@ string x2(x + x);
 {Examples ignores object header with length info}
 vector<int8> v([1,2,3]);
  :  dptr $v.92
- :  vecalloc $.temp25, 3, 8
- :  sti8 $.temp25, 1
- :  add $.temp25, $.temp25, 8
- :  sti8 $.temp25, 2
- :  add $.temp25, $.temp25, 8
- :  sti8 $.temp25, 3
- :  add $.temp25, $.temp25, -16
+ :  newvec $.temp25, 1, 3        ; Vector of 1 byte with 3 default buckets
+ :  vsti8 $.temp25, 0, 1
+ :  vsti8 $.temp25, 1, 2
+ :  vsti8 $.temp25, 2, 3
  :  mov $v.92, $.temp25
  :  
 

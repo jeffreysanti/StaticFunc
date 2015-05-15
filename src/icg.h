@@ -27,7 +27,10 @@ typedef enum{
 	ICG_ADD,
 	ICG_SUB,
 	ICG_MUL,
-	ICG_DIV
+	ICG_DIV,
+
+	ICG_NEWVEC,
+	ICG_VECSTORE
 }ICGElmType;
 
 typedef enum{
