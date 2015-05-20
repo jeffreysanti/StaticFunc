@@ -15,6 +15,8 @@
 
 // ICCodeGen Element (Linked List)
 
+#define MAX_POINTER_SIZE   16
+
 typedef enum{
 	ICG_NONE,
 	ICG_LITERAL,
@@ -32,7 +34,9 @@ typedef enum{
 	ICG_NEWVEC,
 	ICG_VECSTORE,
 	ICG_NEWDICT,
-	ICG_DICTSTORE
+	ICG_DICTSTORE,
+	ICG_NEWTUPLE,
+	ICG_TPLSTORE
 }ICGElmType;
 
 typedef enum{

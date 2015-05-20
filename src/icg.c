@@ -136,7 +136,7 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 			elm->typ == ICG_DIV){
 		icGenArith_print(elm, f);
 	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE || elm->typ == ICG_NEWDICT ||
-			elm->typ == ICG_DICTSTORE){
+			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE){
 		icGenArray_print(elm, f);
 	}
 }

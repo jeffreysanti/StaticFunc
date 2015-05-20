@@ -25,6 +25,36 @@ ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	return ret;
 }
 
+inline ICGElmOp *bitSizeTupleOp(Type t){
+	char *dta = calloc(t.numchildren*2 + 1, 1);
+	char *origDta = dta;
+	int i;
+	for(i=0; i<t.numchildren; i++){
+		Type child = ((Type*)t.children)[i];
+		if(child.base == TB_NATIVE_INT8){
+			sprintf(dta, "1;");
+			dta += 2;
+		}
+		else if(child.base == TB_NATIVE_INT16){
+			sprintf(dta, "2;");
+			dta += 2;
+		}
+		else if(child.base == TB_NATIVE_INT32 || child.base == TB_NATIVE_FLOAT32){
+			sprintf(dta, "4;");
+			dta += 2;
+		}
+		else if(child.base == TB_NATIVE_INT64 || child.base == TB_NATIVE_FLOAT64){
+			sprintf(dta, "8;");
+			dta += 2;
+		}
+		else{
+			sprintf(dta, "P;");
+			dta += 2;
+		}
+	}
+	return newOp(ICGO_LIT, origDta);
+}
+
 inline ICGElmOp *bitSizeOp(Type t){
 	ICGElmOp *op = NULL;
 	if(t.base == TB_NATIVE_INT8) op = newOpCopyData(ICGO_LIT, "1");
@@ -130,6 +160,41 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 
 			ptr = (PTree*)ptr->child2;
 		}
+	}else if(root->finalType.base == TB_TUPLE){
+		char *tempVar = newTempVariable(root->finalType);
+		ICGElmOp *res = newOp(ICGO_REG, getSymbolUniqueName(tempVar));
+
+		ICGElmOp *op1 = newOpInt(ICGO_LIT, elmCnt);
+		ICGElmOp *op2 = bitSizeTupleOp(root->finalType);
+
+		prev = newICGElm(prev, ICG_NEWTUPLE, typeToICGDataType(root->finalType), root);
+		prev->result = res;
+		prev->op1 = op1;
+		prev->op2 = op2;
+
+		int i;
+		ptr = root;
+		for(i=0; i<elmCnt; i++){
+			PTree *elm = (PTree*)ptr->child1;
+
+			char *elmTemp = newTempVariable(elm->finalType);
+			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType);
+
+			ICGElmOp *res = newOp(ICGO_REG, getSymbolUniqueName(tempVar));
+
+			ICGElmOp *op1 = newOpInt(ICGO_LIT, i);
+
+			ICGElmOp *op2 = newOp(ICGO_IDENT, elmTemp);
+			ICGElmOp *op2b = newOp(ICGO_REG, getSymbolUniqueName(elmTemp));
+
+			prev = newICGElm(prev, ICG_TPLSTORE, typeToICGDataType(elm->finalType), elm);
+			prev->result = res;
+			prev->op1 = op1;
+			prev->op2 = op2;
+			prev->op2b = op2b;
+
+			ptr = (PTree*)ptr->child2;
+		}
 	}
 	return prev;
 }
@@ -165,6 +230,8 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 	}else if(elm->typ == ICG_NEWDICT){
 		fprintf(f, "newdict $%s, %s, %s, %s", elm->result->data, elm->op1->data, elm->op2->data,
 				elm->op3->data);
+	}else if(elm->typ == ICG_NEWTUPLE){
+		fprintf(f, "newtuple $%s, %s, %s", elm->result->data, elm->op1->data, elm->op2->data);
 	}else if(elm->typ == ICG_VECSTORE){
 		fprintf(f, "vst");
 		printICGTypeSuffix(elm, f);
@@ -173,6 +240,10 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 		fprintf(f, "dst");
 		printICGTypeSuffix(elm, f);
 		fprintf(f, " $%s, $%s, $%s", elm->result->data, elm->op1b->data, elm->op2b->data);
+	}else if(elm->typ == ICG_TPLSTORE){
+		fprintf(f, "tst");
+		printICGTypeSuffix(elm, f);
+		fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, elm->op2b->data);
 	}
 }
 
