@@ -18,7 +18,7 @@ ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	char *tempVar = newTempVariable(root->finalType);
 	ICGElmOp *res = newOp(ICGO_REG, getSymbolUniqueName(tempVar));
 
-	ICGElm *ret = newICGElm(prev, ICG_OBJCOPY, ICGDT_PTR, root);
+	ICGElm *ret = newICGElm(prev, ICG_MOV, ICGDT_PTR, root);
 	ret->result = res;
 	ret->op1 = op1;
 
@@ -243,7 +243,10 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 	}else if(elm->typ == ICG_TPLSTORE){
 		fprintf(f, "tst");
 		printICGTypeSuffix(elm, f);
-		fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, elm->op2b->data);
+		ICGElmOp *op2 = elm->op2b;
+		if(op2 == NULL)
+			op2 = elm->op2;
+		fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, op2->data);
 	}
 }
 

@@ -36,7 +36,8 @@ typedef enum{
 	ICG_NEWDICT,
 	ICG_DICTSTORE,
 	ICG_NEWTUPLE,
-	ICG_TPLSTORE
+	ICG_TPLSTORE,
+	ICG_TPLLOAD
 }ICGElmType;
 
 typedef enum{

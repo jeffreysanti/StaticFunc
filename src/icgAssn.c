@@ -10,7 +10,7 @@
 #include "icg.h"
 
 extern ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, char *reg);
-
+extern ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev, char *tempVar);
 
 ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, char *to, Type assignType){
 
@@ -53,12 +53,23 @@ ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, char *to, Type assignType){
 		}
 	}else{
 		prev = data;
-		ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
 
-		prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
-		prev->result = result;
-		prev->resultb = resultb;
-		prev->op1 = op1;
+		if(isTypeNumeric(root->finalType)){
+			ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
+
+			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
+			prev->result = result;
+			prev->resultb = resultb;
+			prev->op1 = op1;
+		}else{
+			prev = icGenCopyObject(root, prev, prev->result->data);  // copy obj first
+			ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
+
+			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
+			prev->result = result;
+			prev->resultb = resultb;
+			prev->op1 = op1;
+		}
 	}
 	return prev;
 }
@@ -70,6 +81,11 @@ ICGElm * icGenAssn(PTree *root, ICGElm *prev){
 
 	if(lhs->typ == PTT_IDENTIFIER){
 		prev = icGenAssnToX(rhs, prev, (char*)lhs->tok->extra, root->finalType);
+	}else{
+		char *tempVar = newTempVariable(root->finalType);
+		prev = icGenAssnToX(rhs, prev, tempVar, root->finalType);
+
+		prev = icGenSaveToDataStruct(lhs, prev, tempVar);
 	}
 	return prev;
 }
@@ -78,7 +94,10 @@ void icGenAssn_print(ICGElm *elm, FILE* f)
 {
 	fprintf(f, "mov");
 	printICGTypeSuffix(elm, f);
-	fprintf(f, " $%s, ", elm->resultb->data);
+	if(elm->resultb == NULL)
+		fprintf(f, " $%s, ", elm->result->data);
+	else
+		fprintf(f, " $%s, ", elm->resultb->data);
 
 	ICGElmOp *op1 = elm->op1;
 	if(op1->typ == ICGO_IDENT)
