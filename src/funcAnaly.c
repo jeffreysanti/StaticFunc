@@ -540,6 +540,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		// ...lhs[rhs]...
 		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd);
 		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, err, CAST_UP);
+
 		TypeDeductions tmpret = newTypeDeductions();
 		if(*err > 0){
 			reportError("SA120", "Array Access Failed (previous error): Line %d", root->tok->lineNo);
@@ -576,6 +577,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			}
 			freeTypeDeductions(key);
 		}
+
 		TypeDeductions ret = mergeTypeDeductionsOrErr(lhs, tmpret, err);
 		freeTypeDeductions(tmpret);
 		tmpret = newTypeDeductions();
@@ -585,6 +587,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			freeTypeDeductions(tmpret);
 			tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
 		}
+
 		p = NULL;
 		while((p=(Type*)utarray_next(ret.types,p))){
 			if(p->base == TB_DICT){
@@ -593,6 +596,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[0], cd));
 			}
 		}
+
 		setTypeDeductions((PTree*)root->child1, ret); // perserve it for propagate
 		setTypeDeductions(root, tmpret);
 		return tmpret;

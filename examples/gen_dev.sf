@@ -1,9 +1,13 @@
-int64 c(0);
 
-tuple<string:a, int16:b> t1(["the", 5]);
-tuple<string:x, tuple<string:a,int16:b>:y> t2(["key", t1]);
+vector<vector<string>> V([["1,2,3"], ["4","5","6"], ["7","8","9"]]);
 
-t2.y.a = "pizza";
+V[1][0] = V[2][2];
 
-tuple<string:a, int16:b> t6(t2.y);
-t6.b = 6;
+
+dict<string, string> D(["a":"A", "b":"B", "c":"C"]);
+D["a"] = D["c"];
+
+dict<int32, vector<int32>> DV([0:[1,2,3], 1:[4,5,6], 3:[7,8,9]]);
+
+DV[0][1] = DV[2][1];
+

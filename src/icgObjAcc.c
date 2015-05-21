@@ -61,6 +61,43 @@ ICGElm * icGenDot(PTree *root, ICGElm *prev){
 	return prev;
 }
 
+ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
+	char *tempVar = newTempVariable(root->finalType);
+	ICGElmOp *res = NULL;
+	ICGElmOp *op1 = NULL;
+	ICGElmOp *op2 = NULL;
+	if(isTypeNumeric(root->finalType)){
+		res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+	}else{
+		res = newOp(ICGO_OBJREF, getSymbolUniqueName(tempVar));
+	}
+
+	ICGElm *genKey = icGen((PTree*)root->child2, prev); // for op1
+	if(genKey->typ == ICG_LITERAL){
+		char *keyval = (char*)((PTree*)root->child2)->tok->extra;
+		op1 = newOpCopyData(ICGO_NUMERICLIT, keyval);
+		freeICGElm(genKey);
+	}else{
+		prev = genKey;
+		op1 = newOpCopyData(genKey->result->typ, genKey->result->data);
+	}
+
+	prev = icGen((PTree*)root->child1, prev); // for op2
+	op2 = newOpCopyData(prev->result->typ, prev->result->data);
+
+	if(((PTree*)root->child1)->finalType.base == TB_DICT){
+		prev = newICGElm(prev, ICG_DICTLOAD, typeToICGDataType(root->finalType), root);
+	}else{
+		prev = newICGElm(prev, ICG_VECLOAD, typeToICGDataType(root->finalType), root);
+	}
+
+	prev->result = res;
+	prev->op1 = op1;
+	prev->op2 = op2;
+
+	return prev;
+}
+
 
 ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int depth){
 	if(root->typ == PTT_IDENTIFIER){
@@ -86,6 +123,34 @@ ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int d
 		}else{
 			prev = icGenDot(root, prev);
 		}
+	}else if(root->typ == PTT_ARR_ACCESS){
+		PTree *pArray = (PTree*)root->child1;
+		PTree *pKey = (PTree*)root->child2;
+		prev = icGenSaveToDataStruct_aux(pArray, prev, src, depth+1);
+		if(depth == 0){
+			ICGElmOp *res = newOpCopyData(ICGO_OBJREF, prev->result->data);
+
+			// get access element
+			ICGElm *genKey = icGen(pKey, prev);
+			ICGElmOp *op1 = NULL;
+			if(genKey->typ == ICG_LITERAL){
+				char *keyval = (char*)pKey->tok->extra;
+				op1 = newOpCopyData(ICGO_NUMERICLIT, keyval);
+				freeICGElm(genKey);
+			}else{
+				prev = genKey;
+				op1 = newOpCopyData(genKey->result->typ, genKey->result->data);
+			}
+
+			ICGElmOp *op2 = newOpCopyData(src->result->typ, src->result->data);
+
+			prev = newICGElm(prev, ICG_TPLSTORE, typeToICGDataType(root->finalType), root);
+			prev->result = res;
+			prev->op1 = op1;
+			prev->op2 = op2;
+		}else{
+			prev = icGenArrAcc(root, prev);
+		}
 	}
 	return prev;
 }
@@ -104,6 +169,23 @@ void icGenDot_print(ICGElm *elm, FILE* f)
 	printICGTypeSuffix(elm, f);
 	fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, elm->op2->data);
 }
+
+void icGenArrAcc_print(ICGElm *elm, FILE* f)
+{
+	if(elm->typ == ICG_DICTLOAD){
+		fprintf(f, "dld");
+	}else{
+		fprintf(f, "vld");
+	}
+	printICGTypeSuffix(elm, f);
+	fprintf(f, " $%s, ", elm->result->data);
+	if(elm->op1->typ == ICGO_NUMERICLIT){
+		fprintf(f, "%s, $%s", elm->op1->data, elm->op2->data);
+	}else{
+		fprintf(f, "$%s, $%s", elm->op1->data, elm->op2->data);
+	}
+}
+
 
 
 

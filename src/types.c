@@ -945,7 +945,7 @@ void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in){
 	Type *p = NULL;
 	while((p=(Type*)utarray_next(in.types,p))){
-		addType(dest, *p);
+		addType(dest, duplicateType(*p));
 	}
 	freeTypeDeductions(in);
 }

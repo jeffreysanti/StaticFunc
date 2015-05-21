@@ -36,6 +36,8 @@ extern void icGenArith_print(ICGElm *, FILE*);
 extern ICGElm * icGenDot(PTree *root, ICGElm *prev);
 extern void icGenDot_print(ICGElm *elm, FILE* f);
 
+extern ICGElm * icGenArrAcc(PTree *root, ICGElm *prev);
+extern void icGenArrAcc_print(ICGElm *elm, FILE* f);
 
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
@@ -115,6 +117,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenArray_print(elm, f);
 	}else if(elm->typ == ICG_TPLLOAD){
 		icGenDot_print(elm, f);
+	}else if(elm->typ == ICG_DICTLOAD || elm->typ == ICG_VECLOAD){
+		icGenArrAcc_print(elm, f);
 	}
 }
 
@@ -142,9 +146,9 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	}else if(root->typ == PTT_IDENTIFIER){
 		prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
 		if(isTypeNumeric(root->finalType)){
-			prev->result = newOpCopyData(ICGO_NUMERICREG, root->tok->extra);
+			prev->result = newOp(ICGO_NUMERICREG, getSymbolUniqueName(root->tok->extra));
 		}else{
-			prev->result = newOpCopyData(ICGO_OBJREF, root->tok->extra);
+			prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(root->tok->extra));
 		}
 	}else if(root->typ == PTT_DECL){
 		prev = icGenDecl(root, prev);
@@ -159,6 +163,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenArray(root, prev);
 	}else if(root->typ == PTT_DOT){
 		prev = icGenDot(root, prev);
+	}else if(root->typ == PTT_ARR_ACCESS){
+		prev = icGenArrAcc(root, prev);
 	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
