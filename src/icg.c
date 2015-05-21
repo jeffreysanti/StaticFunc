@@ -51,11 +51,6 @@ ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 	ret->op2 = NULL;
 	ret->op3 = NULL;
 
-	ret->resultb = NULL;
-	ret->op1b = NULL;
-	ret->op2b = NULL;
-	ret->op3b = NULL;
-
 	ret->dataType = dt;
 
 	ret->next = NULL;
@@ -79,55 +74,33 @@ void freeICGElm(ICGElm *elm)
 		elm->next = NULL;
 	}
 
+	/*fprintf(stderr, "freeing: ");
+	printSingleICGElm(elm, stderr);
+	fprintf(stderr, "\n");*/
+
 	if(elm->result != NULL){
-		if(elm->result->typ != ICGO_IDENT){
-			free(elm->result->data);
-		}
+		free(elm->result->data);
 		free(elm->result);
 	}
 	if(elm->op1 != NULL){
-		if(elm->op1->typ != ICGO_IDENT){
-			free(elm->op1->data);
-		}
+		free(elm->op1->data);
 		free(elm->op1);
 	}
 	if(elm->op2 != NULL){
-		if(elm->op2->typ != ICGO_IDENT){
-			free(elm->op2->data);
-		}
+		free(elm->op2->data);
 		free(elm->op2);
 	}
 	if(elm->op3 != NULL){
-		if(elm->op3->typ != ICGO_IDENT){
-			free(elm->op3->data);
-		}
+		free(elm->op3->data);
 		free(elm->op3);
 	}
-
-	if(elm->resultb != NULL){
-		free(elm->resultb->data);
-		free(elm->resultb);
-	}
-	if(elm->op1b != NULL){
-		free(elm->op1b->data);
-		free(elm->op1b);
-	}
-	if(elm->op2b != NULL){
-		free(elm->op2b->data);
-		free(elm->op2b);
-	}
-	if(elm->op3b != NULL){
-		free(elm->op3b->data);
-		free(elm->op3b);
-	}
-
 
 	free(elm);
 }
 
 void printSingleICGElm(ICGElm *elm, FILE *f){
 	if(elm->typ == ICG_NONE || elm->typ == ICG_IDENT){
-		fprintf(f, "nop");
+		//fprintf(f, "nop");
 	}else if(elm->typ == ICG_DEFINE){
 		icGenDecl_print(elm, f);
 	}else if(elm->typ == ICG_MOV){
@@ -167,7 +140,12 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	if(root->typ == PTT_INT || root->typ == PTT_FLOAT){
 		return newICGElm(NULL, ICG_LITERAL, ICGDT_NONE, root);
 	}else if(root->typ == PTT_IDENTIFIER){
-		return newICGElm(NULL, ICG_IDENT, ICGDT_NONE, root);
+		prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
+		if(isTypeNumeric(root->finalType)){
+			prev->result = newOpCopyData(ICGO_NUMERICREG, root->tok->extra);
+		}else{
+			prev->result = newOpCopyData(ICGO_OBJREF, root->tok->extra);
+		}
 	}else if(root->typ == PTT_DECL){
 		prev = icGenDecl(root, prev);
 	}else if(root->typ == PTT_ASSIGN){
@@ -244,7 +222,7 @@ ICGElmOp *newOpInt(ICGElmOpType typ, int val)
 {
 	char *str = calloc(20, 1);
 	sprintf(str, "%d", val);
-	return newOp(ICGO_LIT, str);
+	return newOp(ICGO_NUMERICLIT, str);
 }
 
 ICGDataType typeToICGDataType(Type d)

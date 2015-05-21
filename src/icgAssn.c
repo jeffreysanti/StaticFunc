@@ -10,64 +10,64 @@
 #include "icg.h"
 
 extern ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, char *reg);
-extern ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev, char *tempVar);
+extern ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev);
 
 ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, char *to, Type assignType){
-
-	ICGElmOp *result = newOp(ICGO_IDENT, to);
-	ICGElmOp *resultb = newOp(ICGO_REG, getSymbolUniqueName(to));
 
 	ICGElm *data = icGen(root, prev);
 	if(data->typ == ICG_LITERAL){
 		freeICGElm(data);
 
-		ICGElmOp *op1 = newOpCopyData(ICGO_LIT, (char*)root->tok->extra);
+		ICGElmOp *result = newOp(ICGO_NUMERICREG, getSymbolUniqueName(to));
+		ICGElmOp *op1 = newOpCopyData(ICGO_NUMERICLIT, (char*)root->tok->extra);
 
 		prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
 		prev->result = result;
-		prev->resultb = resultb;
 		prev->op1 = op1;
 	}else if(data->typ == ICG_IDENT){
-		freeICGElm(data);
+		prev = data;
 
 		if(isTypeNumeric(root->finalType)){
-			ICGElmOp *op1 = newOp(ICGO_IDENT, (char*)root->tok->extra);
-			ICGElmOp *op1b = newOp(ICGO_REG, getSymbolUniqueName((char*)root->tok->extra));
+			ICGElmOp *result = newOp(ICGO_NUMERICREG, getSymbolUniqueName(to));
+			ICGElmOp *op1 = newOp(ICGO_NUMERICREG, getSymbolUniqueName((char*)root->tok->extra));
 
 			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
 			prev->result = result;
-			prev->resultb = resultb;
 			prev->op1 = op1;
-			prev->op1b = op1b;
 		}else{
-			char *tmpreg = getSymbolUniqueName((char*)root->tok->extra);
-			prev = icGenCopyObject(root, prev, tmpreg);
-			free(tmpreg);
+			if(prev->result->typ == ICGO_OBJREF){
+				char *src = getSymbolUniqueName((char*)root->tok->extra);
+				prev = icGenCopyObject(root, prev, src);
+				free(src);
+			}
 
-			ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
+			ICGElmOp *result = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(to));
+			ICGElmOp *op1 = newOpCopyData(ICGO_OBJREF, prev->result->data);
 
 			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
 			prev->result = result;
-			prev->resultb = resultb;
 			prev->op1 = op1;
 		}
 	}else{
 		prev = data;
 
 		if(isTypeNumeric(root->finalType)){
-			ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
+			ICGElmOp *result = newOp(ICGO_NUMERICREG, getSymbolUniqueName(to));
+			ICGElmOp *op1 = newOpCopyData(ICGO_NUMERICREG, prev->result->data);
 
 			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
 			prev->result = result;
-			prev->resultb = resultb;
 			prev->op1 = op1;
 		}else{
-			prev = icGenCopyObject(root, prev, prev->result->data);  // copy obj first
-			ICGElmOp *op1 = newOpCopyData(ICGO_REG, prev->result->data);
+			if(prev->result->typ == ICGO_OBJREF){ // need to copy obj first
+				prev = icGenCopyObject(root, prev, prev->result->data);
+			}
+
+			ICGElmOp *result = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(to));
+			ICGElmOp *op1 = newOpCopyData(ICGO_OBJREF, prev->result->data);
 
 			prev = newICGElm(prev, ICG_MOV, typeToICGDataType(assignType), (PTree*)root->parent);
 			prev->result = result;
-			prev->resultb = resultb;
 			prev->op1 = op1;
 		}
 	}
@@ -85,7 +85,7 @@ ICGElm * icGenAssn(PTree *root, ICGElm *prev){
 		char *tempVar = newTempVariable(root->finalType);
 		prev = icGenAssnToX(rhs, prev, tempVar, root->finalType);
 
-		prev = icGenSaveToDataStruct(lhs, prev, tempVar);
+		prev = icGenSaveToDataStruct(lhs, prev);
 	}
 	return prev;
 }
@@ -94,16 +94,10 @@ void icGenAssn_print(ICGElm *elm, FILE* f)
 {
 	fprintf(f, "mov");
 	printICGTypeSuffix(elm, f);
-	if(elm->resultb == NULL)
-		fprintf(f, " $%s, ", elm->result->data);
-	else
-		fprintf(f, " $%s, ", elm->resultb->data);
+	fprintf(f, " $%s, ", elm->result->data);
 
 	ICGElmOp *op1 = elm->op1;
-	if(op1->typ == ICGO_IDENT)
-		op1 = elm->op1b;
-
-	if(op1->typ == ICGO_LIT){
+	if(op1->typ == ICGO_NUMERICLIT){
 		fprintf(f, "%s", op1->data);
 	}else if(op1->typ == ICGO_RO_ADDR){
 		fprintf(f, "%%%s", op1->data);

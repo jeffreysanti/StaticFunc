@@ -19,8 +19,7 @@ ICGElm * icGenDecl(PTree *root, ICGElm *prev){
 	char *ident = (char*)root->tok->extra;
 
 	prev = newICGElm(prev, ICG_DEFINE, typeToICGDataType(d), root);
-	prev->resultb = newOp(ICGO_REG, getSymbolUniqueName(ident));
-	prev->result = newOp(ICGO_IDENT, ident);
+	prev->result = newOp(ICGO_NUMERICREG, getSymbolUniqueName(ident));
 
 	if(root->child2 != NULL){
 		prev = icGenAssnToX((PTree*)root->child2, prev, (char*)root->tok->extra, d);
@@ -32,6 +31,6 @@ void icGenDecl_print(ICGElm *elm, FILE* f)
 {
 	fprintf(f, "d");
 	printICGTypeSuffix(elm, f);
-	fprintf(f, " $%s", elm->resultb->data);
+	fprintf(f, " $%s", elm->result->data);
 }
 

@@ -52,11 +52,13 @@ typedef enum{
 }ICGDataType;
 
 typedef enum{
-	ICGO_LIT,
-	ICGO_REG,
+	ICGO_NUMERICLIT,
+	ICGO_NUMERICREG,
 	ICGO_RO_ADDR,
+	ICGO_OBJREF,
+	ICGO_OBJREFNEW
 
-	ICGO_IDENT
+	//ICGO_IDENT
 }ICGElmOpType;
 
 typedef struct{
@@ -73,10 +75,10 @@ typedef struct{
 	ICGElmOp *op2;
 	ICGElmOp *op3;
 
-	ICGElmOp *resultb;
+	/*ICGElmOp *resultb;
 	ICGElmOp *op1b;
 	ICGElmOp *op2b;
-	ICGElmOp *op3b;
+	ICGElmOp *op3b;*/
 
 	ICGDataType dataType;
 
