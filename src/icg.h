@@ -22,6 +22,8 @@ typedef enum{
 	ICG_LITERAL,
 	ICG_IDENT,
 
+	ICG_LBL,
+
 	ICG_DEFINE,
 	ICG_MOV,
 	ICG_OBJCOPY,
@@ -41,7 +43,11 @@ typedef enum{
 
 	ICG_NEWTUPLE,
 	ICG_TPLSTORE,
-	ICG_TPLLOAD
+	ICG_TPLLOAD,
+
+	ICG_JNZ,
+	ICG_JZ,
+	ICG_JMP
 }ICGElmType;
 
 typedef enum{
@@ -60,7 +66,9 @@ typedef enum{
 	ICGO_NUMERICREG,
 	ICGO_RO_ADDR,
 	ICGO_OBJREF,
-	ICGO_OBJREFNEW
+	ICGO_OBJREFNEW,
+
+	ICGO_LABEL
 
 	//ICGO_IDENT
 }ICGElmOpType;
@@ -100,11 +108,13 @@ struct ROStringLit {
 };
 
 void icRunGen(PTree *root);
+ICGElm * icGenBlock(PTree *root, ICGElm *prev);
 ICGElm * icGen(PTree *root, ICGElm *prev);
 
 
 char *newTempVariable(Type t);
 char *newROStringLit(char *str);
+char *newLabel(char *base);
 
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref);
 void freeICGElm(ICGElm *elm);

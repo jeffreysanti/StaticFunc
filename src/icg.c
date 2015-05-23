@@ -12,6 +12,7 @@
 static long long lastICGID = 0;
 static long lastTempVar = 0;
 static long lastROSL = 0;
+static long lastLabel = 0;
 
 static struct ROStringLit *ROSL = NULL;
 
@@ -38,6 +39,11 @@ extern void icGenDot_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenArrAcc(PTree *root, ICGElm *prev);
 extern void icGenArrAcc_print(ICGElm *elm, FILE* f);
+
+extern ICGElm * icGenIf(PTree *root, ICGElm *prev);
+extern void icGenJump_print(ICGElm *elm, FILE* f);
+
+extern ICGElm * icGenEquality(PTree *root, ICGElm *prev);
 
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
@@ -119,15 +125,24 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenDot_print(elm, f);
 	}else if(elm->typ == ICG_DICTLOAD || elm->typ == ICG_VECLOAD){
 		icGenArrAcc_print(elm, f);
+	}else if(elm->typ == ICG_JMP || elm->typ == ICG_JNZ || elm->typ == ICG_JZ){
+		icGenJump_print(elm, f);
 	}
 }
 
 void printICG(ICGElm *root, FILE *f)
 {
 	while(root != NULL){
-		fprintf(f, "%16lx: ", root->id);
-		printSingleICGElm(root, f);
-		fprintf(f, "\n");
+		if(root->typ == ICG_LBL){
+			fprintf(f, "  %s : ", root->result->data);
+			fprintf(f, "\n");
+		}else if(root->typ == ICG_LITERAL || root->typ == ICG_IDENT){
+
+		}else{
+			fprintf(f, "%16lx: ", root->id);
+			printSingleICGElm(root, f);
+			fprintf(f, "\n");
+		}
 		root = (ICGElm*)root->next;
 	}
 }
@@ -142,7 +157,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 {
 	// for every type of statement:
 	if(root->typ == PTT_INT || root->typ == PTT_FLOAT){
-		return newICGElm(NULL, ICG_LITERAL, ICGDT_NONE, root);
+		prev = newICGElm(prev, ICG_LITERAL, typeToICGDataType(root->finalType), root);
+		prev->result = newOpCopyData(ICGO_NUMERICLIT, root->tok->extra);
 	}else if(root->typ == PTT_IDENTIFIER){
 		prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
 		if(isTypeNumeric(root->finalType)){
@@ -165,9 +181,26 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenDot(root, prev);
 	}else if(root->typ == PTT_ARR_ACCESS){
 		prev = icGenArrAcc(root, prev);
+	}else if(root->typ == PTT_IF){
+		prev = icGenIf(root, prev);
+	}else if(root->typ == PTT_EQUAL){
+		prev = icGenEquality(root, prev);
 	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
+	}
+	return prev;
+}
+
+ICGElm * icGenBlock(PTree *root, ICGElm *prev){
+	if(root->typ != PTT_STMTBLOCK){
+		prev = icGen(root, prev);
+		return prev;
+	}
+	while(root != NULL && root->typ == PTT_STMTBLOCK){
+		PTree *gen = (PTree*)root->child1;
+		prev = icGen(gen, prev);
+		root = (PTree*)root->child2;
 	}
 	return prev;
 }
@@ -179,11 +212,8 @@ void icRunGen(PTree *root)
 
 	utarray_new(temp_vars_tofree, &ut_ptr_icd);
 
-	while(root != NULL && root->typ == PTT_STMTBLOCK){
-		PTree *gen = (PTree*)root->child1;
-		ptr = icGen(gen, ptr);
-		root = (PTree*)root->child2;
-	}
+	icGenBlock(root, ptr);
+
 	printICG(icgroot, stdout);
 	freeICGElm(icgroot);
 
@@ -284,6 +314,13 @@ char *newROStringLit(char *str){
 	s->varname = nm;
 	s->rodata = newData;
 	HASH_ADD_KEYPTR(hh, ROSL, s->varname, strlen(s->varname), s);
+	return nm;
+}
+
+char *newLabel(char *base){
+	lastLabel ++;
+	char *nm = calloc(12+strlen(base), 1);
+	sprintf(nm, ".l%s.%ld", base, lastLabel);
 	return nm;
 }
 
