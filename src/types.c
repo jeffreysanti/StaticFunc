@@ -231,7 +231,7 @@ inline void paramMultTypLists(PTree* t){
 Type deduceTypeDeclType(PTree *t)
 {
 	if(t->typ == PTT_DECL_TYPE_DEDUCED){
-		Type *typ = (Type*)utarray_front(t->deducedTypes.types);
+		Type *typ = (Type*)utarray_front(t->deducedTypes._types);
 		return duplicateType(*typ);
 	}
 
@@ -681,7 +681,7 @@ PTree *getTypeAsPTree(Type t)
 
 TypeDeductions newTypeDeductions(){
 	TypeDeductions ret;
-	utarray_new(ret.types, &TypeDeductions_icd);
+	utarray_new(ret._types, &TypeDeductions_icd);
 	ret.extra = NULL;
 	ret.onChooseDeduction = NULL;
 	ret.extraPtr1 = NULL;
@@ -693,26 +693,22 @@ TypeDeductions newTypeDeductions(){
 void freeTypeDeductions(TypeDeductions ret){
 	Type *p = NULL;
 	int i=0;
-	while((p=(Type*)utarray_next(ret.types,p))){
+	while((p=(Type*)utarray_next(ret._types,p))){
 		//printf("Freeing type # %d\n", i);
 		freeType(*p);
 		//errShowType("NOT REALL:",p);
 		i++;
 	}
-	utarray_free(ret.types);
+	utarray_free(ret._types);
 	if(ret.extra != NULL){
 		utarray_free(ret.extra);
 	}
 }
 
-inline void addType(TypeDeductions *ret, Type t){
-	utarray_push_back(ret->types, &t);
-}
-
 TypeDeductions singleTypeDeduction(Type t){
 	t = duplicateType(t);
 	TypeDeductions ret = newTypeDeductions();
-	utarray_push_back(ret.types, &t);
+	addTypeDeductionsType(&ret, t);
 	return ret;
 }
 
@@ -721,74 +717,74 @@ TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 	TypeDeductions ret = newTypeDeductions();
 	if(type.base == TB_NATIVE_INT8){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_INT8));
-			addType(&ret, newBasicType(TB_NATIVE_INT16));
-			addType(&ret, newBasicType(TB_NATIVE_INT32));
-			addType(&ret, newBasicType(TB_NATIVE_INT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_INT8));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
 		}
 	}else if(type.base == TB_NATIVE_INT16){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_INT16));
-			addType(&ret, newBasicType(TB_NATIVE_INT32));
-			addType(&ret, newBasicType(TB_NATIVE_INT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_INT8));
-			addType(&ret, newBasicType(TB_NATIVE_INT16));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
 		}
 	}else if(type.base == TB_NATIVE_INT32){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_INT32));
-			addType(&ret, newBasicType(TB_NATIVE_INT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_INT8));
-			addType(&ret, newBasicType(TB_NATIVE_INT16));
-			addType(&ret, newBasicType(TB_NATIVE_INT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
 		}
 	}else if(type.base == TB_NATIVE_INT64){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_INT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_INT8));
-			addType(&ret, newBasicType(TB_NATIVE_INT16));
-			addType(&ret, newBasicType(TB_NATIVE_INT32));
-			addType(&ret, newBasicType(TB_NATIVE_INT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
 		}
 	}else if(type.base == TB_NATIVE_FLOAT32){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
 		}
 	}else if(type.base == TB_NATIVE_FLOAT64){
 		if(cd == CAST_UP){
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
 		}else{
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-			addType(&ret, newBasicType(TB_NATIVE_FLOAT64));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
+			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
 		}
 	}else if(type.base == TB_NATIVE_STRING){
-		addType(&ret, newBasicType(TB_NATIVE_STRING));
+		addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_STRING));
 	}else if(type.base == TB_VECTOR){
 		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0], cd);
 		Type *p = NULL;
-		while((p=(Type*)utarray_next(innerDeductions.types,p))){
-			addType(&ret, newVectorType(duplicateType(*p)));
+		while((p=(Type*)utarray_next(innerDeductions._types,p))){
+			addTypeDeductionsType(&ret, newVectorType(duplicateType(*p)));
 		}
 		freeTypeDeductions(innerDeductions);
 	}else if(type.base == TB_FUNCTION){
-		addType(&ret, duplicateType(type));
+		addTypeDeductionsType(&ret, duplicateType(type));
 	}else if(type.base == TB_DICT){
 		TypeDeductions innerDeductionsKey = expandedTypeDeduction(((Type*)type.children)[0], cd);
 		TypeDeductions innerDeductionsVal = expandedTypeDeduction(((Type*)type.children)[1], cd);
 		Type *p = NULL;
 		Type *q = NULL;
-		while((p=(Type*)utarray_next(innerDeductionsKey.types,p))){
-			while((q=(Type*)utarray_next(innerDeductionsVal.types,q))){
+		while((p=(Type*)utarray_next(innerDeductionsKey._types,p))){
+			while((q=(Type*)utarray_next(innerDeductionsVal._types,q))){
 				Type tmp =  newDictionaryType(duplicateType(*p), duplicateType(*q));
-				addType(&ret, tmp);
+				addTypeDeductionsType(&ret, tmp);
 			}
 		}
 		freeTypeDeductions(innerDeductionsKey);
@@ -810,7 +806,7 @@ TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 	}
 	if(type.altName != NULL && strlen(type.altName) > 0){
 		Type *p = NULL;
-		while((p=(Type*)utarray_next(ret.types,p))){
+		while((p=(Type*)utarray_next(ret._types,p))){
 			if(p->altName != NULL)
 				free(p->altName);
 			p->altName = malloc(strlen(type.altName)+1);
@@ -826,11 +822,11 @@ TypeDeductions mergeTypeDeductions(TypeDeductions expected, TypeDeductions found
 	Type *pf = NULL;
 	Type *pe = NULL;
 	int i = 0;
-	while((pf=(Type*)utarray_next(found.types,pf))){
-		while((pe=(Type*)utarray_next(expected.types,pe))){
+	while((pf=(Type*)utarray_next(found._types,pf))){
+		while((pe=(Type*)utarray_next(expected._types,pe))){
 			if(typesEqualMostly(*pe, *pf)){
 				Type typCpy = duplicateType(*pf);
-				addType(&ret, typCpy);
+				addTypeDeductionsType(&ret, typCpy);
 			}
 		}
 		i ++;
@@ -862,7 +858,7 @@ void showTypeDeductionMergeError(TypeDeductions expected, TypeDeductions found)
 void reportTypeDeductions(char *prefix, TypeDeductions td)
 {
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(td.types,p))){
+	while((p=(Type*)utarray_next(td._types,p))){
 		char *pref = malloc(8+strlen(prefix));
 		sprintf(pref, "     %s: ",prefix);
 		errShowType(pref,p);
@@ -872,7 +868,7 @@ void reportTypeDeductions(char *prefix, TypeDeductions td)
 
 TypeDeductions mergeTypeDeductionsOrErr(TypeDeductions expected, TypeDeductions found, int *err){
 	TypeDeductions merged = mergeTypeDeductions(expected, found);
-	if(utarray_len(merged.types) == 0){
+	if(utarray_len(merged._types) == 0){
 		(*err) ++;
 		reportError("TS087", "Cannot Merge Type Deductions:");
 		reportTypeDeductions("LHS", expected);
@@ -886,8 +882,8 @@ bool typeDeductionMergeExists(TypeDeductions expected, TypeDeductions found)
 	Type *pf = NULL;
 	Type *pe = NULL;
 	int i = 0;
-	while((pf=(Type*)utarray_next(found.types,pf))){
-		while((pe=(Type*)utarray_next(expected.types,pe))){
+	while((pf=(Type*)utarray_next(found._types,pf))){
+		while((pe=(Type*)utarray_next(expected._types,pe))){
 			if(typesEqualMostly(*pe, *pf)){
 				return true;
 			}
@@ -906,16 +902,16 @@ TypeDeductions duplicateTypeDeductions(TypeDeductions d)
 	ret.extraPtr3 = d.extraPtr3;
 	ret.onChooseDeduction = d.onChooseDeduction;
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(d.types,p))){
+	while((p=(Type*)utarray_next(d._types,p))){
 		Type typCpy = duplicateType(*p);
-		addType(&ret, typCpy);
+		addTypeDeductionsType(&ret, typCpy);
 	}
 	return ret;
 }
 
 void showTypeDeductionOption(TypeDeductions op){
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(op.types,p))){
+	while((p=(Type*)utarray_next(op._types,p))){
 		errShowType("  FOUND: ",p);
 	}
 }
@@ -923,29 +919,29 @@ void showTypeDeductionOption(TypeDeductions op){
 void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 {
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(in.types,p))){
+	while((p=(Type*)utarray_next(in._types,p))){
 		Type t = duplicateType(*p);
 		Type v = newVectorType(t);
-		addType(dest, v);
+		addTypeDeductionsType(dest, v);
 	}
 }
 
 void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 {
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(in.types,p))){
+	while((p=(Type*)utarray_next(in._types,p))){
 		if(p->base != TB_VECTOR){
 			continue;
 		}
 		Type t = duplicateType(((Type*)p->children)[0]);
-		addType(dest, t);
+		addTypeDeductionsType(dest, t);
 	}
 }
 
 void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in){
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(in.types,p))){
-		addType(dest, duplicateType(*p));
+	while((p=(Type*)utarray_next(in._types,p))){
+		addTypeDeductionsType(dest, duplicateType(*p));
 	}
 	freeTypeDeductions(in);
 }
@@ -955,12 +951,12 @@ void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in){
 void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDeductions values){
 	Type *k = NULL;
 	Type *v = NULL;
-	while((k=(Type*)utarray_next(keys.types,k))){
-		while((v=(Type*)utarray_next(values.types,v))){
+	while((k=(Type*)utarray_next(keys._types,k))){
+		while((v=(Type*)utarray_next(values._types,v))){
 			Type tkey = duplicateType(*k);
 			Type tval = duplicateType(*v);
 			Type v = newDictionaryType(tkey, tval);
-			addType(dest, v);
+			addTypeDeductionsType(dest, v);
 		}
 	}
 }
@@ -970,11 +966,11 @@ inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions
 		Type tuple = newBasicType(TB_TUPLE);
 		tuple.numchildren = curlen;
 		tuple.children = (void*)tarr;
-		addType(dest, tuple);
+		addTypeDeductionsType(dest, tuple);
 		return;
 	}
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(array[curlen].types,p))){
+	while((p=(Type*)utarray_next(array[curlen]._types,p))){
 		Type *type = malloc(sizeof(Type)*(curlen+1));
 		int i;
 		for(i=0; i<curlen; i++){
@@ -993,7 +989,7 @@ inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions
 void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, int cnt)
 {
 	Type *p = NULL;
-	while((p=(Type*)utarray_next(array[0].types,p))){ // first element
+	while((p=(Type*)utarray_next(array[0]._types,p))){ // first element
 		Type *type = malloc(sizeof(Type));
 		*type = duplicateType(*p);
 		addAllTuplesOfTypeDeductionsAux(dest, array, cnt-1, 1, type); // second element
@@ -1009,5 +1005,16 @@ bool isTypeNumeric(Type t)
 }
 
 
+void addTypeDeductionsType(TypeDeductions *dest, Type t)
+{
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(dest->_types,p))){
+		if(typesEqualMostly(t, *p)){
+			freeType(t);
+			return;
+		}
+	}
+	utarray_push_back(dest->_types, &t);
+}
 
 

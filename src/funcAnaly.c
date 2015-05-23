@@ -85,7 +85,7 @@ inline bool tryFuncSig(Type sig, int pCount, TypeDeductions *pDeds, TypeDeductio
 	}
 	if(success){
 		Type typ = duplicateType(((Type*)sig.children)[0]);
-		utarray_push_back(ret->types, &typ);
+		addTypeDeductionsType(ret, typ);
 	}
 	return success;
 }
@@ -126,17 +126,17 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 	}
 
 	Type *sig = NULL;
-	while((sig=(Type*)utarray_next(callee.types,sig))){
+	while((sig=(Type*)utarray_next(callee._types,sig))){
 		if(sig->base == TB_FUNCTION){
 			tryFuncSig(*sig, pCount, pDeds, &ret);
 		}
 	}
 
-	if(utarray_len(ret.types) == 0){
+	if(utarray_len(ret._types) == 0){
 		reportError("SA015", "No Signature Match For Function Call: Line %d", root->tok->lineNo);
 		(*err) ++;
 		sig = NULL;
-		while((sig=(Type*)utarray_next(callee.types,sig))){
+		while((sig=(Type*)utarray_next(callee._types,sig))){
 			errShowType("  SIG: ", sig);
 		}
 		for(pNum=0; pNum<pCount; pNum++){
@@ -292,7 +292,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 					FunctionVersion *ver = l->V;
 					while(ver != NULL){
 						Type typ = duplicateType(ver->sig);
-						utarray_push_back(ret.types, &typ);
+						addTypeDeductionsType(&ret, typ);
 						ver = (FunctionVersion*)ver->next;
 					}
 					setTypeDeductions(root, ret);
@@ -411,12 +411,12 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		// couple different possible types: tuple, dictionary, vector
 		TypeDeductions ret = newTypeDeductions();
 		if(!paired){ // tuple or vector
-			if(utarray_len(tdElms.types) > 0){ // could be a vector
+			if(utarray_len(tdElms._types) > 0){ // could be a vector
 				addVectorsOfTypeDeduction(&ret, tdElms);
 			}
 			addAllTuplesOfTypeDeductions(&ret, elmDeds, pCount);
 		}else{ // it's a dictionary
-			if(utarray_len(tdElms.types) == 0 || utarray_len(tdPair.types) == 0){
+			if(utarray_len(tdElms._types) == 0 || utarray_len(tdPair._types) == 0){
 				reportError("SA038", "Must have single type key and value for dictionary: Line %d", root->tok->lineNo);
 				(*err) ++;
 			}else{
@@ -564,7 +564,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 		freeTypeDeductions(tInts);
 		Type *p = NULL;
-		while((p=(Type*)utarray_next(lhs.types,p))){ // dictionaries
+		while((p=(Type*)utarray_next(lhs._types,p))){ // dictionaries
 			if(p->base != TB_DICT){
 				continue;
 			}
@@ -572,7 +572,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			if(typeDeductionMergeExists(key, rhs)){ // needs to have matching key type
 				Type val = newDictionaryType(duplicateType(((Type*)p->children)[0]),
 						duplicateType(((Type*)p->children)[1]));
-				utarray_push_back(tmpret.types, &val);
+				addTypeDeductionsType(&tmpret, val);
 				i++;
 			}
 			freeTypeDeductions(key);
@@ -589,7 +589,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 
 		p = NULL;
-		while((p=(Type*)utarray_next(ret.types,p))){
+		while((p=(Type*)utarray_next(ret._types,p))){
 			if(p->base == TB_DICT){
 				appendToTypeDeductionAndFree(&tmpret, expandedTypeDeduction(((Type*)p->children)[1], cd));
 			}else{
@@ -616,7 +616,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 
 		Type *p = NULL;
 		int cnt = 0;
-		while((p=(Type*)utarray_next(lhs.types,p))){
+		while((p=(Type*)utarray_next(lhs._types,p))){
 			int i;
 			for(i=0; i<p->numchildren; i++){
 				if(((Type*)p->children)[i].altName == NULL)
@@ -624,8 +624,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 				if(strcmp(((Type*)p->children)[i].altName, (char*)rhs->tok->extra)==0){
 					Type t = duplicateType(((Type*)p->children)[i]);
 					Type p2 = duplicateType(*p);
-					utarray_push_back(ret.types, &t);
-					utarray_push_back(tuples.types, &p2);
+					addTypeDeductionsType(&ret, t);
+					addTypeDeductionsType(&tuples, p2);
 					cnt++;
 					break;
 				}
@@ -658,11 +658,11 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 
 bool finalizeSingleDeduction(PTree *root)
 {
-	if(utarray_len(root->deducedTypes.types) < 1){
+	if(utarray_len(root->deducedTypes._types) < 1){
 		reportError("SA053", "No Single Deduction Found... Giving Up!");
 		return false;
 	}
-	if(utarray_len(root->deducedTypes.types) > 1){
+	if(utarray_len(root->deducedTypes._types) > 1){
 		if(root->tok != NULL)
 			reportError("#SA053", "Warning: Multiple Deduction Found, Choosing First: Line %d", root->tok->lineNo);
 		else
@@ -708,7 +708,7 @@ inline bool tryPropogateFuncSig(Type sig, int pCount, PTree *root){
 void propagateTreeType(PTree *root){
 	Type final = root->finalType;
 	if(final.base == TB_ERROR){
-		setFinalTypeDeduction(root, duplicateType(*(Type*)utarray_front(root->deducedTypes.types)));
+		setFinalTypeDeduction(root, duplicateType(*(Type*)utarray_front(root->deducedTypes._types)));
 		final = root->finalType;
 	}
 
@@ -747,7 +747,7 @@ void propagateTreeType(PTree *root){
 		// lambdas and temps:
 		TypeDeductions callee = id->deducedTypes;
 		Type *sig = NULL;
-		while((sig=(Type*)utarray_next(callee.types,sig))){
+		while((sig=(Type*)utarray_next(callee._types,sig))){
 			if(sig->base == TB_FUNCTION){
 				if(tryPropogateFuncSig(*sig, pCount, root)){
 					setFinalTypeDeduction(id, duplicateType(*sig));
@@ -811,7 +811,7 @@ void propagateTreeType(PTree *root){
 		TypeDeductions lhs = ((PTree*)root->child1)->deducedTypes;
 
 		Type *p = NULL;
-		while((p=(Type*)utarray_next(lhs.types,p))){ // all posibilities
+		while((p=(Type*)utarray_next(lhs._types,p))){ // all posibilities
 			if(p->base == TB_DICT){
 				Type tmp = ((Type*)p->children)[1];
 				if(typesEqualMostly(tmp, final)){ // success -- here's the key & value
@@ -839,7 +839,7 @@ void propagateTreeType(PTree *root){
 		TypeDeductions lhs = ((PTree*)root->child1)->deducedTypes;
 		PTree *rhs = (PTree*)root->child2;
 		Type *p=NULL;
-		while((p=(Type*)utarray_next(lhs.types,p))){
+		while((p=(Type*)utarray_next(lhs._types,p))){
 			int i;
 			bool done=false;
 			for(i=0; i<p->numchildren; i++){

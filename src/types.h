@@ -76,7 +76,7 @@ typedef struct{
 
 
 typedef struct{
-	UT_array *types;
+	UT_array *_types;
 	UT_array *extra;
 	void *extraPtr1;
 	void *extraPtr2;
@@ -155,6 +155,7 @@ void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in);
 
 void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in);
 
+void addTypeDeductionsType(TypeDeductions *dest, Type t);
 
 
 bool isTypeNumeric(Type t);
