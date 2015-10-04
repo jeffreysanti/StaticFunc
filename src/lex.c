@@ -20,14 +20,14 @@ LexicalState processStr(LS *ls, char c);
 LexicalTokenList *lexicalAnalyze(FILE *fp)
 {
 	// read entire file into fulltxt
-	fseek(fp, 0, SEEK_END);
-	long fsize = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	char *fulltxt = malloc(fsize + 1);
-	if(fulltxt == NULL){
-		fatalError("Out of Memory [lexicalAnalyze : fulltxt]\n");
+	char *fulltxt = malloc(1024), *s = fulltxt;
+	int fsize = 0;
+	while(fgets(s, 1024, fp)){
+		fsize += strlen(s);
+		fulltxt = realloc(fulltxt, fsize+1024);
+		s = fulltxt+fsize;
 	}
-	fread(fulltxt, fsize, 1, fp);
+	fulltxt = realloc(fulltxt, fsize+1);
 	fulltxt[fsize] = 0;
 
 	LexicalTokenList * ret = lexicalAnalyzeString(fulltxt, fsize);
@@ -109,9 +109,9 @@ LexicalState processInit(LS *ls)
 	}else if(matchWhiteSpace(ls->fulltxt, &ls->cpos, ls->clen)){
 		// nothing - discard
 	}else{
-		reportError("LX001", 	"Unrecognized character in main code section: Line %d\n"
+		reportError("LX001", 	"Unrecognized character in main code section: Line %d, Byte: %ld\n"
 								"\tCharacter is: %c\n"
-								"\tCode: %d\n", ls->lnNo, ls->fulltxt[ls->cpos], (int)ls->fulltxt[ls->cpos]);
+								"\tCode: %04X\n", ls->lnNo, (long)ls->cpos, ls->fulltxt[ls->cpos], (int)ls->fulltxt[ls->cpos]);
 		ls->errorStatus ++;
 		ls->cpos ++;
 	}
