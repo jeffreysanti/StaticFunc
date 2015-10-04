@@ -47,7 +47,9 @@ typedef enum{
 
 	ICG_JNZ,
 	ICG_JZ,
-	ICG_JMP
+	ICG_JMP,
+	
+	ICG_COMPOBJ
 }ICGElmType;
 
 typedef enum{

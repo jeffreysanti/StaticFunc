@@ -25,12 +25,27 @@ ICGElm *icGenGeneralCondition(PTree *cond, ICGElm *prev, char *lblFalseBranch){
 }
 
 ICGElm * icGenEquality(PTree *root, ICGElm *prev){
-	// TODO: Handle For Object Types
-	ICGElm *lhs = icGen((PTree*)root->child1, prev);
-	ICGElm *rhs = icGen((PTree*)root->child2, lhs);
-	prev = rhs;
+	if(root->child2 == NULL){ // object comparison
+		PTree *check = (PTree*)root->child1;
+		ICGElm *lhs = icGen((PTree*)check->child1, prev);
+		ICGElm *rhs = icGen((PTree*)check->child2, lhs);
+		prev = rhs;
+		
+		char *tempVar = newTempVariable(root->finalType);
+		ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
+		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
+		
+		prev = newICGElm(prev, ICG_COMPOBJ, typeToICGDataType(root->finalType), root);
+		prev->result = res;
+		prev->op1 = op1;
+		prev->op2 = op2;
+		return prev;
+	}else{ // numerical
+		ICGElm *lhs = icGen((PTree*)root->child1, prev);
+		ICGElm *rhs = icGen((PTree*)root->child2, lhs);
+		prev = rhs;
 
-	if(isTypeNumeric(((PTree*)root->child1)->finalType)){
 		char *tempVar = newTempVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
 		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
@@ -42,7 +57,6 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		prev->op2 = op2;
 		return prev;
 	}
-	return prev;
 }
 
 ICGElm * icGenIf(PTree *root, ICGElm *prev){
@@ -107,5 +121,20 @@ extern void icGenJump_print(ICGElm *elm, FILE* f){
 		}else{
 			fprintf(f, "jz %s, $%s", elm->result->data, elm->op1->data);
 		}
+	}
+}
+
+ICGElm * icGenCompObj_print(ICGElm *elm, FILE* f){
+	fprintf(f, "compobj");
+	fprintf(f, " $%s, ", elm->result->data);
+	if(elm->op1->typ == ICGO_RO_ADDR){
+		fprintf(f, "%%%s, ", elm->op1->data);
+	}else{
+		fprintf(f, "$%s, ", elm->op1->data);
+	}
+	if(elm->op2->typ == ICGO_RO_ADDR){
+		fprintf(f, "%%%s", elm->op2->data);
+	}else{
+		fprintf(f, "$%s", elm->op2->data);
 	}
 }

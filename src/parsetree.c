@@ -60,7 +60,8 @@ char * PTLookup[] = {
 		"PTT_LAMBDA",
 
 		"PTT_DECL_TYPE_DEDUCED",
-		"PTT_ARRAY_ELM_PAIR"
+		"PTT_ARRAY_ELM_PAIR",
+		"PTT_OBJECT_EQUAL_CHECK"
 };
 
 PTree *newParseTreeNode()

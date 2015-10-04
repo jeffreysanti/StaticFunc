@@ -15,6 +15,13 @@ n = 3 + 5;
 string s1("Hi");
 string s2("hola");
 
-if(s1 == s2){
+vector<int8> v1([2,5,7,8]);
+vector<int8> v2([2,5,7,8]);
+
+if(s1 == "test"){
 	s2 = "Hi";
+}
+
+if(v1 == v2){
+	n = n + 1;
 }

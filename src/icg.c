@@ -44,6 +44,7 @@ extern ICGElm * icGenIf(PTree *root, ICGElm *prev);
 extern void icGenJump_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenEquality(PTree *root, ICGElm *prev);
+extern void icGenCompObj_print(ICGElm *elm, FILE* f);
 
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
@@ -127,6 +128,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenArrAcc_print(elm, f);
 	}else if(elm->typ == ICG_JMP || elm->typ == ICG_JNZ || elm->typ == ICG_JZ){
 		icGenJump_print(elm, f);
+	}else if(elm->typ == ICG_COMPOBJ){
+		icGenCompObj_print(elm, f);
 	}
 }
 
