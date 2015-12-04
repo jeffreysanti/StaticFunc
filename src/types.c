@@ -218,13 +218,13 @@ Type substituteTypeTemplate(Type typ, Type temp, char *search)
 	return ret;
 }
 
-inline void paramFailed(PTree* t){
+static inline void paramFailed(PTree* t){
 	reportError("TS004", "Parameter Type Failed: Line %ld", t->tok->lineNo);
 }
-inline void paramVoid(PTree* t){
+static inline void paramVoid(PTree* t){
 	reportError("TS006", "Parameter Type Cannot Be Void: Line %ld", t->tok->lineNo);
 }
-inline void paramMultTypLists(PTree* t){
+static inline void paramMultTypLists(PTree* t){
 	reportError("TS012", "Type cannot have multiple different type list params: Line %ld", t->tok->lineNo);
 }
 
@@ -961,7 +961,7 @@ void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDedu
 	}
 }
 
-inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions *array, int cnt, int curlen, Type* tarr){
+static inline void addAllTuplesOfTypeDeductionsAux(TypeDeductions *dest, TypeDeductions *array, int cnt, int curlen, Type* tarr){
 	if(cnt <= 0){
 		Type tuple = newBasicType(TB_TUPLE);
 		tuple.numchildren = curlen;

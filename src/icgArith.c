@@ -12,7 +12,7 @@
 extern ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, char *reg);
 
 
-inline ICGElm * processChild(PTree *child1, ICGElm *prev, ICGElmOp **op){
+static inline ICGElm * processChild(PTree *child1, ICGElm *prev, ICGElmOp **op){
 	ICGElm *data1 = icGen(child1, prev);
 	*op = NULL;
 	if(data1->typ == ICG_LITERAL){

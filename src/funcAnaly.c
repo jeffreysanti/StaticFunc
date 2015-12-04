@@ -46,7 +46,7 @@ void onFunctionCallDeductionChosen(void * deductionList, int chosen)
 */
 
 
-inline bool declaration(PTree *root, int *err){
+static inline bool declaration(PTree *root, int *err){
 	char *sname = (char*)root->tok->extra;
 	if(symbolExistsCurrentLevel(sname)){
 		reportError("SA002", "Second Declaration of %s: Line %d", sname, root->tok->lineNo);
@@ -68,7 +68,7 @@ inline bool declaration(PTree *root, int *err){
 	return true;
 }
 
-inline bool tryFuncSig(Type sig, int pCount, TypeDeductions *pDeds, TypeDeductions *ret){
+static inline bool tryFuncSig(Type sig, int pCount, TypeDeductions *pDeds, TypeDeductions *ret){
 	if(sig.numchildren != 1+pCount){
 		return false;
 	}
@@ -692,7 +692,7 @@ bool finalizeSingleDeduction(PTree *root)
 	return true;
 }
 
-inline bool tryPropogateFuncSig(Type sig, int pCount, PTree *root){
+static inline bool tryPropogateFuncSig(Type sig, int pCount, PTree *root){
 	if(sig.numchildren != 1+pCount){
 		return false;
 	}

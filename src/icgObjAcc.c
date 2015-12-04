@@ -10,7 +10,7 @@
 #include "icg.h"
 
 
-inline int getTupleIndex(Type tuple, char *ident){
+static inline int getTupleIndex(Type tuple, char *ident){
 	int i;
 	for(i=0; i<tuple.numchildren; i++){
 		if(((Type*)tuple.children)[i].altName == NULL)

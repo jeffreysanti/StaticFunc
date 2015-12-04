@@ -96,7 +96,7 @@ FunctionVersion *newFunctionVersion()
 	return ret;
 }
 
-inline bool addFunctionVerToList_checkAlreadyExists(char *nm, FunctionVersion *verOld, FunctionVersion *ver)
+static inline bool addFunctionVerToList_checkAlreadyExists(char *nm, FunctionVersion *verOld, FunctionVersion *ver)
 {
 	if(typesEqualMostly(ver->sig, verOld->sig)){
 		if(ver->performReplacement){
@@ -169,7 +169,7 @@ void freeFunctionVersion(FunctionVersion *fv)
 
 
 
-inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
+static inline void registerFunction(PTree *root, int paramCnt, UT_array *sr)
 {
 	FunctionVersion *fVer = newFunctionVersion();
 	fVer->defRoot = root;

@@ -29,4 +29,8 @@
 *.hex
 /Debug/
 /WinBuild
+/Build
+sf
+
+*.DS_Store
 

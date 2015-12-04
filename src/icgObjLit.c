@@ -24,7 +24,7 @@ ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	return prev;
 }
 
-inline ICGElmOp *bitSizeTupleOp(Type t){
+static inline ICGElmOp *bitSizeTupleOp(Type t){
 	char *dta = calloc(t.numchildren*2 + 1, 1);
 	char *origDta = dta;
 	int i;
@@ -54,7 +54,7 @@ inline ICGElmOp *bitSizeTupleOp(Type t){
 	return newOp(ICGO_NUMERICLIT, origDta);
 }
 
-inline ICGElmOp *bitSizeOp(Type t){
+static inline ICGElmOp *bitSizeOp(Type t){
 	ICGElmOp *op = NULL;
 	if(t.base == TB_NATIVE_INT8) op = newOpCopyData(ICGO_NUMERICLIT, "1");
 	else if(t.base == TB_NATIVE_INT16) op = newOpCopyData(ICGO_NUMERICLIT, "2");
