@@ -12,6 +12,10 @@ if(4 - 4)
 
 n = 3 + 5;
 
+if(5 > 7 | 4 < 3){
+     n = n + 1;
+}
+
 string s1("Hi");
 string s2("hola");
 
@@ -22,6 +26,6 @@ if(s1 == "test"){
 	s2 = "Hi";
 }
 
-if(v1 == v2){
+if(v1 != v2){
 	n = n + 1;
 }

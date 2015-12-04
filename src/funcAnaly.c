@@ -305,7 +305,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
-			root->typ == PTT_XOR || root->typ == PTT_MOD){
+			root->typ == PTT_XOR || root->typ == PTT_MOD || root->typ == PTT_GT || root->typ == PTT_LT ||
+		        root->typ == PTT_GTE || root->typ == PTT_LTE){
 		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
 
@@ -334,7 +335,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		TypeDeductions options = handleFunctCall(root,err);
 		setTypeDeductions(root, options);
 		return options;
-	}else if(root->typ == PTT_EQUAL){
+	}else if(root->typ == PTT_EQUAL || root->typ == PTT_NOT_EQUAL){
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
 		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
 		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
@@ -343,6 +344,14 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			(*err) ++;
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
+		}
+
+		if(root->typ == PTT_NOT_EQUAL){
+		  PTree *notNode = newParseTree(PTT_NOT);
+			notNode->child1 = root->child1;
+			((PTree*)notNode->child1)->parent = (void*)notNode;
+			notNode->parent = (void*)root;
+			root->child1 = (void*)notNode;
 		}
 		
 		// If these are objects, we must make a call to PTT_OBJECT_EQUAL_CHECK
@@ -735,7 +744,8 @@ void propagateTreeType(PTree *root){
 		// nothing to do here
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
-			root->typ == PTT_XOR || root->typ == PTT_MOD || root->typ == PTT_ASSIGN){
+			root->typ == PTT_XOR || root->typ == PTT_MOD  || root->typ == PTT_GT || root->typ == PTT_LT ||
+		        root->typ == PTT_GTE || root->typ == PTT_LTE || root->typ == PTT_ASSIGN){
 		// both sides need be same type
 		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
 		setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
