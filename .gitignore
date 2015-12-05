@@ -34,3 +34,12 @@ sf
 
 *.DS_Store
 
+
+
+*.lex
+*.ps1
+*.ps2
+*.icg
+
+
+

@@ -304,16 +304,22 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			return root->deducedTypes;
 		}
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
+			root->typ == PTT_SHR || root->typ == PTT_SHL ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND || root->typ == PTT_NOT ||
-			root->typ == PTT_XOR || root->typ == PTT_MOD || root->typ == PTT_GT || root->typ == PTT_LT ||
-			root->typ == PTT_GTE || root->typ == PTT_LTE){
+			root->typ == PTT_XOR || root->typ == PTT_MOD){
 		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
 
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
-		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
 
-		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
+		TypeDeductions overlap;
+		if(root->typ != PTT_NOT){
+			TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
+			overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
+		}else{
+			overlap = duplicateTypeDeductions(ch1);
+		}
+
 		if(*err > 0 || !(	typeDeductionMergeExists(overlap, tInts) ||
 							typeDeductionMergeExists(overlap, tFloats))){
 			reportError("SA011", "Operation (+-/^*&|~%%) Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
@@ -321,8 +327,9 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
 		}
-		if(root->typ == PTT_MOD && !typeDeductionMergeExists(overlap, tInts)){
-			reportError("SA011b", "Operation (%%) Requires Both Integer Types: Line %d", root->tok->lineNo);
+		if((root->typ == PTT_MOD || root->typ == PTT_SHR || root->typ == PTT_SHL) &&
+					!typeDeductionMergeExists(overlap, tInts)){
+			reportError("SA011b", "Operations (%%, shr/shl) Requires Both Integer Types: Line %d", root->tok->lineNo);
 			(*err) ++;
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
@@ -335,19 +342,36 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		TypeDeductions options = handleFunctCall(root,err);
 		setTypeDeductions(root, options);
 		return options;
-	}else if(root->typ == PTT_EQUAL || root->typ == PTT_NOT_EQUAL){
+	}else if(root->typ == PTT_EQUAL || root->typ == PTT_NOT_EQUAL || root->typ == PTT_GT || root->typ == PTT_LT ||
+							root->typ == PTT_GTE || root->typ == PTT_LTE){
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
 		TypeDeductions ch2 = deduceTreeType((PTree*)root->child2, err, cd);
 		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0){
-			reportError("SA032", "Both sides of equals must be of same type: Line %d", root->tok->lineNo);
+			reportError("SA032", "Both sides of equals/inequalities must be of same type: Line %d", root->tok->lineNo);
 			(*err) ++;
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
 		}
 
+		if(root->typ == PTT_GT || root->typ == PTT_LT || root->typ == PTT_GTE || root->typ == PTT_LTE){
+			TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+			TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
+
+			if(!(	typeDeductionMergeExists(overlap, tInts) ||
+								typeDeductionMergeExists(overlap, tFloats))){
+				reportError("SA011", "Ineuality Operations Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
+				(*err) ++;
+				freeTypeDeductions(overlap);
+				overlap = singleTypeDeduction(newBasicType(TB_ERROR));
+			}
+			freeTypeDeductions(tInts);
+			freeTypeDeductions(tFloats);
+		}
+
 		// If these are objects, we must make a call to PTT_OBJECT_EQUAL_CHECK
 		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		appendToTypeDeductionAndFree(&booleanType, expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP));
 		TypeDeductions res = mergeTypeDeductions(overlap, booleanType);
 		freeTypeDeductions(booleanType);
 		if(utarray_len(res._types) == 0){ // non-boolean
@@ -749,14 +773,17 @@ void propagateTreeType(PTree *root){
 	if(root->child1 == NULL && root->child2 == NULL){
 		// nothing to do here
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
+			root->typ == PTT_SHR || root->typ == PTT_SHL ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND || root->typ == PTT_NOT ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD  || root->typ == PTT_GT || root->typ == PTT_LT ||
       root->typ == PTT_GTE || root->typ == PTT_LTE || root->typ == PTT_ASSIGN){
 		// both sides need be same type
 		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
-		setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
 		propagateTreeType((PTree*)root->child1);
-		propagateTreeType((PTree*)root->child2);
+		if(root->typ != PTT_NOT){
+			setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
+			propagateTreeType((PTree*)root->child2);
+		}
 	}else if(root->typ == PTT_EQUAL){
 		if(root->child2 == NULL){
 			propagateTreeType((PTree*)root->child1);

@@ -40,6 +40,10 @@ typedef enum{
 	ICG_GTE,
 	ICG_LT,
 	ICG_LTE,
+	ICG_SHR,
+	ICG_SHL,
+	ICG_EXP,
+	ICG_MOD,
 
 	ICG_NEWVEC,
 	ICG_VECSTORE,
@@ -117,7 +121,7 @@ struct ROStringLit {
     UT_hash_handle hh;
 };
 
-void icRunGen(PTree *root);
+void icRunGen(PTree *root, char *outfl);
 ICGElm * icGenBlock(PTree *root, ICGElm *prev);
 ICGElm * icGen(PTree *root, ICGElm *prev);
 
@@ -129,7 +133,7 @@ char *newLabel(char *base);
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref);
 void freeICGElm(ICGElm *elm);
 void printSingleICGElm(ICGElm *elm, FILE *f);
-void printICG(ICGElm *root, FILE *f);
+void printICG(ICGElm *root, FILE *f, bool address);
 
 ICGElmOp *newOp(ICGElmOpType typ, char *data);
 ICGElmOp *newOpInt(ICGElmOpType typ, int val);

@@ -1,0 +1,44 @@
+      :
+      : df64 $x.4
+      : movf64 $x.4, 8.23
+      : df64 $y.5
+      : movf64 $y.5, 2.53
+      : df64 $z.6
+      : di32 $i.7
+      : addf64 $.temp1.8, $y.5, $x.4
+      : movf64 $z.6, $.temp1.8
+      : subf64 $.temp2.9, $y.5, $x.4
+      : movf64 $z.6, $.temp2.9
+      : mulf64 $.temp3.10, $y.5, $z.6
+      : movf64 $z.6, $.temp3.10
+      : divf64 $.temp4.11, $y.5, $z.6
+      : movf64 $z.6, $.temp4.11
+      : expf64 $.temp5.12, $y.5, $z.6
+      : movf64 $z.6, $.temp5.12
+      : modi8 $.temp6.13, 3, 2
+      : movi8 $i.7, $.temp6.13
+      : andf64 $.temp7.14, $y.5, $x.4
+      : movf64 $z.6, $.temp7.14
+      : orf64 $.temp8.15, $y.5, $x.4
+      : movf64 $z.6, $.temp8.15
+      : xorf64 $.temp9.16, $y.5, $x.4
+      : movf64 $z.6, $.temp9.16
+      : notf64 $.temp10.17, $y.5
+      : movf64 $z.6, $.temp10.17
+      : shri8 $.temp11.18, 128, 2
+      : movi8 $i.7, $.temp11.18
+      : shli8 $.temp12.19, 64, 2
+      : movi8 $i.7, $.temp12.19
+      : subf64 $.temp13.20, $x.4, $y.5
+      : movf64 $z.6, $.temp13.20
+      : subf64 $.temp15.22, $y.5, $x.4
+      : notf64 $.temp14.21, $.temp15.22
+      : movf64 $z.6, $.temp14.21
+      : cmpgtf64 $.temp16.23, $y.5, $x.4
+      : movf64 $z.6, $.temp16.23
+      : cmpltf64 $.temp17.24, $y.5, $x.4
+      : movf64 $z.6, $.temp17.24
+      : cmpgtef64 $.temp18.25, $y.5, $x.4
+      : movf64 $z.6, $.temp18.25
+      : cmpltef64 $.temp19.26, $y.5, $x.4
+      : movf64 $z.6, $.temp19.26

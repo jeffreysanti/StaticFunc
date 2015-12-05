@@ -1,0 +1,30 @@
+
+float64 x(8.23);
+float64 y(2.53);
+
+float64 z;
+int32 i;
+
+z = y + x;
+z = y - x;
+z = y * z;
+z = y / z;
+z = y ^ z;
+i = 3 % 2;
+
+
+z = y & x;
+z = y | x;
+z = y ~ x; // exclusive or
+z = !y;
+
+i = 128 shr 2;
+i = 64 shl 2;
+
+
+z = (x == y);
+z = (y != x);
+z = (y > x);
+z = (y < x);
+z = (y >= x);
+z = (y <= x);

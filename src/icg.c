@@ -118,7 +118,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenObjCpy_print(elm, f);
 	}else if(elm->typ == ICG_ADD || elm->typ == ICG_SUB || elm->typ == ICG_MUL ||
 			elm->typ == ICG_DIV || elm->typ == ICG_AND || elm->typ == ICG_OR || elm->typ == ICG_XOR || elm->typ == ICG_NOT  ||
-			elm->typ == ICG_GT || elm->typ == ICG_LT || elm->typ == ICG_GTE || elm->typ == ICG_LTE){
+			elm->typ == ICG_GT || elm->typ == ICG_LT || elm->typ == ICG_GTE || elm->typ == ICG_LTE ||
+			elm->typ == ICG_SHR || elm->typ == ICG_SHL || elm->typ == ICG_EXP || elm->typ == ICG_MOD){
 		icGenArith_print(elm, f);
 	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE || elm->typ == ICG_NEWDICT ||
 			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE){
@@ -136,7 +137,7 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}
 }
 
-void printICG(ICGElm *root, FILE *f)
+void printICG(ICGElm *root, FILE *f, bool address)
 {
 	while(root != NULL){
 		if(root->typ == ICG_LBL){
@@ -145,7 +146,11 @@ void printICG(ICGElm *root, FILE *f)
 		}else if(root->typ == ICG_LITERAL || root->typ == ICG_IDENT){
 
 		}else{
-			fprintf(f, "%16lx: ", root->id);
+			if(address){
+				fprintf(f, "%16lx: ", root->id);
+			}else{
+				fprintf(f, "      : ");
+			}
 			printSingleICGElm(root, f);
 			fprintf(f, "\n");
 		}
@@ -180,7 +185,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenStringLit(root, prev);
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT ||
 			root->typ == PTT_DIV || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_XOR || root->typ == PTT_NOT ||
-			root->typ == PTT_GT || root->typ == PTT_LT || root->typ == PTT_GTE || root->typ == PTT_LTE){
+			root->typ == PTT_GT || root->typ == PTT_LT || root->typ == PTT_GTE || root->typ == PTT_LTE ||
+			root->typ == PTT_SHR || root->typ == PTT_SHL || root->typ == PTT_EXP || root->typ == PTT_MOD){
 		prev = icGenArith(root, prev);
 	}else if(root->typ == PTT_ARRAY_ELM){
 		prev = icGenArray(root, prev);
@@ -212,7 +218,7 @@ ICGElm * icGenBlock(PTree *root, ICGElm *prev){
 	return prev;
 }
 
-void icRunGen(PTree *root)
+void icRunGen(PTree *root, char *outfl)
 {
 	ICGElm *icgroot = newICGElm(NULL, ICG_NONE, ICGDT_NONE, NULL);
 	ICGElm *ptr = icgroot;
@@ -221,7 +227,12 @@ void icRunGen(PTree *root)
 
 	icGenBlock(root, ptr);
 
-	printICG(icgroot, stdout);
+	printICG(icgroot, stdout, true);
+
+	FILE *tmpout = openOutputFile(outfl, "icg");
+	printICG(icgroot, tmpout, false);
+	fclose(tmpout);
+
 	freeICGElm(icgroot);
 
 	char **p = NULL;

@@ -84,7 +84,7 @@ int main(int argc, char **argv){
 				fclose(tmpout);
 
 				// now generate code :D
-				icRunGen(tree);
+				icRunGen(tree, outfl);
 			}
 			freeParseTreeNode(tree);
 		}
@@ -104,5 +104,3 @@ int main(int argc, char **argv){
 
 
 }
-
-

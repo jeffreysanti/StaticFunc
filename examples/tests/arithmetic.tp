@@ -1,0 +1,245 @@
+{PTT_STMTBLOCK} [3] LT_IDENTIFIER: float64 : ???
+  {PTT_DECL} [2] LT_IDENTIFIER: x : float64
+    {PTT_DECL_TYPE} [2] LT_IDENTIFIER: float64 : ???
+      NULL
+      NULL
+    {PTT_FLOAT} [2] LT_FLOAT: 8.23 : float64
+      NULL
+      NULL
+  {PTT_STMTBLOCK} : ???
+    {PTT_DECL} [3] LT_IDENTIFIER: y : float64
+      {PTT_DECL_TYPE} [3] LT_IDENTIFIER: float64 : ???
+        NULL
+        NULL
+      {PTT_FLOAT} [3] LT_FLOAT: 2.53 : float64
+        NULL
+        NULL
+    {PTT_STMTBLOCK} : ???
+      {PTT_DECL} [5] LT_IDENTIFIER: z : float64
+        {PTT_DECL_TYPE} [5] LT_IDENTIFIER: float64 : ???
+          NULL
+          NULL
+        NULL
+      {PTT_STMTBLOCK} : ???
+        {PTT_DECL} [6] LT_IDENTIFIER: i : int32
+          {PTT_DECL_TYPE} [6] LT_IDENTIFIER: int32 : ???
+            NULL
+            NULL
+          NULL
+        {PTT_STMTBLOCK} : ???
+          {PTT_ASSIGN} [8] LT_OP: = : float64
+            {PTT_IDENTIFIER} [8] LT_IDENTIFIER: z : float64
+              NULL
+              NULL
+            {PTT_ADD} [8] LT_OP: + : float64
+              {PTT_IDENTIFIER} [8] LT_IDENTIFIER: y : float64
+                NULL
+                NULL
+              {PTT_IDENTIFIER} [8] LT_IDENTIFIER: x : float64
+                NULL
+                NULL
+          {PTT_STMTBLOCK} : ???
+            {PTT_ASSIGN} [9] LT_OP: = : float64
+              {PTT_IDENTIFIER} [9] LT_IDENTIFIER: z : float64
+                NULL
+                NULL
+              {PTT_SUB} [9] LT_OP: - : float64
+                {PTT_IDENTIFIER} [9] LT_IDENTIFIER: y : float64
+                  NULL
+                  NULL
+                {PTT_IDENTIFIER} [9] LT_IDENTIFIER: x : float64
+                  NULL
+                  NULL
+            {PTT_STMTBLOCK} : ???
+              {PTT_ASSIGN} [10] LT_OP: = : float64
+                {PTT_IDENTIFIER} [10] LT_IDENTIFIER: z : float64
+                  NULL
+                  NULL
+                {PTT_MULT} [10] LT_OP: * : float64
+                  {PTT_IDENTIFIER} [10] LT_IDENTIFIER: y : float64
+                    NULL
+                    NULL
+                  {PTT_IDENTIFIER} [10] LT_IDENTIFIER: z : float64
+                    NULL
+                    NULL
+              {PTT_STMTBLOCK} : ???
+                {PTT_ASSIGN} [11] LT_OP: = : float64
+                  {PTT_IDENTIFIER} [11] LT_IDENTIFIER: z : float64
+                    NULL
+                    NULL
+                  {PTT_DIV} [11] LT_OP: / : float64
+                    {PTT_IDENTIFIER} [11] LT_IDENTIFIER: y : float64
+                      NULL
+                      NULL
+                    {PTT_IDENTIFIER} [11] LT_IDENTIFIER: z : float64
+                      NULL
+                      NULL
+                {PTT_STMTBLOCK} : ???
+                  {PTT_ASSIGN} [12] LT_OP: = : float64
+                    {PTT_IDENTIFIER} [12] LT_IDENTIFIER: z : float64
+                      NULL
+                      NULL
+                    {PTT_EXP} [12] LT_OP: ^ : float64
+                      {PTT_IDENTIFIER} [12] LT_IDENTIFIER: y : float64
+                        NULL
+                        NULL
+                      {PTT_IDENTIFIER} [12] LT_IDENTIFIER: z : float64
+                        NULL
+                        NULL
+                  {PTT_STMTBLOCK} : ???
+                    {PTT_ASSIGN} [13] LT_OP: = : int8
+                      {PTT_IDENTIFIER} [13] LT_IDENTIFIER: i : int8
+                        NULL
+                        NULL
+                      {PTT_MOD} [13] LT_OP: % : int8
+                        {PTT_INT} [13] LT_INTEGER: 3 : int8
+                          NULL
+                          NULL
+                        {PTT_INT} [13] LT_INTEGER: 2 : int8
+                          NULL
+                          NULL
+                    {PTT_STMTBLOCK} : ???
+                      {PTT_ASSIGN} [16] LT_OP: = : float64
+                        {PTT_IDENTIFIER} [16] LT_IDENTIFIER: z : float64
+                          NULL
+                          NULL
+                        {PTT_AND} [16] LT_OP: & : float64
+                          {PTT_IDENTIFIER} [16] LT_IDENTIFIER: y : float64
+                            NULL
+                            NULL
+                          {PTT_IDENTIFIER} [16] LT_IDENTIFIER: x : float64
+                            NULL
+                            NULL
+                      {PTT_STMTBLOCK} : ???
+                        {PTT_ASSIGN} [17] LT_OP: = : float64
+                          {PTT_IDENTIFIER} [17] LT_IDENTIFIER: z : float64
+                            NULL
+                            NULL
+                          {PTT_OR} [17] LT_OP: | : float64
+                            {PTT_IDENTIFIER} [17] LT_IDENTIFIER: y : float64
+                              NULL
+                              NULL
+                            {PTT_IDENTIFIER} [17] LT_IDENTIFIER: x : float64
+                              NULL
+                              NULL
+                        {PTT_STMTBLOCK} : ???
+                          {PTT_ASSIGN} [18] LT_OP: = : float64
+                            {PTT_IDENTIFIER} [18] LT_IDENTIFIER: z : float64
+                              NULL
+                              NULL
+                            {PTT_XOR} [18] LT_OP: ~ : float64
+                              {PTT_IDENTIFIER} [18] LT_IDENTIFIER: y : float64
+                                NULL
+                                NULL
+                              {PTT_IDENTIFIER} [18] LT_IDENTIFIER: x : float64
+                                NULL
+                                NULL
+                          {PTT_STMTBLOCK} : ???
+                            {PTT_ASSIGN} [19] LT_OP: = : float64
+                              {PTT_IDENTIFIER} [19] LT_IDENTIFIER: z : float64
+                                NULL
+                                NULL
+                              {PTT_NOT} [19] LT_OP: ! : float64
+                                {PTT_IDENTIFIER} [19] LT_IDENTIFIER: y : float64
+                                  NULL
+                                  NULL
+                                NULL
+                            {PTT_STMTBLOCK} : ???
+                              {PTT_ASSIGN} [21] LT_OP: = : int8
+                                {PTT_IDENTIFIER} [21] LT_IDENTIFIER: i : int8
+                                  NULL
+                                  NULL
+                                {PTT_SHR} [21] LT_OP: shr : int8
+                                  {PTT_INT} [21] LT_INTEGER: 128 : int8
+                                    NULL
+                                    NULL
+                                  {PTT_INT} [21] LT_INTEGER: 2 : int8
+                                    NULL
+                                    NULL
+                              {PTT_STMTBLOCK} : ???
+                                {PTT_ASSIGN} [22] LT_OP: = : int8
+                                  {PTT_IDENTIFIER} [22] LT_IDENTIFIER: i : int8
+                                    NULL
+                                    NULL
+                                  {PTT_SHL} [22] LT_OP: shl : int8
+                                    {PTT_INT} [22] LT_INTEGER: 64 : int8
+                                      NULL
+                                      NULL
+                                    {PTT_INT} [22] LT_INTEGER: 2 : int8
+                                      NULL
+                                      NULL
+                                {PTT_STMTBLOCK} : ???
+                                  {PTT_ASSIGN} [25] LT_OP: = : float64
+                                    {PTT_IDENTIFIER} [25] LT_IDENTIFIER: z : float64
+                                      NULL
+                                      NULL
+                                    {PTT_EQUAL} [25] LT_OP: == : float64
+                                      {PTT_IDENTIFIER} [25] LT_IDENTIFIER: x : float64
+                                        NULL
+                                        NULL
+                                      {PTT_IDENTIFIER} [25] LT_IDENTIFIER: y : float64
+                                        NULL
+                                        NULL
+                                  {PTT_STMTBLOCK} : ???
+                                    {PTT_ASSIGN} [26] LT_OP: = : float64
+                                      {PTT_IDENTIFIER} [26] LT_IDENTIFIER: z : float64
+                                        NULL
+                                        NULL
+                                      {PTT_NOT} : float64
+                                        {PTT_EQUAL} [26] LT_OP: != : float64
+                                          {PTT_IDENTIFIER} [26] LT_IDENTIFIER: y : float64
+                                            NULL
+                                            NULL
+                                          {PTT_IDENTIFIER} [26] LT_IDENTIFIER: x : float64
+                                            NULL
+                                            NULL
+                                        NULL
+                                    {PTT_STMTBLOCK} : ???
+                                      {PTT_ASSIGN} [27] LT_OP: = : float64
+                                        {PTT_IDENTIFIER} [27] LT_IDENTIFIER: z : float64
+                                          NULL
+                                          NULL
+                                        {PTT_GT} [27] LT_OP: > : float64
+                                          {PTT_IDENTIFIER} [27] LT_IDENTIFIER: y : float64
+                                            NULL
+                                            NULL
+                                          {PTT_IDENTIFIER} [27] LT_IDENTIFIER: x : float64
+                                            NULL
+                                            NULL
+                                      {PTT_STMTBLOCK} : ???
+                                        {PTT_ASSIGN} [28] LT_OP: = : float64
+                                          {PTT_IDENTIFIER} [28] LT_IDENTIFIER: z : float64
+                                            NULL
+                                            NULL
+                                          {PTT_LT} [28] LT_OP: < : float64
+                                            {PTT_IDENTIFIER} [28] LT_IDENTIFIER: y : float64
+                                              NULL
+                                              NULL
+                                            {PTT_IDENTIFIER} [28] LT_IDENTIFIER: x : float64
+                                              NULL
+                                              NULL
+                                        {PTT_STMTBLOCK} : ???
+                                          {PTT_ASSIGN} [29] LT_OP: = : float64
+                                            {PTT_IDENTIFIER} [29] LT_IDENTIFIER: z : float64
+                                              NULL
+                                              NULL
+                                            {PTT_GTE} [29] LT_OP: >= : float64
+                                              {PTT_IDENTIFIER} [29] LT_IDENTIFIER: y : float64
+                                                NULL
+                                                NULL
+                                              {PTT_IDENTIFIER} [29] LT_IDENTIFIER: x : float64
+                                                NULL
+                                                NULL
+                                          {PTT_STMTBLOCK} : ???
+                                            {PTT_ASSIGN} [30] LT_OP: = : float64
+                                              {PTT_IDENTIFIER} [30] LT_IDENTIFIER: z : float64
+                                                NULL
+                                                NULL
+                                              {PTT_LTE} [30] LT_OP: <= : float64
+                                                {PTT_IDENTIFIER} [30] LT_IDENTIFIER: y : float64
+                                                  NULL
+                                                  NULL
+                                                {PTT_IDENTIFIER} [30] LT_IDENTIFIER: x : float64
+                                                  NULL
+                                                  NULL
+                                            NULL

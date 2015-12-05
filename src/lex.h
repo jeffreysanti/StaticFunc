@@ -164,8 +164,7 @@ static bool matchFloatLiteral(char *fulltxt, long *cpos, long clen)
 
 static bool matchOperator(char *fulltxt, long *cpos, long clen)
 {
-	if(		matchStringPattern(fulltxt, cpos, clen, "||") ||
-			matchStringPattern(fulltxt, cpos, clen, "&&") ||
+	if(
 			matchStringPattern(fulltxt, cpos, clen, "==") ||
 			matchStringPattern(fulltxt, cpos, clen, "!=") ||
 			matchStringPattern(fulltxt, cpos, clen, ">=") ||

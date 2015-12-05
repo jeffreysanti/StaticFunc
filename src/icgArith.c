@@ -64,6 +64,10 @@ ICGElm * icGenArith(PTree *root, ICGElm *prev){
 	if(root->typ == PTT_LT) arithType = ICG_LT;
 	if(root->typ == PTT_GTE) arithType = ICG_GTE;
 	if(root->typ == PTT_LTE) arithType = ICG_LTE;
+	if(root->typ == PTT_SHR) arithType = ICG_SHR;
+	if(root->typ == PTT_SHL) arithType = ICG_SHL;
+	if(root->typ == PTT_EXP) arithType = ICG_EXP;
+	if(root->typ == PTT_MOD) arithType = ICG_MOD;
 
 	prev = newICGElm(prev, arithType, typeToICGDataType(d), root);
 	prev->result = res;
@@ -88,6 +92,11 @@ void icGenArith_print(ICGElm *elm, FILE* f)
 	if(elm->typ == ICG_LT) fprintf(f, "cmplt");
 	if(elm->typ == ICG_GTE) fprintf(f, "cmpgte");
 	if(elm->typ == ICG_LTE) fprintf(f, "cmplte");
+	if(elm->typ == ICG_SHR) fprintf(f, "shr");
+	if(elm->typ == ICG_SHL) fprintf(f, "shl");
+	if(elm->typ == ICG_EXP) fprintf(f, "exp");
+	if(elm->typ == ICG_MOD) fprintf(f, "mod");
+
 
 	printICGTypeSuffix(elm, f);
 
