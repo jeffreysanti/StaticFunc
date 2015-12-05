@@ -1,7 +1,7 @@
 CC = gcc
 LD = gcc
 
-CPPFLAGS += -MD -MP
+CPPFLAGS += -MD -MP -g
 
 SRC = $(wildcard src/*.c) $(wildcard src/uthash/*.c)
 

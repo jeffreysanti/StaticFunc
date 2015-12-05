@@ -185,7 +185,3 @@ void icGenArrAcc_print(ICGElm *elm, FILE* f)
 		fprintf(f, "$%s, $%s", elm->op1->data, elm->op2->data);
 	}
 }
-
-
-
-

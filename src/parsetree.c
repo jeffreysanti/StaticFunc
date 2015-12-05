@@ -262,13 +262,14 @@ void dumpParseTreeDet(PTree *root, int level, FILE *f)
 		return;
 	}
 
+	fprintf(f, "{%s}", PTLookup[root->typ]);
 	if(root->tok != NULL){
-		fprintf(f, "{%s} ", PTLookup[root->typ]);
+		fprintf(f, " ");
 		outputToken((LexicalToken*)root->tok, f);
-		fprintf(f, "\n");
-	}else{
-		fprintf(f, "{%s}\n", PTLookup[root->typ]);
 	}
+	char *typ = getTypeAsString(root->finalType);
+	fprintf(f, " : %s\n", typ);
+	free(typ);
 
 	dumpParseTreeDet((PTree*)root->child1, level+1, f);
 	dumpParseTreeDet((PTree*)root->child2, level+1, f);
@@ -321,15 +322,3 @@ void setFinalTypeDeduction(PTree *root, Type typ){
 	freeType(root->finalType);
 	root->finalType = typ;
 }
-
-
-
-
-
-
-
-
-
-
-
-

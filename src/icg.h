@@ -32,6 +32,14 @@ typedef enum{
 	ICG_SUB,
 	ICG_MUL,
 	ICG_DIV,
+	ICG_AND,
+	ICG_OR,
+	ICG_NOT,
+	ICG_XOR,
+	ICG_GT,
+	ICG_GTE,
+	ICG_LT,
+	ICG_LTE,
 
 	ICG_NEWVEC,
 	ICG_VECSTORE,
@@ -48,7 +56,7 @@ typedef enum{
 	ICG_JNZ,
 	ICG_JZ,
 	ICG_JMP,
-	
+
 	ICG_COMPOBJ
 }ICGElmType;
 

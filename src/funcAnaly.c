@@ -304,9 +304,9 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			return root->deducedTypes;
 		}
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
-			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
+			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND || root->typ == PTT_NOT ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD || root->typ == PTT_GT || root->typ == PTT_LT ||
-		        root->typ == PTT_GTE || root->typ == PTT_LTE){
+			root->typ == PTT_GTE || root->typ == PTT_LTE){
 		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
 
@@ -316,13 +316,13 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		TypeDeductions overlap = mergeTypeDeductionsOrErr(ch1, ch2, err);
 		if(*err > 0 || !(	typeDeductionMergeExists(overlap, tInts) ||
 							typeDeductionMergeExists(overlap, tFloats))){
-			reportError("SA011", "Operation (+-/^*&|~%) Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
+			reportError("SA011", "Operation (+-/^*&|~%%) Requires Both Integer Or Both Float Types: Line %d", root->tok->lineNo);
 			(*err) ++;
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
 		}
 		if(root->typ == PTT_MOD && !typeDeductionMergeExists(overlap, tInts)){
-			reportError("SA011b", "Operation (%) Requires Both Integer Types: Line %d", root->tok->lineNo);
+			reportError("SA011b", "Operation (%%) Requires Both Integer Types: Line %d", root->tok->lineNo);
 			(*err) ++;
 			freeTypeDeductions(overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
@@ -346,14 +346,6 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			overlap = singleTypeDeduction(newBasicType(TB_ERROR));
 		}
 
-		if(root->typ == PTT_NOT_EQUAL){
-		  PTree *notNode = newParseTree(PTT_NOT);
-			notNode->child1 = root->child1;
-			((PTree*)notNode->child1)->parent = (void*)notNode;
-			notNode->parent = (void*)root;
-			root->child1 = (void*)notNode;
-		}
-		
 		// If these are objects, we must make a call to PTT_OBJECT_EQUAL_CHECK
 		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		TypeDeductions res = mergeTypeDeductions(overlap, booleanType);
@@ -370,9 +362,23 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			setTypeDeductions(checkNode, overlap);
 			overlap = singleTypeDeduction(newBasicType(TB_NATIVE_INT8)); // boolean type now
 		}
-		freeTypeDeductions(res);		
-		
+		freeTypeDeductions(res);
+
 		setTypeDeductions(root, overlap);
+
+		if(root->typ == PTT_NOT_EQUAL){
+			root->typ = PTT_EQUAL;
+		  PTree *notNode = newParseTree(PTT_NOT);
+			notNode->child1 = root;
+			notNode->parent = root->parent;
+			root->parent = notNode;
+			if((PTree*)((PTree*)notNode->parent)->child1 == root){
+				((PTree*)notNode->parent)->child1 = (void*)notNode;
+			}else{
+				((PTree*)notNode->parent)->child2 = (void*)notNode;
+			}
+			setTypeDeductions(notNode, duplicateTypeDeductions(overlap));
+		}
 		return overlap;
 	}else if(root->typ == PTT_ARRAY_ELM){
 		PTree *node = root;
@@ -743,9 +749,9 @@ void propagateTreeType(PTree *root){
 	if(root->child1 == NULL && root->child2 == NULL){
 		// nothing to do here
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT || root->typ == PTT_DIV ||
-			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND ||
+			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND || root->typ == PTT_NOT ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD  || root->typ == PTT_GT || root->typ == PTT_LT ||
-		        root->typ == PTT_GTE || root->typ == PTT_LTE || root->typ == PTT_ASSIGN){
+      root->typ == PTT_GTE || root->typ == PTT_LTE || root->typ == PTT_ASSIGN){
 		// both sides need be same type
 		setFinalTypeDeduction((PTree*)root->child1, duplicateType(final));
 		setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
@@ -760,6 +766,13 @@ void propagateTreeType(PTree *root){
 			setFinalTypeDeduction((PTree*)root->child2, duplicateType(final));
 			propagateTreeType((PTree*)root->child1);
 			propagateTreeType((PTree*)root->child2);
+		}
+
+		// need to check if this was a not equals and if so, if not node recevied same type deduction
+		if(root->parent != NULL && ((PTree*)root->parent)->typ == PTT_NOT){
+			if(!typesEqualMostly(((PTree*)root->parent)->finalType, root->finalType)){
+				setFinalTypeDeduction((PTree*)root->parent, duplicateType(root->finalType));
+			}
 		}
 	}else if(root->typ == PTT_OBJECT_EQUAL_CHECK){
 		// both sides need be same type
@@ -943,29 +956,20 @@ bool semAnalyStmt(PTree *root, Type sig)
 		}
 		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_IF){
-		dumpParseTreeDet(root, 0, stdout);
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 
-		printf("A");
 		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
 		TypeDeductions deduced = deduceTreeType(cond, &err, CAST_UP);
-		printf("B");
-		dumpParseTreeDet(root, 0, stdout);
-		printf("C");
-		
+
 		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);
-		printf("D");
 		freeTypeDeductions(booleanType);
 		setTypeDeductions(root, res);
-		printf("E");
 		setTypeDeductions(cond, duplicateTypeDeductions(res));
-		printf("F");
 		if(err > 0 || !finalizeSingleDeduction(cond)){
 			reportError("SA025", "If Condition Must Evaluate To Integer Type: Line %d", cond->tok->lineNo);
 			return false;
 		}
-		printf("G");
 
 		bool ret;
 		if(branch->typ == PTT_IFELSE_SWITCH){

@@ -117,7 +117,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}else if(elm->typ == ICG_OBJCOPY){
 		icGenObjCpy_print(elm, f);
 	}else if(elm->typ == ICG_ADD || elm->typ == ICG_SUB || elm->typ == ICG_MUL ||
-			elm->typ == ICG_DIV){
+			elm->typ == ICG_DIV || elm->typ == ICG_AND || elm->typ == ICG_OR || elm->typ == ICG_XOR || elm->typ == ICG_NOT  ||
+			elm->typ == ICG_GT || elm->typ == ICG_LT || elm->typ == ICG_GTE || elm->typ == ICG_LTE){
 		icGenArith_print(elm, f);
 	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE || elm->typ == ICG_NEWDICT ||
 			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE){
@@ -130,6 +131,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenJump_print(elm, f);
 	}else if(elm->typ == ICG_COMPOBJ){
 		icGenCompObj_print(elm, f);
+	}else{
+		fprintf(f, "???");
 	}
 }
 
@@ -176,7 +179,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	}else if(root->typ == PTT_STRING){
 		prev = icGenStringLit(root, prev);
 	}else if(root->typ == PTT_ADD || root->typ == PTT_SUB || root->typ == PTT_MULT ||
-			root->typ == PTT_DIV){
+			root->typ == PTT_DIV || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_XOR || root->typ == PTT_NOT ||
+			root->typ == PTT_GT || root->typ == PTT_LT || root->typ == PTT_GTE || root->typ == PTT_LTE){
 		prev = icGenArith(root, prev);
 	}else if(root->typ == PTT_ARRAY_ELM){
 		prev = icGenArray(root, prev);
@@ -326,5 +330,3 @@ char *newLabel(char *base){
 	sprintf(nm, ".l%s.%ld", base, lastLabel);
 	return nm;
 }
-
-

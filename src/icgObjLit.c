@@ -239,5 +239,3 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 		fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, op2->data);
 	}
 }
-
-
