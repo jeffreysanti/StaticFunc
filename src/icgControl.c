@@ -3,7 +3,7 @@
  *  Static_Func Compiler
  *
  *  icgIf.c
- *  Intermediate Code Generator : Handles If/Else Conditional
+ *  Intermediate Code Generator : Handles If/Else Conditional, and Loops
  *
  */
 
@@ -103,6 +103,32 @@ ICGElm * icGenIf(PTree *root, ICGElm *prev){
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
 		prev->result = newOp(ICGO_LABEL, lblFakeIfEnd);
 	}
+	return prev;
+}
+
+ICGElm * icGenWhile(PTree *root, ICGElm *prev){
+	// step 1: Evaluate Condition
+	PTree *cond = (PTree*)root->child1;
+	char *lblExitWhile = newLabel("WhileLoopExit");
+	char *lblWhileMarker = newLabel("WhileLoopTest");
+
+	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
+	prev->result = newOp(ICGO_LABEL, lblWhileMarker);
+	
+	prev = icGenGeneralCondition(cond, prev, lblExitWhile);
+
+	// now gen accepting state
+	PTree *pred = (PTree*)root->child2;
+
+	prev = icGenBlock(pred, prev); // true branch
+
+	// reloop
+	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
+	prev->result = newOpCopyData(ICGO_LABEL, lblWhileMarker);
+
+	// exit label
+	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
+	prev->result = newOp(ICGO_LABEL, lblExitWhile);
 	return prev;
 }
 
