@@ -123,6 +123,14 @@ Type newVectorType(Type typ)
 	return t;
 }
 
+Type newSetType(Type typ)
+{
+	Type t = newBasicType(TB_SET);
+	allocTypeChildren(&t, 1);
+	((Type*)t.children)[0] = typ;
+	return t;
+}
+
 Type newDictionaryType(Type keytype, Type valtype)
 {
 	Type t = newBasicType(TB_DICT);
@@ -364,7 +372,7 @@ Type deduceTypeDeclType(PTree *t)
 			ret.hasTypeListParam = true;
 		}
 		return ret;
-	}else if(strcmp(ident, "vector") == 0 || strcmp(ident, "set") == 0){
+	}else if(strcmp(ident, "vector") == 0/* || strcmp(ident, "set") == 0*/){
 		Type ret = newBasicType(TB_VECTOR);
 		if(strcmp(ident, "set") == 0)
 			ret = newBasicType(TB_SET);
@@ -611,7 +619,7 @@ char *getTypeAsString(Type t)
 	if(t.base == TB_VECTOR) { strcpy(ptr, "vector"); ptr += 6; }
 	if(t.base == TB_DICT) { strcpy(ptr, "dict"); ptr += 4; }
 	if(t.base == TB_TUPLE) { strcpy(ptr, "tuple"); ptr += 5; }
-	if(t.base == TB_SET) { strcpy(ptr, "void"); ptr += 3; }
+	if(t.base == TB_SET) { strcpy(ptr, "set"); ptr += 3; }
 	if(t.base == TB_FUNCTION) { strcpy(ptr, "function"); ptr += 8; }
 	//if(t.base == TB_ANY_INT) { strcpy(ptr, "anyint"); ptr += 6; }
 	//if(t.base == TB_ANY_FLOAT) { strcpy(ptr, "anyfloat"); ptr += 8; }
@@ -774,6 +782,13 @@ TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 			addTypeDeductionsType(&ret, newVectorType(duplicateType(*p)));
 		}
 		freeTypeDeductions(innerDeductions);
+	}else if(type.base == TB_SET){
+		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0], cd);
+		Type *p = NULL;
+		while((p=(Type*)utarray_next(innerDeductions._types,p))){
+			addTypeDeductionsType(&ret, newSetType(duplicateType(*p)));
+		}
+		freeTypeDeductions(innerDeductions);
 	}else if(type.base == TB_FUNCTION){
 		addTypeDeductionsType(&ret, duplicateType(type));
 	}else if(type.base == TB_DICT){
@@ -926,6 +941,16 @@ void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 	}
 }
 
+void addSetsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
+{
+	Type *p = NULL;
+	while((p=(Type*)utarray_next(in._types,p))){
+		Type t = duplicateType(*p);
+		Type v = newSetType(t);
+		addTypeDeductionsType(dest, v);
+	}
+}
+
 void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 {
 	Type *p = NULL;
@@ -1016,5 +1041,3 @@ void addTypeDeductionsType(TypeDeductions *dest, Type t)
 	}
 	utarray_push_back(dest->_types, &t);
 }
-
-

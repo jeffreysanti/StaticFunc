@@ -16,8 +16,8 @@ All variables become of type: i8, i16, i32, i64, f32, f64, ptr
 int32 b(127)
  :  di32 $b.36
  :  movi32 $b.36, 127
- 
- 
+
+
 ---Strings---
 Strings are mutable objects, like vectors dicts and tuples
 String literals exist in ro memory, but upon assignment copied to heap
@@ -43,14 +43,20 @@ vector<int8> v([1,2,3]);
  :  vsti8 $.temp25, 1, 2
  :  vsti8 $.temp25, 2, 3
  :  mov $v.92, $.temp25
- :  
+ :
 
+
+---Iterators---
+for(x in y)
+should allow deletions inside loop therefore mechanism required
+to maintain fetching next allowed access.
+Iterators are a lock on a data structure and track current element accessed.
+
+ICG_ITER_INIT : iteri $iter, $vector : Initializes iterator mapped to vector
+ICG_ITER_CLOSE : iterf $iter : Frees iterator and allows held data structure to restructure (remove deleted gaps)
+ICG_ITER_NEXT : itern $tmp, $iter, .onDone : Stores next element to tmp, jumps to .onDone if nothing left
 
 
 *** NOTE: ops:
 ldi8, ldi16, ldi32, ldi64, ldf32, ldf64
 sti8 ... stf64
-
-
-
-

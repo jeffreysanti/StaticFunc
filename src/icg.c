@@ -47,6 +47,8 @@ extern ICGElm * icGenEquality(PTree *root, ICGElm *prev);
 extern void icGenCompObj_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenWhile(PTree *root, ICGElm *prev);
+extern ICGElm * icGenFor(PTree *root, ICGElm *prev);
+extern void icGenFor_print(ICGElm *elm, FILE* f);
 
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
@@ -124,7 +126,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 			elm->typ == ICG_SHR || elm->typ == ICG_SHL || elm->typ == ICG_EXP || elm->typ == ICG_MOD){
 		icGenArith_print(elm, f);
 	}else if(elm->typ == ICG_NEWVEC || elm->typ == ICG_VECSTORE || elm->typ == ICG_NEWDICT ||
-			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE){
+			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE ||
+			elm->typ == ICG_NEWSET || elm->typ == ICG_SETSTORE){
 		icGenArray_print(elm, f);
 	}else if(elm->typ == ICG_TPLLOAD){
 		icGenDot_print(elm, f);
@@ -134,6 +137,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenJump_print(elm, f);
 	}else if(elm->typ == ICG_COMPOBJ){
 		icGenCompObj_print(elm, f);
+	}else if(elm->typ == ICG_ITER_INIT || elm->typ == ICG_ITER_NEXT || elm->typ == ICG_ITER_CLOSE){
+		icGenFor_print(elm, f);
 	}else{
 		fprintf(f, "???");
 	}
@@ -202,6 +207,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenEquality(root, prev);
 	}else if(root->typ == PTT_WHILE){
 		prev = icGenWhile(root, prev);
+	}else if(root->typ == PTT_FOR){
+		prev = icGenFor(root, prev);
 	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));

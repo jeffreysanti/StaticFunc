@@ -94,6 +94,7 @@ void freeTypeList(TypeList t);
 
 Type newBasicType(TypeBase typ);
 Type newVectorType(Type typ);
+Type newSetType(Type typ);
 Type newDictionaryType(Type keytype, Type valtype);
 bool typesEqual(Type t1, Type t2);
 
@@ -148,6 +149,7 @@ TypeDeductions duplicateTypeDeductions(TypeDeductions d);
 void showTypeDeductionOption(TypeDeductions op);
 
 void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in);
+void addSetsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in);
 void addDictsOfTypeDeduction(TypeDeductions *dest, TypeDeductions keys, TypeDeductions values);
 void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, int cnt);
 

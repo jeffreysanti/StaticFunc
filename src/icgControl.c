@@ -30,12 +30,12 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		ICGElm *lhs = icGen((PTree*)check->child1, prev);
 		ICGElm *rhs = icGen((PTree*)check->child2, lhs);
 		prev = rhs;
-		
+
 		char *tempVar = newTempVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
 		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
 		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
-		
+
 		prev = newICGElm(prev, ICG_COMPOBJ, typeToICGDataType(root->finalType), root);
 		prev->result = res;
 		prev->op1 = op1;
@@ -114,7 +114,7 @@ ICGElm * icGenWhile(PTree *root, ICGElm *prev){
 
 	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
 	prev->result = newOp(ICGO_LABEL, lblWhileMarker);
-	
+
 	prev = icGenGeneralCondition(cond, prev, lblExitWhile);
 
 	// now gen accepting state
@@ -129,6 +129,46 @@ ICGElm * icGenWhile(PTree *root, ICGElm *prev){
 	// exit label
 	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
 	prev->result = newOp(ICGO_LABEL, lblExitWhile);
+	return prev;
+}
+
+ICGElm * icGenFor(PTree *root, ICGElm *prev){
+	char *lblForEnd = newLabel("ForLoopExit");
+
+	// step 1: Initialize holder variable & iteratable variable
+	prev = icGenDecl(((PTree*)root->child1)->child1, prev);
+	ICGElm *holderVar = prev;
+	prev = icGen(((PTree*)root->child1)->child2, prev);
+	ICGElm *iteratableVar = prev;
+
+	// step 2: prepare iterator
+	char *iteratorVar = newTempVariable(newBasicType(TB_NATIVE_VOID));
+	prev = newICGElm(prev, ICG_ITER_INIT, ICGDT_NONE, root); // initalize iterator
+	prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+	prev->op1 = newOpCopyData(iteratableVar->result->typ, iteratableVar->result->data);
+
+	// step 3: loop marker
+	char *lblForMarker = newLabel("ForLoopMarker");
+	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
+	prev->result = newOp(ICGO_LABEL, lblForMarker);
+
+	// step 4: get next data
+	prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
+	prev->result = newOpCopyData(holderVar->result->typ, holderVar->result->data);
+	prev->op1 = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+	prev->op2 = newOpCopyData(ICGO_LABEL, lblForEnd);
+
+	// step 6: run code & reloop
+	prev = icGenBlock(root->child2, prev);
+	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
+	prev->result = newOpCopyData(ICGO_LABEL, lblForMarker);
+
+	// step 6: exit marker & close iterator
+	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
+	prev->result = newOp(ICGO_LABEL, lblForEnd);
+	prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
+	prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+
 	return prev;
 }
 
@@ -162,5 +202,15 @@ ICGElm * icGenCompObj_print(ICGElm *elm, FILE* f){
 		fprintf(f, "%%%s", elm->op2->data);
 	}else{
 		fprintf(f, "$%s", elm->op2->data);
+	}
+}
+
+void icGenFor_print(ICGElm *elm, FILE* f){
+	if(elm->typ == ICG_ITER_INIT){
+		fprintf(f, "iteri $%s, $%s", elm->result->data, elm->op1->data);
+	}else if(elm->typ == ICG_ITER_CLOSE){
+		fprintf(f, "iterf $%s", elm->result->data);
+	}else if(elm->typ == ICG_ITER_NEXT){
+		fprintf(f, "itern $%s, $%s, %s", elm->result->data, elm->op1->data, elm->op2->data);
 	}
 }

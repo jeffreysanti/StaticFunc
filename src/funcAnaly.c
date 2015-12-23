@@ -468,9 +468,10 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 		// couple different possible types: tuple, dictionary, vector
 		TypeDeductions ret = newTypeDeductions();
-		if(!paired){ // tuple or vector
+		if(!paired){ // tuple or vector or set
 			if(utarray_len(tdElms._types) > 0){ // could be a vector
 				addVectorsOfTypeDeduction(&ret, tdElms);
+				addSetsOfTypeDeduction(&ret, tdElms);
 			}
 			addAllTuplesOfTypeDeductions(&ret, elmDeds, pCount);
 		}else{ // it's a dictionary
@@ -1048,7 +1049,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		setTypeDeductions(root, res);
 		setTypeDeductions(arr, duplicateTypeDeductions(res));
 		if(err > 0 || !finalizeSingleDeduction(arr)){
-			reportError("SA051", "Array Iteration Type Invalid: Line %d", arr->tok->lineNo);
+			reportError("SA051", "Array Iteration Type Invalid: Line %d", root->tok->lineNo);
 			return false;
 		}
 		return blockUnit(branch, sig, false);

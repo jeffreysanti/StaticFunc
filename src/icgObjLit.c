@@ -75,7 +75,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		ptr = (PTree*)ptr->child2;
 	}
 
-	if(root->finalType.base == TB_VECTOR){
+	if(root->finalType.base == TB_VECTOR || root->finalType.base == TB_VECTOR){
 		char *tempVar = newTempVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(tempVar));
 
@@ -84,7 +84,11 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 
 		ICGElmOp *op2 = newOpInt(ICGO_NUMERICLIT, elmCnt);
 
-		prev = newICGElm(prev, ICG_NEWVEC, typeToICGDataType(root->finalType), root);
+		if(root->finalType.base == TB_VECTOR){
+			prev = newICGElm(prev, ICG_NEWVEC, typeToICGDataType(root->finalType), root);
+		}else{
+			prev = newICGElm(prev, ICG_NEWSET, typeToICGDataType(root->finalType), root);
+		}
 		prev->result = res;
 		prev->op1 = op1;
 		prev->op2 = op2;
@@ -96,14 +100,23 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			char *elmTemp = newTempVariable(elm->finalType);
 			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType);
 
-			ICGElmOp *res = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(tempVar));
-			ICGElmOp *op1 = newOpInt(ICGO_NUMERICLIT, i);
-			ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
+			if(root->finalType.base == TB_VECTOR){
+				ICGElmOp *res = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(tempVar));
+				ICGElmOp *op1 = newOpInt(ICGO_NUMERICLIT, i);
+				ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
 
-			prev = newICGElm(prev, ICG_VECSTORE, typeToICGDataType(elm->finalType), elm);
-			prev->result = res;
-			prev->op1 = op1;
-			prev->op2 = op2;
+				prev = newICGElm(prev, ICG_VECSTORE, typeToICGDataType(elm->finalType), elm);
+				prev->result = res;
+				prev->op1 = op1;
+				prev->op2 = op2;
+			}else{
+				ICGElmOp *res = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(tempVar));
+				ICGElmOp *op1 = newOpCopyData(prev->result->typ, prev->result->data);
+
+				prev = newICGElm(prev, ICG_SETSTORE, typeToICGDataType(elm->finalType), elm);
+				prev->result = res;
+				prev->op1 = op1;
+			}
 
 			ptr = (PTree*)ptr->child2;
 		}
@@ -219,6 +232,8 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 {
 	if(elm->typ == ICG_NEWVEC){
 		fprintf(f, "newvec $%s, %s, %s", elm->result->data, elm->op1->data, elm->op2->data);
+	}if(elm->typ == ICG_NEWSET){
+		fprintf(f, "newset $%s, %s, %s", elm->result->data, elm->op1->data, elm->op2->data);
 	}else if(elm->typ == ICG_NEWDICT){
 		fprintf(f, "newdict $%s, %s, %s, %s", elm->result->data, elm->op1->data, elm->op2->data,
 				elm->op3->data);
@@ -228,6 +243,10 @@ void icGenArray_print(ICGElm *elm, FILE* f)
 		fprintf(f, "vst");
 		printICGTypeSuffix(elm, f);
 		fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, elm->op2->data);
+	}else if(elm->typ == ICG_SETSTORE){
+		fprintf(f, "sst");
+		printICGTypeSuffix(elm, f);
+		fprintf(f, " $%s, $%s", elm->result->data, elm->op1->data);
 	}else if(elm->typ == ICG_DICTSTORE){
 		fprintf(f, "dst");
 		printICGTypeSuffix(elm, f);
