@@ -1005,6 +1005,24 @@ bool semAnalyStmt(PTree *root, Type sig)
 			ret = blockUnit(branch, sig, false);
 		}
 		return ret;
+	}else if(root->typ == PTT_WHILE){
+		PTree *cond = (PTree*)root->child1;
+		PTree *branch = (PTree*)root->child2;
+
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions deduced = deduceTreeType(cond, &err, CAST_UP);
+
+		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);
+		freeTypeDeductions(booleanType);
+		setTypeDeductions(root, res);
+		setTypeDeductions(cond, duplicateTypeDeductions(res));
+		if(err > 0 || !finalizeSingleDeduction(cond)){
+			reportError("SA174", "While Condition Must Evaluate To Integer Type: Line %d", cond->tok->lineNo);
+			return false;
+		}
+
+		bool ret = blockUnit(branch, sig, false);
+		return ret;
 	}else if(root->typ == PTT_FOR){
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
