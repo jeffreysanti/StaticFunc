@@ -1,0 +1,26 @@
+
+
+int32 x;
+string s;
+
+vector<string> myarray(["the", "cat", "in"]);
+s = myarray[0];
+
+vector<int8> myarray2([2*ci for int8 ci in range(0,3)]);
+myarray2.queue(4); // to front
+myarray2.push(7); // to back
+x = myarray2.dequeue(); // from back
+x = myarray2.pop(); // from front
+x = myarray2.size();
+
+dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
+dict<int8, int8> mydict2([ci:2*ci for int8 ci in [0,1,2,3] where ci % 2 == 0]);
+
+tuple<string:a, int16:b> mytuple(["the", 5]);
+
+
+x = mytuple.b;
+
+
+
+string tmp(mytuple.a);

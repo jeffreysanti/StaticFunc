@@ -24,7 +24,7 @@ NumericExprAux_: -> {*} NumericExprAux | #
 
 New Grammar Notation:
 Curtosy of Neal R. Wagner's Explanation: http://www.cs.utsa.edu/~wagner/CS3723/rdparse/rdparser.html
-		
+
 		# Indicates End Of Production
 		| Indicates Factories of Production
 		{ xxx } 0-n instances of xxx
@@ -34,11 +34,14 @@ Curtosy of Neal R. Wagner's Explanation: http://www.cs.utsa.edu/~wagner/CS3723/r
 
 //////VarValue	:	"IDENT" { ( ParamExpr ) } { "[" Expr "]" } { ( ParamExpr ) } { "." VarVal }
 
-VarValue	:	. "IDENT" VarValue
+VarValue	:	.   DotSomething
 			|	[Expr] VarValue
 			| 	( ParamExpr ) VarValue
 			|	#
 
+DotSomething 	:			{queue/push} ( Expr )  VarValue
+							|			{dequeue/pop/size} ( ) VarValue
+							| 		"IDENT"  VarValue
 
 Val			:	NumLit
 			|	"STRINGLIT"
@@ -92,7 +95,7 @@ Stmt			:	"{" StmtBlock "}"
 
 ReturnVal		:	Expr ;
 
-Decl			:	DeclType "IDENT" { ( expr ) } 
+Decl			:	DeclType "IDENT" { ( expr ) }
 Assign			:	"IDENT" VarValue = expr ;
 
 DeclType		:	DeclMod "IDENT" DeclAux
@@ -109,10 +112,3 @@ For				:	for ( Decl in Expr ) Stmt
 
 
 FuncDefn		:	"function" DeclType "IDENT" "(" { Decl , } ")" StmtBlock
-
-
-
-		
-
-
-

@@ -137,6 +137,12 @@ bool prodNumericLiteral(PState *ps);
 bool prodNumericLiteralFact1(PState *ps);
 bool prodNumericLiteralFact2(PState *ps);
 
+
+bool prodDotSomething(PState *ps);
+bool prodDotSomethingFact1(PState *ps);
+bool prodDotSomethingFact2(PState *ps);
+
+
 bool prodVarValue(PState *ps);
 bool prodVarValueFact1(PState *ps);
 bool prodVarValueFact2(PState *ps);

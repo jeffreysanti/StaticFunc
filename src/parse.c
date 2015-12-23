@@ -276,6 +276,21 @@ bool termMul(PState *ps){
 }bool termLambda(PState *ps){
 	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "lambda")==0);
 	return advanceToken(ps, ret);
+}bool termPush(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "push")==0);
+	return advanceToken(ps, ret);
+}bool termPop(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "pop")==0);
+	return advanceToken(ps, ret);
+}bool termQueue(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "queue")==0);
+	return advanceToken(ps, ret);
+}bool termDequeue(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "dequeue")==0);
+	return advanceToken(ps, ret);
+}bool termSize(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "size")==0);
+	return advanceToken(ps, ret);
 }
 
 
@@ -504,17 +519,72 @@ bool prodExprAFact1(PState *ps){
 }*/
 
 
-// VarValue
-bool prodVarValue(PState *ps){
+// DotSomething
+bool dotMethodHelper(PState *ps, int pcount, char *typ, PTree *root){
+	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
+	root->tok = (LexicalToken*)ps->token->prev;
+	if(!termParenLeft(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS126", "Dot Method .%s expected left paren: Line %d\n", ps->token->lineNo);
+	}
+	if(pcount > 0){
+		PTree *p = newParseTree(PTT_PARAM_CONT);
+		setParseNodeChild(root, p, PC_RIGHT);
+		if(!prodExpr(ps)){
+			resetChildNode(ps, root);
+			reportParseError(ps, "PS127", "Dot Method .%s expected paramater: Line %d\n", ps->token->lineNo);
+		}
+		setParseNodeChild(p, storeAndNullChildNode(ps), PC_RIGHT);
+		for(int i=1; i<pcount; i++){
+			PTree *pnew = newParseTree(PTT_PARAM_CONT);
+			setParseNodeChild(p, pnew, PC_LEFT);
+			if(!termComma(ps) || !prodExpr(ps)){
+				resetChildNode(ps, root);
+				reportParseError(ps, "PS128", "Dot Method .%s expected comma and paramater: Line %d\n", ps->token->lineNo);
+			}
+			setParseNodeChild(pnew, storeAndNullChildNode(ps), PC_RIGHT);
+			p = pnew;
+		}
+	}
+	if(!termParenRight(ps)){
+		resetChildNode(ps, root);
+		return reportParseError(ps, "PS129", "Dot Method .%s expected right paren: Line %d\n", ps->token->lineNo);
+	}
+	ps->child = root;
+	return true;
+}
+bool prodDotSomething(PState *ps){
 	LexicalToken *start = ps->token;
-	bool 	ret = prodVarValueFact1(ps); if(!ret) ps->token = start; else return true;
-			ret = prodVarValueFact2(ps); if(!ret) ps->token = start; else return true;
-			ret = prodVarValueFact3(ps); if(!ret) ps->token = start; else return true;
-			ret = prodVarValueFact4(ps); if(!ret) ps->token = start; else return true;
+	bool	ret = prodDotSomethingFact1(ps); if(!ret) ps->token = start; else return true;
+				ret = prodDotSomethingFact2(ps); if(!ret) ps->token = start; else return true;
 	return false;
-}bool prodVarValueFact1(PState *ps){ // op1.op2
-	if(!termDot(ps))
-		return false;
+}
+bool resetToken(PState *ps, LexicalToken *start){
+	ps->token = start;
+	return true;
+}
+bool prodDotSomethingFact1(PState *ps){ // op1.push, op1.queue
+	PTree *root = NULL;
+	bool success = false;
+	LexicalToken *start = ps->token;
+	if(termDequeue(ps)){
+		root = newParseTree(PTT_DEQUEUE);
+		success = dotMethodHelper(ps, 0, "dequeue", root);
+	}else if(resetToken(ps, start) && termPop(ps)){
+		root = newParseTree(PTT_POP);
+		success = dotMethodHelper(ps, 0, "pop", root);
+	}else if(resetToken(ps, start) && termSize(ps)){
+		root = newParseTree(PTT_SIZE);
+		success = dotMethodHelper(ps, 0, "size", root);
+	}else if(resetToken(ps, start) && termPush(ps)){
+		root = newParseTree(PTT_PUSH);
+		success = dotMethodHelper(ps, 1, "push", root);
+	}else if(resetToken(ps, start) && termQueue(ps)){
+		root = newParseTree(PTT_QUEUE);
+		success = dotMethodHelper(ps, 1, "queue", root);
+	}
+	return success && prodVarValue(ps);
+}bool prodDotSomethingFact2(PState *ps){ // op1.tupleIdent
 	PTree *root = newParseTree(PTT_DOT);
 	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
 	root->tok = (LexicalToken*)ps->token->prev;
@@ -527,6 +597,23 @@ bool prodVarValue(PState *ps){
 	setParseNodeChild(root, op2, PC_RIGHT);
 	ps->child = root;
 	return prodVarValue(ps);
+}
+
+
+
+
+// VarValue
+bool prodVarValue(PState *ps){
+	LexicalToken *start = ps->token;
+	bool 	ret = prodVarValueFact1(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact2(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact3(ps); if(!ret) ps->token = start; else return true;
+			ret = prodVarValueFact4(ps); if(!ret) ps->token = start; else return true;
+	return false;
+}bool prodVarValueFact1(PState *ps){ // op1.op2
+	if(!termDot(ps))
+		return false;
+	return prodDotSomething(ps);
 }bool prodVarValueFact2(PState *ps){ // op1[op2]
 	if(!termSqbrLeft(ps))
 		return false;
@@ -1223,7 +1310,3 @@ bool prodFuncDefn(PState *ps){
 	ps->child = root;
 	return true;
 }
-
-
-
-

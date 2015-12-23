@@ -66,6 +66,4 @@ void initalizeBuiltInFunctions()
 	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT32));
 	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT64));
 
-
 }
-

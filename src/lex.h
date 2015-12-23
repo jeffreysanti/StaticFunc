@@ -232,7 +232,12 @@ static bool matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "for") ||
 			matchStringPattern(fulltxt, cpos, clen, "while") ||
 			matchStringPattern(fulltxt, cpos, clen, "if") ||
-			matchStringPattern(fulltxt, cpos, clen, "else")){
+			matchStringPattern(fulltxt, cpos, clen, "else") ||
+			matchStringPattern(fulltxt, cpos, clen, "size") ||
+			matchStringPattern(fulltxt, cpos, clen, "queue") ||
+			matchStringPattern(fulltxt, cpos, clen, "push") ||
+			matchStringPattern(fulltxt, cpos, clen, "pop") ||
+			matchStringPattern(fulltxt, cpos, clen, "dequeue")){
 
 		// next character must be non-alpha-numeric
 		if(isAlpha(fulltxt[*cpos]) || isNumeric(fulltxt[*cpos]))
