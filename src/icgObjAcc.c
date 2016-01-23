@@ -23,9 +23,6 @@ static inline int getTupleIndex(Type tuple, char *ident){
 }
 
 ICGElm * icGenDot(PTree *root, ICGElm *prev){
-
-	dumpParseTreeDet(root, 0, stdout);
-
 	char *tempVar = newTempVariable(root->finalType);
 	ICGElmOp *res = NULL;
 	if(isTypeNumeric(root->finalType)){
@@ -161,6 +158,52 @@ ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev){
 }
 
 
+ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
+  
+  char *tempVar = newTempVariable(root->finalType);
+  ICGElmOp *res = NULL;
+  ICGElmOp *op1 = NULL;
+  ICGElmOp *op2 = NULL;
+
+  if(root->typ != PTT_PUSH && root->typ != PTT_QUEUE){
+     if(isTypeNumeric(root->finalType)){
+	     res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+     }else{
+	     res = newOp(ICGO_OBJREF, getSymbolUniqueName(tempVar));
+     }
+  }
+  
+  
+  // load pointer to object
+  prev = icGen((PTree*)root->child1, prev); // for op1
+  op1 = newOpCopyData(prev->result->typ, prev->result->data);
+  
+  if(root->typ == PTT_QUEUE || root->typ == PTT_PUSH){
+    prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
+    op2 = newOpCopyData(prev->result->typ, prev->result->data);
+  }
+
+  if(root->typ == PTT_PUSH)
+    prev = newICGElm(prev, ICG_VPUSH, typeToICGDataType(root->finalType), root);
+  else if(root->typ == PTT_POP)
+    prev = newICGElm(prev, ICG_VPOP, typeToICGDataType(root->finalType), root);
+  else if(root->typ == PTT_QUEUE)
+    prev = newICGElm(prev, ICG_VQUEUE, typeToICGDataType(root->finalType), root);
+  else if(root->typ == PTT_DEQUEUE)
+    prev = newICGElm(prev, ICG_VDEQUEUE, typeToICGDataType(root->finalType), root);
+  else
+    prev = newICGElm(prev, ICG_VSIZE, typeToICGDataType(root->finalType), root);
+
+  prev->result = res;
+  prev->op1 = op1;
+  prev->op2 = op2;
+  
+  return prev;
+}
+
+
+
+
 
 
 void icGenDot_print(ICGElm *elm, FILE* f)
@@ -185,3 +228,33 @@ void icGenArrAcc_print(ICGElm *elm, FILE* f)
 		fprintf(f, "$%s, $%s", elm->op1->data, elm->op2->data);
 	}
 }
+
+
+void icGenVecMethod_print(ICGElm *elm, FILE* f) {
+
+  if(elm->typ == ICG_VPUSH) fprintf(f, "vpush");
+  if(elm->typ == ICG_VPOP) fprintf(f, "vpop");
+  if(elm->typ == ICG_VQUEUE) fprintf(f, "vqueue");
+  if(elm->typ == ICG_VDEQUEUE) fprintf(f, "vdequeue");
+  if(elm->typ == ICG_VSIZE) fprintf(f, "vsize");
+
+  if(elm->result != NULL){
+    	if(elm->result->typ == ICGO_NUMERICLIT){
+		fprintf(f, " %s, ", elm->result->data);
+	}else{
+		fprintf(f, " $%s, ", elm->result->data);
+	}
+  }else{
+    fprintf(f, " nil, ");
+  }
+  fprintf(f, "$%s", elm->op1->data);
+  if(elm->op2 != NULL){
+    	if(elm->op2->typ == ICGO_NUMERICLIT){
+		fprintf(f, ", %s", elm->op2->data);
+	}else{
+		fprintf(f, ", $%s", elm->op2->data);
+	}
+  }
+}
+
+

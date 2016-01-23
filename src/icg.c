@@ -50,6 +50,9 @@ extern ICGElm * icGenWhile(PTree *root, ICGElm *prev);
 extern ICGElm * icGenFor(PTree *root, ICGElm *prev);
 extern void icGenFor_print(ICGElm *elm, FILE* f);
 
+extern ICGElm * icGenVecMethod(PTree *root, ICGElm *prev);
+extern void icGenVecMethod_print(ICGElm *elm, FILE* f);
+
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
 	ICGElm *ret = malloc(sizeof(ICGElm));
@@ -113,7 +116,7 @@ void freeICGElm(ICGElm *elm)
 
 void printSingleICGElm(ICGElm *elm, FILE *f){
 	if(elm->typ == ICG_NONE || elm->typ == ICG_IDENT){
-		//fprintf(f, "nop");
+	  //fprintf(f, "nop");
 	}else if(elm->typ == ICG_DEFINE){
 		icGenDecl_print(elm, f);
 	}else if(elm->typ == ICG_MOV){
@@ -129,6 +132,9 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 			elm->typ == ICG_DICTSTORE || elm->typ == ICG_NEWTUPLE || elm->typ == ICG_TPLSTORE ||
 			elm->typ == ICG_NEWSET || elm->typ == ICG_SETSTORE){
 		icGenArray_print(elm, f);
+	}else if(elm->typ == ICG_VPUSH || elm->typ == ICG_VPOP || elm->typ == ICG_VQUEUE || elm->typ == ICG_VDEQUEUE ||
+		 elm->typ == ICG_VSIZE){
+	  icGenVecMethod_print(elm, f);
 	}else if(elm->typ == ICG_TPLLOAD){
 		icGenDot_print(elm, f);
 	}else if(elm->typ == ICG_DICTLOAD || elm->typ == ICG_VECLOAD){
@@ -197,6 +203,9 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenArith(root, prev);
 	}else if(root->typ == PTT_ARRAY_ELM){
 		prev = icGenArray(root, prev);
+	}else if(root->typ == PTT_POP || root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_DEQUEUE ||
+		 root->typ == PTT_SIZE){
+	  prev = icGenVecMethod(root, prev);
 	}else if(root->typ == PTT_DOT){
 		prev = icGenDot(root, prev);
 	}else if(root->typ == PTT_ARR_ACCESS){

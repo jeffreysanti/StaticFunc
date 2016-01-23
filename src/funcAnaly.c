@@ -702,9 +702,75 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		setTypeDeductions(root, ret);
 		setTypeDeductions((PTree*)root->child1, tuples);
 		return ret;
+	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE){
+	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
+	  TypeDeductions rhs = deduceTreeType((PTree*)((PTree*)root->child2)->child2, err, cd); // element being added
+
+	  TypeDeductions matchedRHS = newTypeDeductions();
+	  addVectorsOfTypeDeduction(&matchedRHS, rhs);
+	  
+	  if(*err > 0){
+	    reportError("SA121", "Push/Queue Failed (Prev Error): Line %d", root->tok->lineNo);
+	    TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+	    setTypeDeductions(root, tmpret);
+	    return tmpret;
+	  }
+
+	  TypeDeductions res = mergeTypeDeductionsOrErr(lhs, matchedRHS, err);
+	  freeTypeDeductions(matchedRHS);
+	  if(*err > 0){
+		  reportError("SA083", "Push/Queue must be applied to vector of added type. Line %d", root->tok->lineNo);
+		  TypeDeductions ret = singleTypeDeduction(newBasicType(TB_ERROR));
+		  setTypeDeductions(root, ret);
+		  return ret;
+	  }
+	  matchedRHS = newTypeDeductions();
+	  singlesOfVectorsTypeDeduction(&matchedRHS, res); // extract original types for parameter
+	  setTypeDeductions((PTree*)((PTree*)root->child2)->child2, matchedRHS);
+	  freeTypeDeductions(res);
+
+	  TypeDeductions ret = singleTypeDeduction(newBasicType(TB_NATIVE_VOID));
+	  setTypeDeductions(root, ret);
+	  return ret;
 	}
+	else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE){
+	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
+	  TypeDeductions innerType = newTypeDeductions();
+	  singlesOfVectorsTypeDeduction(&innerType, lhs);
 
+	  if(utarray_len(innerType._types) == 0){
+		(*err) ++;
+		reportError("SA087", "Cannot Pop/Dequeue Non Vector Type: Line %d", root->tok->lineNo);
+		reportTypeDeductions("FOUND", lhs);
+		TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+	        setTypeDeductions(root, tmpret);
+		freeTypeDeductions(innerType);
+	        return tmpret;
+	  }
 
+	  setTypeDeductions(root, innerType);
+	  return innerType;
+	}
+	else if(root->typ == PTT_SIZE){
+	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
+	  TypeDeductions innerType = newTypeDeductions();
+	  singlesOfVectorsTypeDeduction(&innerType, lhs);
+
+	  if(utarray_len(innerType._types) == 0){
+		(*err) ++;
+		reportError("SA087", "Size must be applied to vector type: Line %d", root->tok->lineNo);
+		reportTypeDeductions("FOUND", lhs);
+		TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+	        setTypeDeductions(root, tmpret);
+		freeTypeDeductions(innerType);
+	        return tmpret;
+	  }
+	  freeTypeDeductions(innerType);
+	  innerType = singleTypeDeduction(newBasicType(TB_NATIVE_INT));
+	  setTypeDeductions(root, innerType);
+	  return innerType;
+	}
+	
 
 
 	reportError("SA010", "Unknown Tree Expression: %s", getParseNodeName(root));
@@ -944,6 +1010,11 @@ void propagateTreeType(PTree *root){
 		}
 		propagateTreeType((PTree*)root->child1);
 		// nothing on RHS except token
+	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE){
+	  propagateTreeType((PTree*)root->child1);
+	  propagateTreeType((PTree*)((PTree*)root->child2)->child2);
+	}else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE || root->typ == PTT_SIZE){
+	  propagateTreeType((PTree*)root->child1);
 	}else{
 		fatalError("No propagateTreeType for tree node!");
 	}
@@ -1107,6 +1178,12 @@ bool semAnalyStmt(PTree *root, Type sig)
 		freeType(sig);
 
 		return semAnalyStmt(decl, sig); // not start over with declaration & lambda
+	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_POP || root->typ == PTT_DEQUEUE){ // these can be statements or expressions
+		TypeDeductions td = deduceTreeType(root, &err, CAST_DOWN);
+		if(err > 0){
+			return false;
+		}
+		return finalizeSingleDeduction(root);
 	}else{
 		reportError("SA009", "Unknown Statement: %s", getParseNodeName(root));
 		return false;
