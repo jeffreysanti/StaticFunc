@@ -15,15 +15,9 @@
 #include "io.h"
 
 typedef enum{
-	TB_NATIVE_INT8,
-	TB_NATIVE_INT16,
-	TB_NATIVE_INT32,
-	TB_NATIVE_INT64,
-	//TB_ANY_INT,
-
-	TB_NATIVE_FLOAT32,
-	TB_NATIVE_FLOAT64,
-	//TB_ANY_FLOAT,
+	TB_NATIVE_INT,
+	
+	TB_NATIVE_FLOAT,
 
 	TB_NATIVE_BOOL,
 	TB_NATIVE_STRING,
@@ -125,7 +119,6 @@ Type getProgramReturnType();
 char *getTypeAsString(Type t);
 struct _PTree *getTypeAsPTree(Type t);
 
-Type getMostGeneralType(Type t1, Type t2);
 
 Type getLogicalIntegerTypeByLiteral(char *lit);
 Type getLogicalFloatTypeByLiteral(char *lit);

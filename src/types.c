@@ -19,21 +19,17 @@ Type TprogRet;
 
 void initTypeSystem()
 {
-	registerType("int8", newBasicType(TB_NATIVE_INT8));
-	registerType("int16", newBasicType(TB_NATIVE_INT16));
-	registerType("int32", newBasicType(TB_NATIVE_INT32));
-	registerType("int64", newBasicType(TB_NATIVE_INT64));
+	registerType("int", newBasicType(TB_NATIVE_INT));
 
-	registerType("float32", newBasicType(TB_NATIVE_FLOAT32));
-	registerType("float64", newBasicType(TB_NATIVE_FLOAT64));
-
+	registerType("float", newBasicType(TB_NATIVE_FLOAT));
+	
 	//registerType("char", newBasicType(TB_NATIVE_CHAR));
 	registerType("bool", newBasicType(TB_NATIVE_BOOL));
 	registerType("string", newBasicType(TB_NATIVE_STRING));
 
 	TprogRet = newBasicType(TB_FUNCTION);
 	allocTypeChildren(&TprogRet, 1);
-	((Type*)TprogRet.children)[0] = newBasicType(TB_NATIVE_INT32);
+	((Type*)TprogRet.children)[0] = newBasicType(TB_NATIVE_INT);
 }
 
 Type getProgramReturnType()
@@ -563,12 +559,10 @@ char *getDeclTypeListName(PTree *t)
 char *getTypeAsString(Type t)
 {
 	int len = 0;
-	if(t.base == TB_NATIVE_INT8)
-		len += 4;
-	if(t.base == TB_NATIVE_INT16 || t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64)
+	if(t.base == TB_NATIVE_INT)
+		len += 3;
+	if(t.base == TB_NATIVE_FLOAT)
 		len += 5;
-	if(t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64)
-		len += 7;
 	if(t.base == TB_NATIVE_BOOL /*|| t.base == TB_NATIVE_CHAR*/ || t.base == TB_NATIVE_VOID)
 		len += 4;
 	if(t.base == TB_VECTOR || t.base == TB_NATIVE_STRING)
@@ -581,10 +575,6 @@ char *getTypeAsString(Type t)
 		len += 3;
 	if(t.base == TB_FUNCTION)
 		len += 8;
-	/*if(t.base == TB_ANY_INT)
-		len += 6;
-	if(t.base == TB_ANY_FLOAT)
-			len += 8;*/
 	if(len == 0){
 		char *ret = malloc(4*sizeof(char));
 		strcpy(ret, "???");
@@ -606,12 +596,8 @@ char *getTypeAsString(Type t)
 	}
 	char *ret = calloc(len+1, sizeof(char));
 	char *ptr = ret;
-	if(t.base == TB_NATIVE_INT8) { strcpy(ptr, "int8"); ptr += 4; }
-	if(t.base == TB_NATIVE_INT16) { strcpy(ptr, "int16"); ptr += 5; }
-	if(t.base == TB_NATIVE_INT32) { strcpy(ptr, "int32"); ptr += 5; }
-	if(t.base == TB_NATIVE_INT64) { strcpy(ptr, "int64"); ptr += 5; }
-	if(t.base == TB_NATIVE_FLOAT32) { strcpy(ptr, "float32"); ptr += 7; }
-	if(t.base == TB_NATIVE_FLOAT64) { strcpy(ptr, "float64"); ptr += 7; }
+	if(t.base == TB_NATIVE_INT) { strcpy(ptr, "int"); ptr += 3; }
+	if(t.base == TB_NATIVE_FLOAT) { strcpy(ptr, "float"); ptr += 5; }
 	if(t.base == TB_NATIVE_BOOL) { strcpy(ptr, "bool"); ptr += 4; }
 	//if(t.base == TB_NATIVE_CHAR) { strcpy(ptr, "char"); ptr += 4; }
 	if(t.base == TB_NATIVE_VOID) { strcpy(ptr, "void"); ptr += 4; }
@@ -621,8 +607,6 @@ char *getTypeAsString(Type t)
 	if(t.base == TB_TUPLE) { strcpy(ptr, "tuple"); ptr += 5; }
 	if(t.base == TB_SET) { strcpy(ptr, "set"); ptr += 3; }
 	if(t.base == TB_FUNCTION) { strcpy(ptr, "function"); ptr += 8; }
-	//if(t.base == TB_ANY_INT) { strcpy(ptr, "anyint"); ptr += 6; }
-	//if(t.base == TB_ANY_FLOAT) { strcpy(ptr, "anyfloat"); ptr += 8; }
 
 	if(t.numchildren > 0){
 		strcpy(ptr, "<"); ptr += 1;
@@ -645,34 +629,16 @@ char *getTypeAsString(Type t)
 	return ret;
 }
 
-Type getMostGeneralType(Type t1, Type t2)
-{
-	if(t1.base == TB_NATIVE_FLOAT64 || t2.base == TB_NATIVE_FLOAT64)
-		return newBasicType(TB_NATIVE_FLOAT64);
-	if(t1.base == TB_NATIVE_FLOAT32 || t2.base == TB_NATIVE_FLOAT32)
-			return newBasicType(TB_NATIVE_FLOAT32);
-	if(t1.base == TB_NATIVE_INT64 || t2.base == TB_NATIVE_INT64)
-			return newBasicType(TB_NATIVE_INT64);
-	if(t1.base == TB_NATIVE_INT32 || t2.base == TB_NATIVE_INT32)
-			return newBasicType(TB_NATIVE_INT32);
-	if(t1.base == TB_NATIVE_INT16 || t2.base == TB_NATIVE_INT16)
-			return newBasicType(TB_NATIVE_INT16);
-	if(t1.base == TB_NATIVE_INT8 || t2.base == TB_NATIVE_INT8)
-			return newBasicType(TB_NATIVE_INT8);
 
-	// ??
-	fatalError("getMostGeneralType : With Unknown Base Type");
-	return t1;
-}
 
 Type getLogicalIntegerTypeByLiteral(char *lit)
 {
-	return newBasicType(TB_NATIVE_INT8); // TODO
+	return newBasicType(TB_NATIVE_INT); // TODO
 }
 
 Type getLogicalFloatTypeByLiteral(char *lit)
 {
-	return newBasicType(TB_NATIVE_FLOAT32); // TODO
+	return newBasicType(TB_NATIVE_FLOAT); // TODO
 }
 
 
@@ -723,56 +689,10 @@ TypeDeductions singleTypeDeduction(Type t){
 TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 {
 	TypeDeductions ret = newTypeDeductions();
-	if(type.base == TB_NATIVE_INT8){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
-		}
-	}else if(type.base == TB_NATIVE_INT16){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
-		}
-	}else if(type.base == TB_NATIVE_INT32){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
-		}
-	}else if(type.base == TB_NATIVE_INT64){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT8));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT16));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT64));
-		}
-	}else if(type.base == TB_NATIVE_FLOAT32){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-		}
-	}else if(type.base == TB_NATIVE_FLOAT64){
-		if(cd == CAST_UP){
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
-		}else{
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT32));
-			addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT64));
-		}
+	if(type.base == TB_NATIVE_INT){
+	  addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_INT));
+	}else if(type.base == TB_NATIVE_FLOAT){
+	    addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_FLOAT));
 	}else if(type.base == TB_NATIVE_STRING){
 		addTypeDeductionsType(&ret, newBasicType(TB_NATIVE_STRING));
 	}else if(type.base == TB_VECTOR){
@@ -1023,10 +943,7 @@ void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, i
 
 bool isTypeNumeric(Type t)
 {
-	return (t.base == TB_NATIVE_INT8 || t.base == TB_NATIVE_INT16 ||
-			t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_INT64 ||
-			t.base == TB_NATIVE_FLOAT32 || t.base == TB_NATIVE_FLOAT64 ||
-			t.base == TB_NATIVE_BOOL);
+  return (t.base == TB_NATIVE_INT || t.base == TB_NATIVE_FLOAT || t.base == TB_NATIVE_BOOL);
 }
 
 

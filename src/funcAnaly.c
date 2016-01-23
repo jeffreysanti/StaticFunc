@@ -307,8 +307,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			root->typ == PTT_SHR || root->typ == PTT_SHL ||
 			root->typ == PTT_EXP || root->typ == PTT_AND || root->typ == PTT_OR || root->typ == PTT_AND || root->typ == PTT_NOT ||
 			root->typ == PTT_XOR || root->typ == PTT_MOD){
-		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
-		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
+		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
+		TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT), CAST_UP);
 
 		TypeDeductions ch1 = deduceTreeType((PTree*)root->child1, err, cd);
 
@@ -355,8 +355,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 
 		if(root->typ == PTT_GT || root->typ == PTT_LT || root->typ == PTT_GTE || root->typ == PTT_LTE){
-			TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
-			TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP);
+			TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
+			TypeDeductions tFloats = expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT), CAST_UP);
 
 			if(!(	typeDeductionMergeExists(overlap, tInts) ||
 								typeDeductionMergeExists(overlap, tFloats))){
@@ -370,8 +370,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		}
 
 		// If these are objects, we must make a call to PTT_OBJECT_EQUAL_CHECK
-		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
-		appendToTypeDeductionAndFree(&booleanType, expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT32), CAST_UP));
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
+		appendToTypeDeductionAndFree(&booleanType, expandedTypeDeduction(newBasicType(TB_NATIVE_FLOAT), CAST_UP));
 		TypeDeductions res = mergeTypeDeductions(overlap, booleanType);
 		freeTypeDeductions(booleanType);
 		if(utarray_len(res._types) == 0){ // non-boolean
@@ -384,7 +384,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			root->child1 = (void*)checkNode;
 			root->child2 = NULL;
 			setTypeDeductions(checkNode, overlap);
-			overlap = singleTypeDeduction(newBasicType(TB_NATIVE_INT8)); // boolean type now
+			overlap = singleTypeDeduction(newBasicType(TB_NATIVE_INT)); // boolean type now
 		}
 		freeTypeDeductions(res);
 
@@ -544,7 +544,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		PTree *cond = (PTree*)dataOut->child2;
 
 		if(cond != NULL){
-			TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+			TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
 			TypeDeductions deduced = deduceTreeType(cond, err, cd);
 
 			TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, err);
@@ -612,7 +612,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		// need to determine structure type
 		// integer => vector
 		// anything => dictionary
-		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions tInts = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
 		int i = 0;
 		if(typeDeductionMergeExists(rhs, tInts)){ // lhs might be a vector
 			TypeDeductions tmptd = newTypeDeductions();
@@ -912,7 +912,7 @@ void propagateTreeType(PTree *root){
 				if(typesEqualMostly(tmp, final)){ // success -- here's the key & value
 					PTree *treeL = (PTree*)root->child1;
 					PTree *treeR = (PTree*)root->child2;
-					setFinalTypeDeduction(treeR, newBasicType(TB_NATIVE_INT64));
+					setFinalTypeDeduction(treeR, newBasicType(TB_NATIVE_INT));
 					setFinalTypeDeduction(treeL, duplicateType(*p));
 					break;
 				}
@@ -987,7 +987,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 
-		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
 		TypeDeductions deduced = deduceTreeType(cond, &err, CAST_UP);
 
 		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);
@@ -1010,7 +1010,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 		PTree *cond = (PTree*)root->child1;
 		PTree *branch = (PTree*)root->child2;
 
-		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT8), CAST_UP);
+		TypeDeductions booleanType = expandedTypeDeduction(newBasicType(TB_NATIVE_INT), CAST_UP);
 		TypeDeductions deduced = deduceTreeType(cond, &err, CAST_UP);
 
 		TypeDeductions res = mergeTypeDeductionsOrErr(deduced, booleanType, &err);

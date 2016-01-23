@@ -17,29 +17,11 @@ Type sig_void_string(){
 	return typ;
 }
 
-Type sig_string_int8(){
+Type sig_string_int(){
 	Type typ = newBasicType(TB_FUNCTION);
 	allocTypeChildren(&typ, 1 + 1);
 	((Type*)typ.children)[0] = newBasicType(TB_NATIVE_STRING);
-	((Type*)typ.children)[1] = newBasicType(TB_NATIVE_INT8);
-	return typ;
-}Type sig_string_int16(){
-	Type typ = newBasicType(TB_FUNCTION);
-	allocTypeChildren(&typ, 1 + 1);
-	((Type*)typ.children)[0] = newBasicType(TB_NATIVE_STRING);
-	((Type*)typ.children)[1] = newBasicType(TB_NATIVE_INT16);
-	return typ;
-}Type sig_string_int32(){
-	Type typ = newBasicType(TB_FUNCTION);
-	allocTypeChildren(&typ, 1 + 1);
-	((Type*)typ.children)[0] = newBasicType(TB_NATIVE_STRING);
-	((Type*)typ.children)[1] = newBasicType(TB_NATIVE_INT32);
-	return typ;
-}Type sig_string_int64(){
-	Type typ = newBasicType(TB_FUNCTION);
-	allocTypeChildren(&typ, 1 + 1);
-	((Type*)typ.children)[0] = newBasicType(TB_NATIVE_STRING);
-	((Type*)typ.children)[1] = newBasicType(TB_NATIVE_INT64);
+	((Type*)typ.children)[1] = newBasicType(TB_NATIVE_INT);
 	return typ;
 }
 
@@ -56,14 +38,8 @@ void initalizeBuiltInFunctions()
 {
 	registerNativeFunction("println", sig_void_string());
 
-	registerNativeFunction("string", sig_string_int8());
-	registerNativeFunction("string", sig_string_int16());
-	registerNativeFunction("string", sig_string_int32());
-	registerNativeFunction("string", sig_string_int64());
+	registerNativeFunction("string", sig_string_int());
 
-	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT8));
-	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT16));
-	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT32));
-	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT64));
+	registerNativeFunction("range", sig_vecx_x_x(TB_NATIVE_INT));
 
 }

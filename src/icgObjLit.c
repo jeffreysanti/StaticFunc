@@ -30,19 +30,7 @@ static inline ICGElmOp *bitSizeTupleOp(Type t){
 	int i;
 	for(i=0; i<t.numchildren; i++){
 		Type child = ((Type*)t.children)[i];
-		if(child.base == TB_NATIVE_INT8){
-			sprintf(dta, "1;");
-			dta += 2;
-		}
-		else if(child.base == TB_NATIVE_INT16){
-			sprintf(dta, "2;");
-			dta += 2;
-		}
-		else if(child.base == TB_NATIVE_INT32 || child.base == TB_NATIVE_FLOAT32){
-			sprintf(dta, "4;");
-			dta += 2;
-		}
-		else if(child.base == TB_NATIVE_INT64 || child.base == TB_NATIVE_FLOAT64){
+		if(child.base == TB_NATIVE_INT || child.base == TB_NATIVE_FLOAT){
 			sprintf(dta, "8;");
 			dta += 2;
 		}
@@ -56,11 +44,7 @@ static inline ICGElmOp *bitSizeTupleOp(Type t){
 
 static inline ICGElmOp *bitSizeOp(Type t){
 	ICGElmOp *op = NULL;
-	if(t.base == TB_NATIVE_INT8) op = newOpCopyData(ICGO_NUMERICLIT, "1");
-	else if(t.base == TB_NATIVE_INT16) op = newOpCopyData(ICGO_NUMERICLIT, "2");
-	else if(t.base == TB_NATIVE_INT32 || t.base == TB_NATIVE_FLOAT32)
-		op = newOpCopyData(ICGO_NUMERICLIT, "4");
-	else if(t.base == TB_NATIVE_INT64 || t.base == TB_NATIVE_FLOAT64)
+	if(t.base == TB_NATIVE_INT || t.base == TB_NATIVE_FLOAT)
 		op = newOpCopyData(ICGO_NUMERICLIT, "8");
 	else
 		op = newOpCopyData(ICGO_NUMERICLIT, "PTR");

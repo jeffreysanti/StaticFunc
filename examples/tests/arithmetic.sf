@@ -1,9 +1,9 @@
 
-float64 x(8.23);
-float64 y(2.53);
+float x(8.23);
+float y(2.53);
 
-float64 z;
-int32 i;
+float z;
+int i;
 
 z = y + x;
 z = y - x;

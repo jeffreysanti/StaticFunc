@@ -200,10 +200,7 @@ static bool matchOperator(char *fulltxt, long *cpos, long clen)
 
 static bool matchInlineTypes(char *fulltxt, long *cpos, long clen)
 {
-	if(		matchStringPattern(fulltxt, cpos, clen, "int64") ||
-			matchStringPattern(fulltxt, cpos, clen, "int32") ||
-			matchStringPattern(fulltxt, cpos, clen, "int16") ||
-			matchStringPattern(fulltxt, cpos, clen, "int8") ||
+	if(		matchStringPattern(fulltxt, cpos, clen, "int") ||
 			matchStringPattern(fulltxt, cpos, clen, "vector") ||
 			matchStringPattern(fulltxt, cpos, clen, "string"))
 		return true;

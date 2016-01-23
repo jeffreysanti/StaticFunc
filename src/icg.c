@@ -293,18 +293,10 @@ ICGElmOp *newOpInt(ICGElmOpType typ, int val)
 ICGDataType typeToICGDataType(Type d)
 {
 	ICGDataType dt = ICGDT_NONE;
-	if(d.base == TB_NATIVE_INT8 || d.base == TB_NATIVE_BOOL){
-		dt = ICGDT_INT8;
-	}else if(d.base == TB_NATIVE_INT16){
-		dt = ICGDT_INT16;
-	}else if(d.base == TB_NATIVE_INT32){
-		dt = ICGDT_INT32;
-	}else if(d.base == TB_NATIVE_INT64){
-		dt = ICGDT_INT64;
-	}else if(d.base == TB_NATIVE_FLOAT32){
-		dt = ICGDT_FLOAT32;
-	}else if(d.base == TB_NATIVE_FLOAT64){
-		dt = ICGDT_FLOAT64;
+	if(d.base == TB_NATIVE_INT || d.base == TB_NATIVE_BOOL){
+		dt = ICGDT_INT;
+	}else if(d.base == TB_NATIVE_FLOAT){
+		dt = ICGDT_FLOAT;
 	}else{
 		dt = ICGDT_PTR;
 	}
@@ -312,18 +304,10 @@ ICGDataType typeToICGDataType(Type d)
 }
 
 void printICGTypeSuffix(ICGElm *elm, FILE* f){
-	if(elm->dataType == ICGDT_INT8){
-		fprintf(f, "i8");
-	}else if(elm->dataType == ICGDT_INT16){
-		fprintf(f, "i16");
-	}else if(elm->dataType == ICGDT_INT32){
-		fprintf(f, "i32");
-	}else if(elm->dataType == ICGDT_INT64){
-		fprintf(f, "i64");
-	}else if(elm->dataType == ICGDT_FLOAT32){
-		fprintf(f, "f32");
-	}else if(elm->dataType == ICGDT_FLOAT64){
-		fprintf(f, "f64");
+	if(elm->dataType == ICGDT_INT){
+		fprintf(f, "i");
+	}else if(elm->dataType == ICGDT_FLOAT){
+		fprintf(f, "f");
 	}else if(elm->dataType == ICGDT_PTR){
 		fprintf(f, "p");
 	}else{
