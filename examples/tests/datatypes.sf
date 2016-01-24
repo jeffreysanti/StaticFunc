@@ -5,6 +5,12 @@ string s;
 
 vector<string> myarray(["the", "cat", "in"]);
 s = myarray[0];
+myarray[1] = "kitten";
+if(!myarray.contains("hat")){
+	myarray.push("hat");
+}else{
+	myarray.remove("hat");
+}
 
 vector<int> myarray2([2*ci for int ci in [0,1,2,3]]);
 myarray2.queue(4); // to front
@@ -15,6 +21,13 @@ x = myarray2.size();
 myarray2 = [ci + 13 for int ci in myarray2 where ci != 13]; // add 13 to all elements
 
 dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
+x = mydict.size();
+if(mydict.contains("w")){
+	mydict.remove("w");
+}
+mydict["z"] = "cheese";
+s = mydict["b"];
+
 dict<int, int> mydict2([ci:2*ci for int ci in [0,1,2,3,4,5,6,7,8,9] where ci % 2 == 0]);
 
 tuple<string:a, int:b> mytuple(["the", 5]);

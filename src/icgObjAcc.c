@@ -141,7 +141,11 @@ ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int d
 
 			ICGElmOp *op2 = newOpCopyData(src->result->typ, src->result->data);
 
-			prev = newICGElm(prev, ICG_TPLSTORE, typeToICGDataType(root->finalType), root);
+			if(pArray->finalType.base == TB_DICT){
+			  prev = newICGElm(prev, ICG_DICTSTORE, typeToICGDataType(root->finalType), root);
+			}else{ // vector
+			  prev = newICGElm(prev, ICG_VECSTORE, typeToICGDataType(root->finalType), root);
+			}
 			prev->result = res;
 			prev->op1 = op1;
 			prev->op2 = op2;
@@ -194,6 +198,43 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   else
     prev = newICGElm(prev, ICG_VSIZE, typeToICGDataType(root->finalType), root);
 
+  prev->result = res;
+  prev->op1 = op1;
+  prev->op2 = op2;
+  
+  return prev;
+}
+
+
+
+ICGElm * icGenRemoveContainsMethod(PTree *root, ICGElm *prev){
+  char *tempVar = newTempVariable(root->finalType);
+  ICGElmOp *res = NULL;
+  ICGElmOp *op1 = NULL;
+  ICGElmOp *op2 = NULL;
+
+  res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));  
+  
+  // load pointer to object
+  prev = icGen((PTree*)root->child1, prev); // for op1
+  op1 = newOpCopyData(prev->result->typ, prev->result->data);
+
+  // key we're compareing
+  prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
+  op2 = newOpCopyData(prev->result->typ, prev->result->data);
+  
+
+  if(((PTree*)root->child1)->finalType.base == TB_DICT){
+    if(root->typ == PTT_REMOVE)
+      prev = newICGElm(prev, ICG_DREMOVE, typeToICGDataType(root->finalType), root);
+    else
+      prev = newICGElm(prev, ICG_DCONTAINS, typeToICGDataType(root->finalType), root);
+  }else{
+    if(root->typ == PTT_REMOVE)
+      prev = newICGElm(prev, ICG_VREMOVE, typeToICGDataType(root->finalType), root);
+    else
+      prev = newICGElm(prev, ICG_VCONTAINS, typeToICGDataType(root->finalType), root);
+  }
   prev->result = res;
   prev->op1 = op1;
   prev->op2 = op2;
@@ -257,4 +298,20 @@ void icGenVecMethod_print(ICGElm *elm, FILE* f) {
   }
 }
 
+
+void icGenRemoveContainsMethod_print(ICGElm *elm, FILE* f) {
+
+  if(elm->typ == ICG_VREMOVE) fprintf(f, "vrem");
+  if(elm->typ == ICG_VCONTAINS) fprintf(f, "vcont");
+  if(elm->typ == ICG_DREMOVE) fprintf(f, "drem");
+  if(elm->typ == ICG_DCONTAINS) fprintf(f, "dcont");
+
+  fprintf(f, " %s, ", elm->result->data);
+  fprintf(f, "$%s", elm->op1->data);
+  if(elm->op2->typ == ICGO_NUMERICLIT){
+    fprintf(f, ", %s", elm->op2->data);
+  }else{
+    fprintf(f, ", $%s", elm->op2->data);
+  }
+}
 

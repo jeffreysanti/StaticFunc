@@ -291,6 +291,12 @@ bool termMul(PState *ps){
 }bool termSize(PState *ps){
 	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "size")==0);
 	return advanceToken(ps, ret);
+}bool termContains(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "contains")==0);
+	return advanceToken(ps, ret);
+}bool termRemove(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "remove")==0);
+	return advanceToken(ps, ret);
 }
 
 
@@ -582,6 +588,12 @@ bool prodDotSomethingFact1(PState *ps){ // op1.push, op1.queue
 	}else if(resetToken(ps, start) && termQueue(ps)){
 		root = newParseTree(PTT_QUEUE);
 		success = dotMethodHelper(ps, 1, "queue", root);
+	}else if(resetToken(ps, start) && termContains(ps)){
+		root = newParseTree(PTT_CONTAINS);
+		success = dotMethodHelper(ps, 1, "contains", root);
+	}else if(resetToken(ps, start) && termRemove(ps)){
+		root = newParseTree(PTT_REMOVE);
+		success = dotMethodHelper(ps, 1, "remove", root);
 	}
 	return success && prodVarValue(ps);
 }bool prodDotSomethingFact2(PState *ps){ // op1.tupleIdent

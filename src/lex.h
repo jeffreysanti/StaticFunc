@@ -231,6 +231,8 @@ static bool matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "if") ||
 			matchStringPattern(fulltxt, cpos, clen, "else") ||
 			matchStringPattern(fulltxt, cpos, clen, "size") ||
+			matchStringPattern(fulltxt, cpos, clen, "contains") ||
+			matchStringPattern(fulltxt, cpos, clen, "remove") ||
 			matchStringPattern(fulltxt, cpos, clen, "queue") ||
 			matchStringPattern(fulltxt, cpos, clen, "push") ||
 			matchStringPattern(fulltxt, cpos, clen, "pop") ||

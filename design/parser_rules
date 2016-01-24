@@ -40,7 +40,7 @@ VarValue	:	.   DotSomething
 			|	#
 
 DotSomething 	:			{queue/push} ( Expr )  VarValue
-							|			{dequeue/pop/size} ( ) VarValue
+							|			{dequeue/pop/size/contains/remove} ( ) VarValue
 							| 		"IDENT"  VarValue
 
 Val			:	NumLit

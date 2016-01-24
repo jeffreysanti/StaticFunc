@@ -906,3 +906,15 @@ void addTypeDeductionsType(TypeDeductions *dest, Type t)
 	}
 	utarray_push_back(dest->_types, &t);
 }
+
+void filterVectorAndDictTypes(TypeDeductions *dest, TypeDeductions in){
+  Type *p = NULL;
+  while((p=(Type*)utarray_next(in._types,p))){
+    if(p->base != TB_VECTOR && p->base != TB_DICT){
+      continue;
+    }
+    Type t = duplicateType(*p);
+    addTypeDeductionsType(dest, t);
+  }
+}
+

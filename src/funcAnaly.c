@@ -730,8 +730,44 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 	  TypeDeductions ret = singleTypeDeduction(newBasicType(TB_NATIVE_VOID));
 	  setTypeDeductions(root, ret);
 	  return ret;
-	}
-	else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE){
+	}else if(root->typ == PTT_REMOVE || root->typ == PTT_CONTAINS){
+	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
+	  TypeDeductions rhs = deduceTreeType((PTree*)((PTree*)root->child2)->child2, err, cd); // element being removed or checked
+	  
+	  TypeDeductions chosenLHS = newTypeDeductions();
+	  TypeDeductions chosenRHS = newTypeDeductions();
+	  Type *p = NULL;
+	  Type *q = NULL;
+	  while((p=(Type*)utarray_next(lhs._types,p))){
+	    if(p->base != TB_VECTOR && p->base != TB_DICT){
+	      continue;
+	    }
+	    while((q=(Type*)utarray_next(rhs._types,q))){
+	      if(typesEqualMostly(*q, ((Type*)p->children)[0])){
+		Type pc = duplicateType(*p);
+		Type qc = duplicateType(*q);
+		utarray_push_back(chosenLHS._types, &pc);
+		utarray_push_back(chosenRHS._types, &qc);
+	      }
+	    }
+	  }
+	  
+	  if(utarray_len(chosenLHS._types) == 0){
+		(*err) ++;
+		reportError("SA087", "Contains/Remove must be applied to vector/dict type of given key: Line %d", root->tok->lineNo);
+		reportTypeDeductions("LHS", lhs);
+		reportTypeDeductions("RHS", rhs);
+		TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+	        setTypeDeductions(root, tmpret);
+	        return tmpret;
+	  }
+	  setTypeDeductions((PTree*)root->child1, chosenLHS);
+	  setTypeDeductions((PTree*)((PTree*)root->child2)->child2, chosenRHS);
+	  
+	  TypeDeductions innerType = singleTypeDeduction(newBasicType(TB_NATIVE_INT));
+	  setTypeDeductions(root, innerType);
+	  return innerType;
+	}else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE){
 	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
 	  TypeDeductions innerType = newTypeDeductions();
 	  singlesOfVectorsTypeDeduction(&innerType, lhs);
@@ -751,20 +787,19 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 	}
 	else if(root->typ == PTT_SIZE){
 	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
-	  TypeDeductions innerType = newTypeDeductions();
-	  singlesOfVectorsTypeDeduction(&innerType, lhs);
-
-	  if(utarray_len(innerType._types) == 0){
+	  TypeDeductions chosen = newTypeDeductions();
+	  filterVectorAndDictTypes(&chosen, lhs);
+	  setTypeDeductions((PTree*)root->child1, chosen);
+	  
+	  if(utarray_len(chosen._types) == 0){
 		(*err) ++;
-		reportError("SA087", "Size must be applied to vector type: Line %d", root->tok->lineNo);
+		reportError("SA087", "Size must be applied to vector/dict type: Line %d", root->tok->lineNo);
 		reportTypeDeductions("FOUND", lhs);
 		TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
 	        setTypeDeductions(root, tmpret);
-		freeTypeDeductions(innerType);
 	        return tmpret;
 	  }
-	  freeTypeDeductions(innerType);
-	  innerType = singleTypeDeduction(newBasicType(TB_NATIVE_INT));
+	  TypeDeductions innerType = singleTypeDeduction(newBasicType(TB_NATIVE_INT));
 	  setTypeDeductions(root, innerType);
 	  return innerType;
 	}
@@ -1014,7 +1049,7 @@ void propagateTreeType(PTree *root){
 		}
 		propagateTreeType((PTree*)root->child1);
 		// nothing on RHS except token
-	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE){
+	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_CONTAINS || root->typ == PTT_REMOVE){
 	  propagateTreeType((PTree*)root->child1);
 	  propagateTreeType((PTree*)((PTree*)root->child2)->child2);
 	}else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE || root->typ == PTT_SIZE){
@@ -1182,7 +1217,8 @@ bool semAnalyStmt(PTree *root, Type sig)
 		freeType(sig);
 
 		return semAnalyStmt(decl, sig); // not start over with declaration & lambda
-	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_POP || root->typ == PTT_DEQUEUE){ // these can be statements or expressions
+	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_POP || root->typ == PTT_DEQUEUE
+		 || root->typ == PTT_REMOVE){ // these can be statements or expressions
 		TypeDeductions td = deduceTreeType(root, &err, CAST_DOWN);
 		if(err > 0){
 			return false;
