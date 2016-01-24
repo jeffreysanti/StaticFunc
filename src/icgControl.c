@@ -231,8 +231,18 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
 
   // step 6: push element into object
   if(((PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){ // dict
-    // TODO
-    fprintf(stderr, "Dict Comprehension ICG Not Implemented Yet!!!\n");
+    PTree *pair = (PTree*)((PTree*)root->child2)->child1;
+    ICGElmOp *res = newOpCopyData(outRes->typ, outRes->data);
+
+    prev = icGen((PTree*)pair->child1, prev); // key
+    ICGElmOp *op1 = newOpCopyData(prev->result->typ, prev->result->data);
+    prev = icGen((PTree*)pair->child2, prev); // value
+    ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
+
+    prev = newICGElm(prev, ICG_DICTSTORE, typeToICGDataType(root->finalType), root);
+    prev->op1 = op1;
+    prev->op2 = op2;
+    prev->result = res;
   }else{ // vector
     prev = icGen(((PTree*)root->child2)->child1, prev);
     ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
