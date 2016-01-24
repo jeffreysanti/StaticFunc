@@ -151,4 +151,37 @@ ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data);
 ICGDataType typeToICGDataType(Type t);
 void printICGTypeSuffix(ICGElm *elm, FILE* f);
 
+
+
+
+
+
+static inline ICGElmOp *bitSizeTupleOp(Type t){
+	char *dta = calloc(t.numchildren*2 + 1, 1);
+	char *origDta = dta;
+	int i;
+	for(i=0; i<t.numchildren; i++){
+		Type child = ((Type*)t.children)[i];
+		if(child.base == TB_NATIVE_INT || child.base == TB_NATIVE_FLOAT){
+			sprintf(dta, "8;");
+			dta += 2;
+		}
+		else{
+			sprintf(dta, "P;");
+			dta += 2;
+		}
+	}
+	return newOp(ICGO_NUMERICLIT, origDta);
+}
+
+static inline ICGElmOp *bitSizeOp(Type t){
+	ICGElmOp *op = NULL;
+	if(t.base == TB_NATIVE_INT || t.base == TB_NATIVE_FLOAT)
+		op = newOpCopyData(ICGO_NUMERICLIT, "8");
+	else
+		op = newOpCopyData(ICGO_NUMERICLIT, "PTR");
+	return op;
+}
+
+
 #endif /* STATICFUNC_SRC_ICG_H_ */

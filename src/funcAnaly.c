@@ -471,7 +471,6 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		if(!paired){ // tuple or vector or set
 			if(utarray_len(tdElms._types) > 0){ // could be a vector
 				addVectorsOfTypeDeduction(&ret, tdElms);
-				addSetsOfTypeDeduction(&ret, tdElms);
 			}
 			addAllTuplesOfTypeDeductions(&ret, elmDeds, pCount);
 		}else{ // it's a dictionary
@@ -588,8 +587,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 
 		exitScope();
 
-		setTypeDeductions(outVar, finalRet);
-		setTypeDeductions(root, duplicateTypeDeductions(finalRet));
+		setTypeDeductions(root, finalRet);
 		return finalRet;
 	}else if(root->typ == PTT_LAMBDA){ // function call
 		TypeDeductions options = handleLambdaCreation(root,err);
@@ -945,7 +943,13 @@ void propagateTreeType(PTree *root){
 	}else if(root->typ == PTT_ARRAY_COMP){
 		// we need to propagate source and eval expressions
 		propagateTreeType((PTree*)((PTree*)root->child1)->child2);
-		propagateTreeType((PTree*)((PTree*)root->child2)->child1);
+
+		if(((PTree*)(PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){
+		  propagateTreeType(((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child1);
+		  propagateTreeType(((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child2);
+		}else{
+		  propagateTreeType((PTree*)((PTree*)root->child2)->child1);
+		}
 
 		if(((PTree*)root->child2)->child2 != NULL){ // condition
 			propagateTreeType((PTree*)((PTree*)root->child2)->child2);

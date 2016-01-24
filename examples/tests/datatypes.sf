@@ -6,17 +6,16 @@ string s;
 vector<string> myarray(["the", "cat", "in"]);
 s = myarray[0];
 
-vector<int> myarray2([2*ci for int ci in range(0,3)]);
+vector<int> myarray2([2*ci for int ci in [0,1,2,3]]);
 myarray2.queue(4); // to front
 myarray2.push(7); // to back
 x = myarray2.dequeue(); // from back
 x = myarray2.pop(); // from front
 x = myarray2.size();
+myarray2 = [ci + 13 for int ci in myarray2 where ci != 13]; // add 13 to all elements
 
 dict<string, string> mydict(["a":"the", "b":"cat", "c":"in"]);
-dict<int, int> mydict2([ci:2*ci for int ci in [0,1,2,3,4,5,6,7,8,9] 
-where ci % 2 == 
-0]);
+dict<int, int> mydict2([ci:2*ci for int ci in [0,1,2,3,4,5,6,7,8,9] where ci % 2 == 0]);
 
 tuple<string:a, int:b> mytuple(["the", 5]);
 

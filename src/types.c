@@ -119,13 +119,6 @@ Type newVectorType(Type typ)
 	return t;
 }
 
-Type newSetType(Type typ)
-{
-	Type t = newBasicType(TB_SET);
-	allocTypeChildren(&t, 1);
-	((Type*)t.children)[0] = typ;
-	return t;
-}
 
 Type newDictionaryType(Type keytype, Type valtype)
 {
@@ -370,8 +363,6 @@ Type deduceTypeDeclType(PTree *t)
 		return ret;
 	}else if(strcmp(ident, "vector") == 0/* || strcmp(ident, "set") == 0*/){
 		Type ret = newBasicType(TB_VECTOR);
-		if(strcmp(ident, "set") == 0)
-			ret = newBasicType(TB_SET);
 		allocTypeChildren(&ret, 1);
 		if(t->child2 == NULL || ((PTree*)t->child2)->child1 == NULL || ((PTree*)t->child2)->child2 != NULL){
 			reportError("TS003", "Vector/Set Needs Exactly One Parameter: Line %ld", t->tok->lineNo);
@@ -533,29 +524,6 @@ char *getDeclTypeListName(PTree *t)
 }
 
 
-/*TB_NATIVE_INT8,
-	TB_NATIVE_INT16,
-	TB_NATIVE_INT32,
-	TB_NATIVE_INT64,
-
-	TB_NATIVE_FLOAT32,
-	TB_NATIVE_FLOAT64,
-
-	TB_NATIVE_BOOL,
-	TB_NATIVE_CHAR,
-	TB_NATIVE_STRING,
-
-	TB_NATIVE_VOID,
-
-	TB_VECTOR,
-	TB_DICT,
-	TB_TUPLE,
-	TB_SET,
-	TB_FUNCTION,
-
-	TB_TYPELIST,
-	TB_ERROR*/
-
 char *getTypeAsString(Type t)
 {
 	int len = 0;
@@ -571,8 +539,6 @@ char *getTypeAsString(Type t)
 		len += 4;
 	if(t.base == TB_TUPLE)
 		len += 5;
-	if(t.base == TB_SET)
-		len += 3;
 	if(t.base == TB_FUNCTION)
 		len += 8;
 	if(len == 0){
@@ -605,7 +571,6 @@ char *getTypeAsString(Type t)
 	if(t.base == TB_VECTOR) { strcpy(ptr, "vector"); ptr += 6; }
 	if(t.base == TB_DICT) { strcpy(ptr, "dict"); ptr += 4; }
 	if(t.base == TB_TUPLE) { strcpy(ptr, "tuple"); ptr += 5; }
-	if(t.base == TB_SET) { strcpy(ptr, "set"); ptr += 3; }
 	if(t.base == TB_FUNCTION) { strcpy(ptr, "function"); ptr += 8; }
 
 	if(t.numchildren > 0){
@@ -700,13 +665,6 @@ TypeDeductions expandedTypeDeduction(Type type, CastDirection cd)
 		Type *p = NULL;
 		while((p=(Type*)utarray_next(innerDeductions._types,p))){
 			addTypeDeductionsType(&ret, newVectorType(duplicateType(*p)));
-		}
-		freeTypeDeductions(innerDeductions);
-	}else if(type.base == TB_SET){
-		TypeDeductions innerDeductions = expandedTypeDeduction(((Type*)type.children)[0], cd);
-		Type *p = NULL;
-		while((p=(Type*)utarray_next(innerDeductions._types,p))){
-			addTypeDeductionsType(&ret, newSetType(duplicateType(*p)));
 		}
 		freeTypeDeductions(innerDeductions);
 	}else if(type.base == TB_FUNCTION){
@@ -857,16 +815,6 @@ void addVectorsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
 	while((p=(Type*)utarray_next(in._types,p))){
 		Type t = duplicateType(*p);
 		Type v = newVectorType(t);
-		addTypeDeductionsType(dest, v);
-	}
-}
-
-void addSetsOfTypeDeduction(TypeDeductions *dest, TypeDeductions in)
-{
-	Type *p = NULL;
-	while((p=(Type*)utarray_next(in._types,p))){
-		Type t = duplicateType(*p);
-		Type v = newSetType(t);
 		addTypeDeductionsType(dest, v);
 	}
 }
