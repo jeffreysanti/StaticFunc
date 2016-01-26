@@ -43,6 +43,7 @@ int main(int argc, char **argv){
 	initTypeSystem();
 	initFunctionSystem();
 	initalizeBuiltInFunctions();
+	initalizeScopeSystem();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -78,13 +79,15 @@ int main(int argc, char **argv){
 			if(semAnalyFunc(tree, true, getProgramReturnType())){
 				freeOrResetScopeSystem();
 
-
 				FILE *tmpout = openOutputFile(outfl, "ps2");
 				dumpParseTreeDet(tree, 0, tmpout);
 				fclose(tmpout);
 
 				// now generate code :D
 				icRunGen(tree, outfl);
+
+				// now generate each used function version
+				
 			}
 			freeParseTreeNode(tree);
 		}
@@ -93,6 +96,7 @@ int main(int argc, char **argv){
 	freeOrResetScopeSystem();
 	freeTypeSystem();
 	freeFunctionSystem();
+	freeScopeSystem();
 
 	if(T != NULL){
 		freeLexicalTokenList(T);

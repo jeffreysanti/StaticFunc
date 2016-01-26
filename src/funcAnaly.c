@@ -46,16 +46,16 @@ void onFunctionCallDeductionChosen(void * deductionList, int chosen)
 */
 
 
-static inline bool declaration(PTree *root, int *err){
+static inline bool declaration(PTree *root, int *err, Variable **symbol){
 	char *sname = (char*)root->tok->extra;
-	if(symbolExistsCurrentLevel(sname)){
+	if(variableExistsCurrentScope(sname)){
 		reportError("SA002", "Second Declaration of %s: Line %d", sname, root->tok->lineNo);
 		return false;
-	}if(symbolExists(sname)){
+	}if(variableExists(sname)){
 		reportError("#SA003", "Warning: Hiding Previous Declaration of %s: Line %d", sname, root->tok->lineNo);
 	}
 	Type styp = deduceTypeDeclType((PTree*)root->child1);
-	addSymbol(sname, styp);
+	*symbol = defineVariable(sname, styp);
 	setTypeDeductions(root, singleTypeDeduction(styp));
 	if(root->child2 != NULL){
 		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err, CAST_UP);
@@ -280,7 +280,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			return root->deducedTypes;
 		}
 		else if(root->typ == PTT_IDENTIFIER){
-			if(!symbolExists((char*)root->tok->extra)){
+			if(!variableExists((char*)root->tok->extra)){
 				// perhaps it is a global function:
 				NamedFunctionMapEnt *l = getFunctionVersions((char*)root->tok->extra);
 				if(l == NULL){
@@ -299,7 +299,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 				}
 			}else{
 				setTypeDeductions(root,
-					expandedTypeDeduction(getSymbolType((char*)root->tok->extra, root->tok->lineNo), cd));
+					expandedTypeDeduction(getNearbyVariableTypeOrErr((char*)root->tok->extra, root->tok->lineNo), cd));
 			}
 			return root->deducedTypes;
 		}
@@ -393,9 +393,9 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 		if(root->typ == PTT_NOT_EQUAL){
 			root->typ = PTT_EQUAL;
 		  PTree *notNode = newParseTree(PTT_NOT);
-			notNode->child1 = root;
+		  notNode->child1 = (void*)root;
 			notNode->parent = root->parent;
-			root->parent = notNode;
+			root->parent = (void*)notNode;
 			if((PTree*)((PTree*)notNode->parent)->child1 == root){
 				((PTree*)notNode->parent)->child1 = (void*)notNode;
 			}else{
@@ -509,8 +509,9 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			setTypeDeductions(root, ret);
 			return ret;
 		}
-		enterScope();
-		if(!declaration(tmpVar, err) || *err != 0){
+		enterNewScope();
+		Variable *lastAddedSymb = NULL;
+		if(!declaration(tmpVar, err, &lastAddedSymb) || *err != 0){
 			exitScope();
 			reportError("SA081", "Comprehension variable declaration failed: Line %d", root->tok->lineNo);
 			TypeDeductions ret = singleTypeDeduction(newBasicType(TB_ERROR));
@@ -980,8 +981,8 @@ void propagateTreeType(PTree *root){
 		propagateTreeType((PTree*)((PTree*)root->child1)->child2);
 
 		if(((PTree*)(PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){
-		  propagateTreeType(((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child1);
-		  propagateTreeType(((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child2);
+		  propagateTreeType((PTree*)((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child1);
+		  propagateTreeType((PTree*)((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child2);
 		}else{
 		  propagateTreeType((PTree*)((PTree*)root->child2)->child1);
 		}
@@ -1082,7 +1083,8 @@ bool semAnalyStmt(PTree *root, Type sig)
 		}
 		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_DECL){
-		if(!declaration(root, &err))
+	        Variable *addedSymb;
+		if(!declaration(root, &err, &addedSymb))
 			return false;
 		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_PARAM_CONT){
@@ -1141,12 +1143,13 @@ bool semAnalyStmt(PTree *root, Type sig)
 		PTree *arr = (PTree*)cond->child2;
 
 		// Declaration:
-		enterScope();
-		if(!declaration(decl, &err) || !finalizeSingleDeduction(decl))
+		enterNewScope();
+		Variable *definedSymb = NULL;
+		if(!declaration(decl, &err, &definedSymb) || !finalizeSingleDeduction(decl))
 			return false;
 
 		// Find out what type we are iterating/expected object to iterate
-		Type typ = duplicateType(lastSymbol()->sig);
+		Type typ = duplicateType(definedSymb->sig);
 		Type typExpected = newVectorType(typ);
 		TypeDeductions expected = singleTypeDeduction(typExpected);
 		freeType(typExpected);
@@ -1234,7 +1237,7 @@ bool semAnalyStmt(PTree *root, Type sig)
 bool blockUnit(PTree *root, Type sig, bool global)
 {
 	if(!global)
-		enterScope();
+		enterNewScope();
 	int errs = 0;
 	if(root->typ != PTT_STMTBLOCK){
 		if(!semAnalyStmt(root, sig)){
@@ -1260,12 +1263,13 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	int errs = 0;
 	PTree *body = root;
 	if(!global){
-		enterScope();
+	        enterGlobalSpace();
+		enterNewScope();
 		// need to push locals onto stack
 		PTree *paramList = (PTree*)((PTree*)root->child1)->child2;
 		int i;
 		for(i=1; i<sig.numchildren; i++){
-			addSymbol((char*)((PTree*)paramList->child1)->tok->extra, duplicateType(((Type*)sig.children)[i]));
+			defineVariable((char*)((PTree*)paramList->child1)->tok->extra, duplicateType(((Type*)sig.children)[i]));
 			paramList = (PTree*)paramList->child2;
 		}
 		body = (PTree*)root->child2;

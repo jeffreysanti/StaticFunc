@@ -14,6 +14,54 @@
 
 #define SYMLEV_GLOBAL 0
 
+
+typedef struct{
+  int uuid;
+  char *refname; // name in code (null if temp)
+  Type sig;
+
+  struct Variable *next;
+  struct Variable *prev;
+
+  struct Scope *scope;
+} Variable;
+
+typedef struct{
+  int uuid;
+  int level;
+  struct Variable *variables;
+
+  struct Scope *next;
+  struct Scope *prev;
+
+  struct Scope *parentScope;
+} Scope;
+
+
+void initScopeSystem();
+void freeScopeSystem();
+
+void enterGlobalSpace();
+
+void enterNewScope();
+void exitScope();
+
+// mutators
+Variable *defineVariable(char *nm, Type typ);
+
+
+// accessors
+bool variableExistsCurrentScope(char *sym);
+bool variableExists(char *sym);
+
+Variable *getNearbyVariable(char *sym);
+Type getNearbyVariableTypeOrErr(char *sym, int lineno);
+
+
+/*
+
+
+
 typedef struct{
 	int level;
 	Type sig;
@@ -26,10 +74,9 @@ typedef struct{
 } Symbol;
 
 
-void enterScope();
-void exitScope();
 
-void enterGlobalSpace();
+
+
 
 void addSymbol(char *sym, Type typ);
 Type getSymbolType(char *sym, int lineno);
@@ -38,10 +85,15 @@ char *getSymbolUniqueName(char *sym);
 
 
 bool symbolExists(char *sym);
-bool symbolExistsCurrentLevel(char *sym);
+
 
 void freeOrResetScopeSystem();
 
 Symbol *lastSymbol();
+
+void dumpSymbolTable(FILE *fp);
+
+*/
+
 
 #endif /* STATICFUNC_SRC_SYMBOLS_H_ */

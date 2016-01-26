@@ -233,6 +233,7 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
 	}
+	dumpSymbolTable(stdout);
 	return prev;
 }
 
