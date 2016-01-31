@@ -21,9 +21,9 @@ static inline ICGElm * processChild(PTree *child1, ICGElm *prev, ICGElmOp **op){
 	}else if(data1->typ == ICG_IDENT){
 		freeICGElm(data1);
 		if(isTypeNumeric(child1->finalType)){
-			*op = newOp(ICGO_NUMERICREG, getSymbolUniqueName((char*)child1->tok->extra));
+		  *op = newOp(ICGO_NUMERICREG, getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra)));
 		}else{
-			char *tmpreg = getSymbolUniqueName((char*)child1->tok->extra);
+		  char *tmpreg = getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra));
 			prev = icGenCopyObject(child1, prev, tmpreg);
 			free(tmpreg);
 			*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);
@@ -39,8 +39,8 @@ ICGElm * icGenArith(PTree *root, ICGElm *prev){
 	Type d = root->finalType;
 
 
-	char *tempVar = newTempVariable(d);
-	ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+	Variable *tmpvar = defineVariable(NULL, d);
+	ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
 
 	ICGElmOp *op1, *op2;
 	prev = processChild((PTree*)root->child1, prev, &op1);

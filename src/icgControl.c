@@ -9,6 +9,8 @@
 
 #include "icg.h"
 
+extern ICGElm * icGenDecl(PTree *root, ICGElm *prev);
+
 ICGElm *icGenGeneralCondition(PTree *cond, ICGElm *prev, char *lblFalseBranch){
 	prev = icGen(cond, prev);
 	if(cond->typ == PTT_EQUAL){
@@ -31,8 +33,8 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		ICGElm *rhs = icGen((PTree*)check->child2, lhs);
 		prev = rhs;
 
-		char *tempVar = newTempVariable(root->finalType);
-		ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+		Variable *tempVar = defineVariable(NULL, root->finalType);
+		ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tempVar));
 		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
 		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
 
@@ -46,8 +48,8 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		ICGElm *rhs = icGen((PTree*)root->child2, lhs);
 		prev = rhs;
 
-		char *tempVar = newTempVariable(root->finalType);
-		ICGElmOp *res = newOp(ICGO_NUMERICREG, getSymbolUniqueName(tempVar));
+		Variable *tempVar = defineVariable(NULL, root->finalType);
+		ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tempVar));
 		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
 		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
 
@@ -136,15 +138,15 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	char *lblForEnd = newLabel("ForLoopExit");
 
 	// step 1: Initialize holder variable & iteratable variable
-	prev = icGenDecl(((PTree*)root->child1)->child1, prev);
+	prev = icGenDecl((PTree*)((PTree*)root->child1)->child1, prev);
 	ICGElm *holderVar = prev;
-	prev = icGen(((PTree*)root->child1)->child2, prev);
+	prev = icGen((PTree*)((PTree*)root->child1)->child2, prev);
 	ICGElm *iteratableVar = prev;
 
 	// step 2: prepare iterator
-	char *iteratorVar = newTempVariable(newBasicType(TB_NATIVE_VOID));
+	Variable *iteratorVar = defineVariable(NULL, newBasicType(TB_NATIVE_VOID));
 	prev = newICGElm(prev, ICG_ITER_INIT, ICGDT_NONE, root); // initalize iterator
-	prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
 	prev->op1 = newOpCopyData(iteratableVar->result->typ, iteratableVar->result->data);
 
 	// step 3: loop marker
@@ -155,11 +157,11 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	// step 4: get next data
 	prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
 	prev->result = newOpCopyData(holderVar->result->typ, holderVar->result->data);
-	prev->op1 = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+	prev->op1 = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
 	prev->op2 = newOpCopyData(ICGO_LABEL, lblForEnd);
 
 	// step 6: run code & reloop
-	prev = icGenBlock(root->child2, prev);
+	prev = icGenBlock((PTree*)root->child2, prev);
 	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
 	prev->result = newOpCopyData(ICGO_LABEL, lblForMarker);
 
@@ -167,17 +169,17 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
 	prev->result = newOp(ICGO_LABEL, lblForEnd);
 	prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
-	prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
 
 	return prev;
 }
 
 ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   // prepare output variable:
-  char *outVar = newTempVariable(root->finalType);
+  Variable *outVar = defineVariable(NULL, root->finalType);
   ICGElmOp *outRes;
   if(root->finalType.base == TB_VECTOR){
-    outRes = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(outVar));
+    outRes = newOp(ICGO_OBJREFNEW, getVariableUniqueName(outVar));
     Type childType = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childType);
     ICGElmOp *op2 = newOpInt(ICGO_NUMERICLIT, 0);
@@ -186,7 +188,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
     prev->op1 = op1;
     prev->op2 = op2;
   }else{ // dict
-    outRes = newOp(ICGO_OBJREFNEW, getSymbolUniqueName(outVar));
+    outRes = newOp(ICGO_OBJREFNEW, getVariableUniqueName(outVar));
     Type childTypeKey = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childTypeKey);
     Type childTypeVal = ((Type*)root->finalType.children)[1];
@@ -202,15 +204,15 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
 
   
   // step 1: Initialize holder variable & iteratable variable
-  prev = icGenDecl(((PTree*)root->child1)->child1, prev);
+  prev = icGenDecl((PTree*)((PTree*)root->child1)->child1, prev);
   ICGElm *holderVar = prev;
-  prev = icGen(((PTree*)root->child1)->child2, prev);
+  prev = icGen((PTree*)((PTree*)root->child1)->child2, prev);
   ICGElm *iteratableVar = prev;
 
   // step 2: prepare iterator
-  char *iteratorVar = newTempVariable(newBasicType(TB_NATIVE_VOID));
+  Variable *iteratorVar = defineVariable(NULL, newBasicType(TB_NATIVE_VOID));
   prev = newICGElm(prev, ICG_ITER_INIT, ICGDT_NONE, root); // initalize iterator
-  prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+  prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
   prev->op1 = newOpCopyData(iteratableVar->result->typ, iteratableVar->result->data);
 
   // step 3: loop marker
@@ -221,12 +223,12 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   // step 4: get next data
   prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
   prev->result = newOpCopyData(holderVar->result->typ, holderVar->result->data);
-  prev->op1 = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+  prev->op1 = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
   prev->op2 = newOpCopyData(ICGO_LABEL, lblCompEnd);
 
   // step 5: check whether condition holds for each element
   if(((PTree*)root->child2)->child2 != NULL){ // conditional
-    prev = icGenGeneralCondition(((PTree*)root->child2)->child2, prev, lblCompMarker);
+    prev = icGenGeneralCondition((PTree*)((PTree*)root->child2)->child2, prev, lblCompMarker);
   }
 
   // step 6: push element into object
@@ -244,7 +246,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
     prev->op2 = op2;
     prev->result = res;
   }else{ // vector
-    prev = icGen(((PTree*)root->child2)->child1, prev);
+    prev = icGen((PTree*)((PTree*)root->child2)->child1, prev);
     ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
     ICGElmOp *op1 = newOpCopyData(outRes->typ, outRes->data);
     prev = newICGElm(prev, ICG_VPUSH, typeToICGDataType(root->finalType), root);
@@ -260,7 +262,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
   prev->result = newOp(ICGO_LABEL, lblCompEnd);
   prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
-  prev->result = newOp(ICGO_OBJREF, getSymbolUniqueName(iteratorVar));
+  prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
 
   // to present new object to next icg
   prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);

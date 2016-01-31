@@ -41,12 +41,37 @@ void initScopeSystem(){
   global->prev = (void*)&S[0];
   global->parentScope = NULL;
   S[0].next = (void*)global;
+
+  enterGlobalSpace();
+}
+
+void freeVariable(Variable *v){
+  Variable *next = (Variable*)v->next;
+  freeType(v->sig);
+  if(v->refname != NULL){
+    free(v->refname);
+  }
+  free(v);
+  if(next != NULL){
+    freeVariable(next);
+  }
+}
+
+void freeScope(Scope* s){
+  Scope *next = (Scope*)s->next;
+  if(s->variables != NULL){
+    freeVariable((Variable*)s->variables);
+  }
+  free(s);
+  if(next != NULL){
+    freeScope(next);
+  }
 }
 
 void freeScopeSystem(){
   for(int i=0; i<SCOPE_LEVELS; i++){
     if(S[i].next != NULL){
-      free(S[i].next); // TODO: Obviously not correct
+      freeScope((Scope*)S[i].next);
     }
   }
 }
@@ -86,7 +111,11 @@ Variable *defineVariable(char *sym, Type typ)
   Variable * sb = malloc(sizeof(Variable));
   sb->uuid = nextVariableID ++;
   sb->scope = (void*)SC;
-  sb->refname = strdup(sym);
+  if(sym == NULL){
+    sb->refname = NULL;
+  }else{
+    sb->refname = strdup(sym);
+  }
   sb->sig = duplicateType(typ);
   sb->prev = NULL;
   sb->next = SC->variables;
@@ -96,7 +125,7 @@ Variable *defineVariable(char *sym, Type typ)
 
 
 bool variableExistsCurrentScope(char *sym){
-  Variable *ptr = SC->variables;
+  Variable *ptr = (Variable*)SC->variables;
   while(ptr != NULL){
     if(ptr->refname != NULL && strcmp(sym, ptr->refname) == 0){
       return true;
@@ -107,9 +136,9 @@ bool variableExistsCurrentScope(char *sym){
 }
 
 bool variableExists(char *sym){
-  Variable *ptr = SC->variables;
   Scope *scope = SC;
   while(scope != NULL){
+    Variable *ptr = (Variable*)scope->variables;
     while(ptr != NULL){
       if(ptr->refname != NULL && strcmp(sym, ptr->refname) == 0){
 	return true;
@@ -123,9 +152,9 @@ bool variableExists(char *sym){
 
 
 Variable *getNearbyVariable(char *sym){
-  Variable *ptr = SC->variables;
   Scope *scope = SC;
   while(scope != NULL){
+    Variable *ptr = (Variable*)scope->variables;
     while(ptr != NULL){
       if(ptr->refname != NULL && strcmp(sym, ptr->refname) == 0){
 	return ptr;
@@ -146,7 +175,21 @@ Type getNearbyVariableTypeOrErr(char *sym, int lineno){
   return v->sig;
 }
 
-
+char *getVariableUniqueName(Variable *v)
+{
+  if(v == NULL){
+    return NULL;
+  }
+  if(v->refname == NULL){
+    char *dest = calloc(24+1, 1);
+    sprintf(dest, ".tmp%d", v->uuid);
+    return dest;
+  }else{
+    char *dest = calloc(strlen(v->refname)+20+1, 1);
+    sprintf(dest, "%s.%d", v->refname, v->uuid);
+    return dest;
+  }
+}
 
 
 /*
@@ -192,19 +235,7 @@ Type getSymbolType(char *sym, int lineno)
 	return newBasicType(TB_ERROR);
 }
 
-char *getSymbolUniqueName(char *sym)
-{
-	Symbol *ptr = S;
-	while(ptr != NULL){
-		if(strcmp(sym, ptr->nm) == 0){
-			char *dest = calloc(strlen(sym)+20+1, 1);
-			sprintf(dest, "%s.%ld", sym, ptr->id);
-			return dest;
-		}
-		ptr = (Symbol*)ptr->prev;
-	}
-	return NULL;
-}
+
 
 void freeOrResetScopeSystem()
 {

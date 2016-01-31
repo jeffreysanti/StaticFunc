@@ -140,7 +140,6 @@ ICGElm * icGenBlock(PTree *root, ICGElm *prev);
 ICGElm * icGen(PTree *root, ICGElm *prev);
 
 
-char *newTempVariable(Type t);
 char *newROStringLit(char *str);
 char *newLabel(char *base);
 
@@ -187,6 +186,10 @@ static inline ICGElmOp *bitSizeOp(Type t){
 		op = newOpCopyData(ICGO_NUMERICLIT, "PTR");
 	return op;
 }
+
+
+extern FILE *openOutputFile(char *outfl, char ext[3]);
+
 
 
 #endif /* STATICFUNC_SRC_ICG_H_ */

@@ -21,6 +21,7 @@
 #include "funcAnaly.h"
 #include "nativeFunctions.h"
 #include "icg.h"
+#include "symbols.h"
 
 FILE *openOutputFile(char *outfl, char ext[3]){
 	outfl[strlen(outfl)-3] = ext[0];
@@ -43,7 +44,7 @@ int main(int argc, char **argv){
 	initTypeSystem();
 	initFunctionSystem();
 	initalizeBuiltInFunctions();
-	initalizeScopeSystem();
+	initScopeSystem();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -77,8 +78,9 @@ int main(int argc, char **argv){
 			seperateFunctionsFromParseTree(&tree, false);
 
 			if(semAnalyFunc(tree, true, getProgramReturnType())){
-				freeOrResetScopeSystem();
-
+			  freeScopeSystem();
+			  initScopeSystem(); // reintitalize it for stage 2
+			  
 				FILE *tmpout = openOutputFile(outfl, "ps2");
 				dumpParseTreeDet(tree, 0, tmpout);
 				fclose(tmpout);
@@ -93,7 +95,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-	freeOrResetScopeSystem();
 	freeTypeSystem();
 	freeFunctionSystem();
 	freeScopeSystem();

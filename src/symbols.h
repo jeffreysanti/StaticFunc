@@ -57,6 +57,7 @@ bool variableExists(char *sym);
 Variable *getNearbyVariable(char *sym);
 Type getNearbyVariableTypeOrErr(char *sym, int lineno);
 
+char *getVariableUniqueName(Variable *);
 
 /*
 

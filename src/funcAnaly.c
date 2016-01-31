@@ -65,6 +65,7 @@ static inline bool declaration(PTree *root, int *err, Variable **symbol){
 			return false;
 		}
 	}
+	freeType(styp);
 	return true;
 }
 
