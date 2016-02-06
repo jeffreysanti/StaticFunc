@@ -195,8 +195,12 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
     prev = newICGElm(prev, ICG_VQUEUE, typeToICGDataType(root->finalType), root);
   else if(root->typ == PTT_DEQUEUE)
     prev = newICGElm(prev, ICG_VDEQUEUE, typeToICGDataType(root->finalType), root);
-  else
+  else if(root->typ == PTT_SIZE)
     prev = newICGElm(prev, ICG_VSIZE, typeToICGDataType(root->finalType), root);
+  else if(root->typ == PTT_KEYS)
+    prev = newICGElm(prev, ICG_DKEYS, typeToICGDataType(root->finalType), root);
+  else
+    prev = newICGElm(prev, ICG_DVALS, typeToICGDataType(root->finalType), root);
 
   prev->result = res;
   prev->op1 = op1;
@@ -278,6 +282,9 @@ void icGenVecMethod_print(ICGElm *elm, FILE* f) {
   if(elm->typ == ICG_VQUEUE) fprintf(f, "vqueue");
   if(elm->typ == ICG_VDEQUEUE) fprintf(f, "vdequeue");
   if(elm->typ == ICG_VSIZE) fprintf(f, "vsize");
+  if(elm->typ == ICG_DKEYS) fprintf(f, "dkeys");
+  if(elm->typ == ICG_DVALS) fprintf(f, "dvals");
+  
 
   if(elm->result != NULL){
     	if(elm->result->typ == ICGO_NUMERICLIT){

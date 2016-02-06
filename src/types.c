@@ -918,3 +918,39 @@ void filterVectorAndDictTypes(TypeDeductions *dest, TypeDeductions in){
   }
 }
 
+void filterDictTypes(TypeDeductions *dest, TypeDeductions in){
+  Type *p = NULL;
+  while((p=(Type*)utarray_next(in._types,p))){
+    if(p->base != TB_DICT){
+      continue;
+    }
+    Type t = duplicateType(*p);
+    addTypeDeductionsType(dest, t);
+  }
+}
+
+
+void keysOfDictTypeDeductions(TypeDeductions *dest, TypeDeductions in){
+  Type *p = NULL;
+  while((p=(Type*)utarray_next(in._types,p))){
+    if(p->base != TB_DICT){
+      continue;
+    }
+    Type t = duplicateType(((Type*)p->children)[0]);
+    addTypeDeductionsType(dest, t);
+  }
+}
+
+
+void valuesOfDictTypeDeductions(TypeDeductions *dest, TypeDeductions in){
+  Type *p = NULL;
+  while((p=(Type*)utarray_next(in._types,p))){
+    if(p->base != TB_DICT){
+      continue;
+    }
+    Type t = duplicateType(((Type*)p->children)[1]);
+    addTypeDeductionsType(dest, t);
+  }
+}
+
+

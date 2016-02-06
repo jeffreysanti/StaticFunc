@@ -66,6 +66,8 @@ char * PTLookup[] = {
 		"PTT_SIZE",
 		"PTT_CONTAINS",
 		"PTT_REMOVE",
+		"PTT_KEYS",
+		"PTT_VALUES",
 
 		"PTT_DECL_TYPE_DEDUCED",
 		"PTT_ARRAY_ELM_PAIR",

@@ -69,7 +69,7 @@ ExprI		:	ExprJ ^ ExprI
 ExprJ		:	! ExprK
 			|	ExprK
 ExprK		:	( ExprA )
-			|	[ ArrayExpr ]
+			|	[ ArrayExpr ] [optionally . something]
 			|	Val
 
 

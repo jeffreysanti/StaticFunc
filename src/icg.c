@@ -138,7 +138,7 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 			elm->typ == ICG_NEWSET || elm->typ == ICG_SETSTORE){
 		icGenArray_print(elm, f);
 	}else if(elm->typ == ICG_VPUSH || elm->typ == ICG_VPOP || elm->typ == ICG_VQUEUE || elm->typ == ICG_VDEQUEUE ||
-		 elm->typ == ICG_VSIZE){
+		 elm->typ == ICG_VSIZE || elm->typ == ICG_DKEYS || elm->typ == ICG_DVALS){
 	  icGenVecMethod_print(elm, f);
 	}else if(elm->typ == ICG_VREMOVE || elm->typ == ICG_VCONTAINS || elm->typ == ICG_DREMOVE || elm->typ == ICG_DCONTAINS){
 	  icGenRemoveContainsMethod_print(elm, f);
@@ -211,7 +211,7 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	}else if(root->typ == PTT_ARRAY_ELM){
 		prev = icGenArray(root, prev);
 	}else if(root->typ == PTT_POP || root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_DEQUEUE ||
-		 root->typ == PTT_SIZE){
+		 root->typ == PTT_SIZE || root->typ == PTT_KEYS || root->typ == PTT_VALUES){
 	  prev = icGenVecMethod(root, prev);
 	}else if(root->typ == PTT_REMOVE || root->typ == PTT_CONTAINS){
 	  prev = icGenRemoveContainsMethod(root,prev);

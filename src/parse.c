@@ -297,6 +297,12 @@ bool termMul(PState *ps){
 }bool termRemove(PState *ps){
 	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "remove")==0);
 	return advanceToken(ps, ret);
+}bool termKeys(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "keys")==0);
+	return advanceToken(ps, ret);
+}bool termValues(PState *ps){
+	bool ret = (ps->token->typ == LT_KEYWORD && strcmp(ps->token->extra, "values")==0);
+	return advanceToken(ps, ret);
 }
 
 
@@ -499,6 +505,9 @@ bool prodExprAFact1(PState *ps){
 	if(!termSqbrRight(ps)){
 		return reportParseError(ps, "PS010", "Brackets do not closed after array expression: Line %d\n", tokStart->lineNo);
 	}
+	if(termDot(ps)){
+	  return prodDotSomething(ps);
+	}
 	return true;
 }bool prodExprKFact3(PState *ps){
 	return prodValue(ps);
@@ -530,31 +539,33 @@ bool dotMethodHelper(PState *ps, int pcount, char *typ, PTree *root){
 	setParseNodeChild(root, storeAndNullChildNode(ps), PC_LEFT); // op1
 	root->tok = (LexicalToken*)ps->token->prev;
 	if(!termParenLeft(ps)){
-		resetChildNode(ps, root);
-		return reportParseError(ps, "PS126", "Dot Method .%s expected left paren: Line %d\n", ps->token->lineNo);
+		reportParseError(ps, "PS126", "Dot Method .%s expected left paren: Line %d\n", typ, root->tok->lineNo);
+	  resetChildNode(ps, root);
+	  return false;
 	}
 	if(pcount > 0){
 		PTree *p = newParseTree(PTT_PARAM_CONT);
 		setParseNodeChild(root, p, PC_RIGHT);
 		if(!prodExpr(ps)){
+		  reportParseError(ps, "PS127", "Dot Method .%s expected paramater: Line %d\n", typ, root->tok->lineNo);
 			resetChildNode(ps, root);
-			reportParseError(ps, "PS127", "Dot Method .%s expected paramater: Line %d\n", ps->token->lineNo);
 		}
 		setParseNodeChild(p, storeAndNullChildNode(ps), PC_RIGHT);
 		for(int i=1; i<pcount; i++){
 			PTree *pnew = newParseTree(PTT_PARAM_CONT);
 			setParseNodeChild(p, pnew, PC_LEFT);
 			if(!termComma(ps) || !prodExpr(ps)){
+			  reportParseError(ps, "PS128", "Dot Method .%s expected comma and paramater: Line %d\n", typ, root->tok->lineNo);
 				resetChildNode(ps, root);
-				reportParseError(ps, "PS128", "Dot Method .%s expected comma and paramater: Line %d\n", ps->token->lineNo);
 			}
 			setParseNodeChild(pnew, storeAndNullChildNode(ps), PC_RIGHT);
 			p = pnew;
 		}
 	}
 	if(!termParenRight(ps)){
+	  reportParseError(ps, "PS129", "Dot Method .%s expected right paren: Line %d\n", typ, root->tok->lineNo);
 		resetChildNode(ps, root);
-		return reportParseError(ps, "PS129", "Dot Method .%s expected right paren: Line %d\n", ps->token->lineNo);
+		return false;
 	}
 	ps->child = root;
 	return true;
@@ -594,6 +605,12 @@ bool prodDotSomethingFact1(PState *ps){ // op1.push, op1.queue
 	}else if(resetToken(ps, start) && termRemove(ps)){
 		root = newParseTree(PTT_REMOVE);
 		success = dotMethodHelper(ps, 1, "remove", root);
+	}else if(resetToken(ps, start) && termKeys(ps)){
+		root = newParseTree(PTT_KEYS);
+		success = dotMethodHelper(ps, 0, "keys", root);
+	}else if(resetToken(ps, start) && termValues(ps)){
+		root = newParseTree(PTT_VALUES);
+		success = dotMethodHelper(ps, 0, "values", root);
 	}
 	return success && prodVarValue(ps);
 }bool prodDotSomethingFact2(PState *ps){ // op1.tupleIdent

@@ -230,6 +230,8 @@ static bool matchKeyword(char *fulltxt, long *cpos, long clen)
 			matchStringPattern(fulltxt, cpos, clen, "while") ||
 			matchStringPattern(fulltxt, cpos, clen, "if") ||
 			matchStringPattern(fulltxt, cpos, clen, "else") ||
+			matchStringPattern(fulltxt, cpos, clen, "keys") ||
+			matchStringPattern(fulltxt, cpos, clen, "values") ||
 			matchStringPattern(fulltxt, cpos, clen, "size") ||
 			matchStringPattern(fulltxt, cpos, clen, "contains") ||
 			matchStringPattern(fulltxt, cpos, clen, "remove") ||

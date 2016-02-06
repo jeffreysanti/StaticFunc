@@ -805,6 +805,33 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 	  setTypeDeductions(root, innerType);
 	  return innerType;
 	}
+	else if(root->typ == PTT_KEYS || root->typ == PTT_VALUES){
+	  TypeDeductions lhs = deduceTreeType((PTree*)root->child1, err, cd); // container
+	  TypeDeductions chosen = newTypeDeductions();
+	  filterDictTypes(&chosen, lhs);
+	  setTypeDeductions((PTree*)root->child1, chosen);
+	  
+	  if(utarray_len(chosen._types) == 0){
+		(*err) ++;
+		reportError("SA087", "Keys/Values must be applied to dict type: Line %d", root->tok->lineNo);
+		reportTypeDeductions("FOUND", lhs);
+		TypeDeductions tmpret = singleTypeDeduction(newBasicType(TB_ERROR));
+	        setTypeDeductions(root, tmpret);
+	        return tmpret;
+	  }
+	  TypeDeductions tmp = newTypeDeductions();
+	  if(root->typ == PTT_KEYS){
+	    keysOfDictTypeDeductions(&tmp, chosen);
+	  }
+	  else{
+	    valuesOfDictTypeDeductions(&tmp, chosen);
+	  }
+	  TypeDeductions ret = newTypeDeductions();
+	  addVectorsOfTypeDeduction(&ret, tmp);
+	  freeTypeDeductions(tmp);
+	  setTypeDeductions(root, ret);
+	  return ret;
+	}
 	
 
 
@@ -1054,7 +1081,8 @@ void propagateTreeType(PTree *root){
 	}else if(root->typ == PTT_PUSH || root->typ == PTT_QUEUE || root->typ == PTT_CONTAINS || root->typ == PTT_REMOVE){
 	  propagateTreeType((PTree*)root->child1);
 	  propagateTreeType((PTree*)((PTree*)root->child2)->child2);
-	}else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE || root->typ == PTT_SIZE){
+	}else if(root->typ == PTT_POP || root->typ == PTT_DEQUEUE || root->typ == PTT_SIZE ||
+		 root->typ == PTT_KEYS || root->typ == PTT_VALUES){
 	  propagateTreeType((PTree*)root->child1);
 	}else{
 		fatalError("No propagateTreeType for tree node!");

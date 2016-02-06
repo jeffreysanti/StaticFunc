@@ -38,3 +38,10 @@ x = mytuple.b;
 
 
 string tmp(mytuple.a);
+
+
+dict<int, string> numbersToWords([1:"one", 2:"two", 3:"three"]);
+myarray2 = numbersToWords.keys();
+myarray = numbersToWords.values();
+
+

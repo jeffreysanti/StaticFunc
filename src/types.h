@@ -146,6 +146,10 @@ void addAllTuplesOfTypeDeductions(TypeDeductions *dest, TypeDeductions *array, i
 void singlesOfVectorsTypeDeduction(TypeDeductions *dest, TypeDeductions in);
 
 void filterVectorAndDictTypes(TypeDeductions *dest, TypeDeductions in);
+void filterDictTypes(TypeDeductions *dest, TypeDeductions in);
+
+void keysOfDictTypeDeductions(TypeDeductions *dest, TypeDeductions in);
+void valuesOfDictTypeDeductions(TypeDeductions *dest, TypeDeductions in);
 
 void appendToTypeDeductionAndFree(TypeDeductions *dest, TypeDeductions in);
 
