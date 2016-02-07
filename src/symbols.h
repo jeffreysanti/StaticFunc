@@ -46,6 +46,8 @@ void enterGlobalSpace();
 void enterNewScope();
 void exitScope();
 
+Scope *currentScope();
+
 // mutators
 Variable *defineVariable(char *nm, Type typ);
 

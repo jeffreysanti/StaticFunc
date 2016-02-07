@@ -106,6 +106,11 @@ void enterNewScope(){
 }
 
 
+Scope *currentScope(){
+  return SC;
+}
+
+
 Variable *defineVariable(char *sym, Type typ)
 {
   Variable * sb = malloc(sizeof(Variable));

@@ -1,6 +1,7 @@
 int a(0);
 
 while(a <= 10){
+	string s("test");
 	if(a % 3 == 0)
 		a = a + 2;
 	else
@@ -13,6 +14,7 @@ for(int x in [1,2,8,16,32]){
 }
 
 
-for(int y in [1:"1", 2:"2", 3:"3"].keys()){
-	a = a - x;
+for(string y in ["1":1, "2":2, "3":3].keys()){
+	a = a - 1;
+	a = ["1":1, "2":2, "3":3].size();
 }

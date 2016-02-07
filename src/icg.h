@@ -82,7 +82,8 @@ typedef enum{
 	ICG_JZ,
 	ICG_JMP,
 
-	ICG_COMPOBJ
+	ICG_COMPOBJ,
+	ICG_DR
 }ICGElmType;
 
 typedef enum{
@@ -158,6 +159,8 @@ ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data);
 ICGDataType typeToICGDataType(Type t);
 void printICGTypeSuffix(ICGElm *elm, FILE* f);
 
+
+ICGElm *derefScope(ICGElm *prev);
 
 
 

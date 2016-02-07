@@ -109,29 +109,36 @@ ICGElm * icGenIf(PTree *root, ICGElm *prev){
 }
 
 ICGElm * icGenWhile(PTree *root, ICGElm *prev){
-	// step 1: Evaluate Condition
-	PTree *cond = (PTree*)root->child1;
-	char *lblExitWhile = newLabel("WhileLoopExit");
-	char *lblWhileMarker = newLabel("WhileLoopTest");
+  enterNewScope(); // SCOPE OF WHILE CONDITION
+  
+  // step 1: Evaluate Condition
+  PTree *cond = (PTree*)root->child1;
+  char *lblExitWhile = newLabel("WhileLoopExit");
+  char *lblWhileMarker = newLabel("WhileLoopTest");
 
-	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
-	prev->result = newOp(ICGO_LABEL, lblWhileMarker);
+  prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
+  prev->result = newOp(ICGO_LABEL, lblWhileMarker);
 
-	prev = icGenGeneralCondition(cond, prev, lblExitWhile);
+  prev = icGenGeneralCondition(cond, prev, lblExitWhile);
 
-	// now gen accepting state
-	PTree *pred = (PTree*)root->child2;
+  // now gen accepting state
+  PTree *pred = (PTree*)root->child2;
 
-	prev = icGenBlock(pred, prev); // true branch
+  enterNewScope(); // SCOPE OF LOOP BLOCK
+  prev = icGenBlock(pred, prev); // true branch
+  prev = derefScope(prev); exitScope(); //  SCOPE OF LOOP BLOCK
+  
+  // reloop
+  prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
+  prev->result = newOpCopyData(ICGO_LABEL, lblWhileMarker);
 
-	// reloop
-	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
-	prev->result = newOpCopyData(ICGO_LABEL, lblWhileMarker);
+  // exit label
+  prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
+  prev->result = newOp(ICGO_LABEL, lblExitWhile);
 
-	// exit label
-	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-	prev->result = newOp(ICGO_LABEL, lblExitWhile);
-	return prev;
+  prev = derefScope(prev); exitScope(); // SCOPE OF WHILE CONDITION
+	
+  return prev;
 }
 
 ICGElm * icGenFor(PTree *root, ICGElm *prev){

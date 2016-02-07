@@ -152,6 +152,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenCompObj_print(elm, f);
 	}else if(elm->typ == ICG_ITER_INIT || elm->typ == ICG_ITER_NEXT || elm->typ == ICG_ITER_CLOSE){
 		icGenFor_print(elm, f);
+	}else if(elm->typ == ICG_DR){
+	  fprintf(f, "dr $%s", elm->result->data);
 	}else{
 		fprintf(f, "???");
 	}
@@ -346,3 +348,19 @@ char *newLabel(char *base){
 	sprintf(nm, ".l%s.%ld", base, lastLabel);
 	return nm;
 }
+
+ICGElm * derefScope(ICGElm *prev){
+  Scope *s = currentScope();
+  Variable *ptr = (Variable*)s->variables;
+  while(ptr != NULL){
+    if(ptr->refname != NULL){
+      if(!isTypeNumeric(ptr->sig)){
+	prev = newICGElm(prev, ICG_DR, typeToICGDataType(ptr->sig), NULL);
+	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(ptr));
+      }
+    }
+    ptr = (Variable*)ptr->next;
+  }
+  return prev;
+}
+
