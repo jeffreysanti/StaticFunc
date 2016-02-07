@@ -15,14 +15,14 @@ ICGElm *icGenGeneralCondition(PTree *cond, ICGElm *prev, char *lblFalseBranch){
 	prev = icGen(cond, prev);
 	if(cond->typ == PTT_EQUAL){
 		ICGElm *jnzPastTrue = newICGElm(prev, ICG_JNZ, typeToICGDataType(cond->finalType), cond);
-		jnzPastTrue->op1 = newOpCopyData(prev->result->typ, prev->result->data);
-		jnzPastTrue->result = newOpCopyData(ICGO_LABEL, lblFalseBranch);
+		jnzPastTrue->op1 = newOpCopy(prev->result);
+		jnzPastTrue->result = newOpLabel_c(lblFalseBranch);
 		return jnzPastTrue;
 	}
 
 	ICGElm *jnzPastTrue = newICGElm(prev, ICG_JZ, typeToICGDataType(cond->finalType), cond);
-	jnzPastTrue->op1 = newOpCopyData(prev->result->typ, prev->result->data);
-	jnzPastTrue->result = newOpCopyData(ICGO_LABEL, lblFalseBranch);
+	jnzPastTrue->op1 = newOpCopy(prev->result);
+	jnzPastTrue->result = newOpLabel_c(lblFalseBranch);
 	return jnzPastTrue;
 }
 
@@ -34,9 +34,9 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		prev = rhs;
 
 		Variable *tempVar = defineVariable(NULL, root->finalType);
-		ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tempVar));
-		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
-		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
+		ICGElmOp *res = newOp(ICGO_REG, tempVar);
+		ICGElmOp *op1 = newOpCopy(lhs->result);
+		ICGElmOp *op2 = newOpCopy(rhs->result);
 
 		prev = newICGElm(prev, ICG_COMPOBJ, typeToICGDataType(root->finalType), root);
 		prev->result = res;
@@ -49,9 +49,9 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 		prev = rhs;
 
 		Variable *tempVar = defineVariable(NULL, root->finalType);
-		ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tempVar));
-		ICGElmOp *op1 = newOpCopyData(lhs->result->typ, lhs->result->data);
-		ICGElmOp *op2 = newOpCopyData(rhs->result->typ, rhs->result->data);
+		ICGElmOp *res = newOp(ICGO_REG, tempVar);
+		ICGElmOp *op1 = newOpCopy(lhs->result);
+		ICGElmOp *op2 = newOpCopy(rhs->result);
 
 		prev = newICGElm(prev, ICG_SUB, typeToICGDataType(root->finalType), root);
 		prev->result = res;
@@ -76,51 +76,57 @@ ICGElm * icGenIf(PTree *root, ICGElm *prev){
 		char *lblFakeIfStart = newLabel("IfTrue");
 
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
-		prev->result = newOp(ICGO_LABEL, lblFakeIfStart);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
 
+		enterNewScope();
 		prev = icGenBlock(predTrue, prev); // true branch
-
+		prev = derefScope(prev); exitScope();
+		
+		
 		prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root); // jump to end if statemnt
-		prev->result = newOp(ICGO_LABEL, lblPastFalse);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastFalse);
 
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
-		prev->result = newOp(ICGO_LABEL, lblPastTrue);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
 
+		enterNewScope();
 		prev = icGenBlock(predFalse, prev); // false branch
-
+		prev = derefScope(prev); exitScope();
+		
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // if end label
-		prev->result = newOpCopyData(ICGO_LABEL, lblPastFalse);
+		prev->result = newOpLabel_c(lblPastFalse);
 	}else{ // falls through
 		char *lblFakeIfEnd = newLabel("IfElseEnd");
 		char *lblFakeIfStart = newLabel("IfTrue");
 
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
-		prev->result = newOp(ICGO_LABEL, lblFakeIfStart);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
 
+		enterNewScope();
 		prev = icGenBlock(pred, prev); // true branch
-
+		prev = derefScope(prev); exitScope();
+		
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
-		prev->result = newOp(ICGO_LABEL, lblPastTrue);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
 
 		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-		prev->result = newOp(ICGO_LABEL, lblFakeIfEnd);
+		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfEnd);
 	}
 	return prev;
 }
 
 ICGElm * icGenWhile(PTree *root, ICGElm *prev){
-  enterNewScope(); // SCOPE OF WHILE CONDITION
-  
   // step 1: Evaluate Condition
   PTree *cond = (PTree*)root->child1;
   char *lblExitWhile = newLabel("WhileLoopExit");
   char *lblWhileMarker = newLabel("WhileLoopTest");
 
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
-  prev->result = newOp(ICGO_LABEL, lblWhileMarker);
+  prev->result = newOp(ICGO_LABEL, (Variable*)lblWhileMarker);
 
   prev = icGenGeneralCondition(cond, prev, lblExitWhile);
 
+  
   // now gen accepting state
   PTree *pred = (PTree*)root->child2;
 
@@ -130,14 +136,12 @@ ICGElm * icGenWhile(PTree *root, ICGElm *prev){
   
   // reloop
   prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
-  prev->result = newOpCopyData(ICGO_LABEL, lblWhileMarker);
+  prev->result = newOpLabel_c(lblWhileMarker);
 
   // exit label
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-  prev->result = newOp(ICGO_LABEL, lblExitWhile);
+  prev->result = newOp(ICGO_LABEL, (Variable*)lblExitWhile);
 
-  prev = derefScope(prev); exitScope(); // SCOPE OF WHILE CONDITION
-	
   return prev;
 }
 
@@ -153,30 +157,30 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	// step 2: prepare iterator
 	Variable *iteratorVar = defineVariable(NULL, newBasicType(TB_NATIVE_VOID));
 	prev = newICGElm(prev, ICG_ITER_INIT, ICGDT_NONE, root); // initalize iterator
-	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
-	prev->op1 = newOpCopyData(iteratableVar->result->typ, iteratableVar->result->data);
+	prev->result = newOp(ICGO_REG, iteratorVar);
+	prev->op1 = newOpCopy(iteratableVar->result);
 
 	// step 3: loop marker
 	char *lblForMarker = newLabel("ForLoopMarker");
 	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
-	prev->result = newOp(ICGO_LABEL, lblForMarker);
+	prev->result = newOp(ICGO_LABEL, (Variable*)lblForMarker);
 
 	// step 4: get next data
 	prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
-	prev->result = newOpCopyData(holderVar->result->typ, holderVar->result->data);
-	prev->op1 = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
-	prev->op2 = newOpCopyData(ICGO_LABEL, lblForEnd);
+	prev->result = newOpCopy(holderVar->result);
+	prev->op1 = newOp(ICGO_REG, iteratorVar);
+	prev->op2 = newOpLabel_c(lblForEnd);
 
 	// step 6: run code & reloop
 	prev = icGenBlock((PTree*)root->child2, prev);
 	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
-	prev->result = newOpCopyData(ICGO_LABEL, lblForMarker);
+	prev->result = newOpLabel_c(lblForMarker);
 
 	// step 6: exit marker & close iterator
 	prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-	prev->result = newOp(ICGO_LABEL, lblForEnd);
+	prev->result = newOp(ICGO_LABEL, (Variable*)lblForEnd);
 	prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
-	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
+	prev->result = newOp(ICGO_REG, iteratorVar);
 
 	return prev;
 }
@@ -184,23 +188,26 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   // prepare output variable:
   Variable *outVar = defineVariable(NULL, root->finalType);
+
+  enterNewScope(); // SCOPE OF COMP GENERATION
+  
   ICGElmOp *outRes;
   if(root->finalType.base == TB_VECTOR){
-    outRes = newOp(ICGO_OBJREFNEW, getVariableUniqueName(outVar));
+    outRes = newOp(ICGO_OBJREFNEW, outVar);
     Type childType = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childType);
-    ICGElmOp *op2 = newOpInt(ICGO_NUMERICLIT, 0);
+    ICGElmOp *op2 = newOpInt(0);
     prev = newICGElm(prev, ICG_NEWVEC, typeToICGDataType(root->finalType), root);
     prev->result = outRes;
     prev->op1 = op1;
     prev->op2 = op2;
   }else{ // dict
-    outRes = newOp(ICGO_OBJREFNEW, getVariableUniqueName(outVar));
+    outRes = newOp(ICGO_OBJREFNEW, outVar);
     Type childTypeKey = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childTypeKey);
     Type childTypeVal = ((Type*)root->finalType.children)[1];
     ICGElmOp *op2 = bitSizeOp(childTypeVal);
-    ICGElmOp *op3 = newOpInt(ICGO_NUMERICLIT, 0);
+    ICGElmOp *op3 = newOpInt(0);
     prev = newICGElm(prev, ICG_NEWDICT, typeToICGDataType(root->finalType), root);
     prev->result = outRes;
     prev->op1 = op1;
@@ -219,19 +226,19 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   // step 2: prepare iterator
   Variable *iteratorVar = defineVariable(NULL, newBasicType(TB_NATIVE_VOID));
   prev = newICGElm(prev, ICG_ITER_INIT, ICGDT_NONE, root); // initalize iterator
-  prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
-  prev->op1 = newOpCopyData(iteratableVar->result->typ, iteratableVar->result->data);
+  prev->result = newOp(ICGO_REG, iteratorVar);
+  prev->op1 = newOpCopy(iteratableVar->result);
 
   // step 3: loop marker
   char *lblCompMarker = newLabel("CompLoopMarker");
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
-  prev->result = newOp(ICGO_LABEL, lblCompMarker);
+  prev->result = newOp(ICGO_LABEL, (Variable*)lblCompMarker);
 
   // step 4: get next data
   prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
-  prev->result = newOpCopyData(holderVar->result->typ, holderVar->result->data);
-  prev->op1 = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
-  prev->op2 = newOpCopyData(ICGO_LABEL, lblCompEnd);
+  prev->result = newOpCopy(holderVar->result);
+  prev->op1 = newOp(ICGO_REG, iteratorVar);
+  prev->op2 = newOpLabel_c(lblCompEnd);
 
   // step 5: check whether condition holds for each element
   if(((PTree*)root->child2)->child2 != NULL){ // conditional
@@ -241,12 +248,12 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   // step 6: push element into object
   if(((PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){ // dict
     PTree *pair = (PTree*)((PTree*)root->child2)->child1;
-    ICGElmOp *res = newOpCopyData(outRes->typ, outRes->data);
+    ICGElmOp *res = newOpCopy(outRes);
 
     prev = icGen((PTree*)pair->child1, prev); // key
-    ICGElmOp *op1 = newOpCopyData(prev->result->typ, prev->result->data);
+    ICGElmOp *op1 = newOpCopy(prev->result);
     prev = icGen((PTree*)pair->child2, prev); // value
-    ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
+    ICGElmOp *op2 = newOpCopy(prev->result);
 
     prev = newICGElm(prev, ICG_DICTSTORE, typeToICGDataType(root->finalType), root);
     prev->op1 = op1;
@@ -254,8 +261,8 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
     prev->result = res;
   }else{ // vector
     prev = icGen((PTree*)((PTree*)root->child2)->child1, prev);
-    ICGElmOp *op2 = newOpCopyData(prev->result->typ, prev->result->data);
-    ICGElmOp *op1 = newOpCopyData(outRes->typ, outRes->data);
+    ICGElmOp *op2 = newOpCopy(prev->result);
+    ICGElmOp *op1 = newOpCopy(outRes);
     prev = newICGElm(prev, ICG_VPUSH, typeToICGDataType(root->finalType), root);
     prev->op1 = op1;
     prev->op2 = op2;
@@ -263,59 +270,65 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
 
   // step 7: reloop
   prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
-  prev->result = newOpCopyData(ICGO_LABEL, lblCompMarker);
+  prev->result = newOpLabel_c(lblCompMarker);
 
   // step 8: exit marker & close iterator
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-  prev->result = newOp(ICGO_LABEL, lblCompEnd);
+  prev->result = newOp(ICGO_LABEL, (Variable*)lblCompEnd);
   prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
-  prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(iteratorVar));
+  prev->result = newOp(ICGO_REG, iteratorVar);
 
   // to present new object to next icg
   prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
-  prev->result = newOpCopyData(outRes->typ, outRes->data);
+  prev->result = newOpCopy(outRes);
+
+  prev = derefScope(prev); exitScope(); // SCOPE OF COMP GENERATION
+  
   return prev;
 }
 
 extern void icGenJump_print(ICGElm *elm, FILE* f){
-	if(elm->typ == ICG_JMP){
-		fprintf(f, "jmp %s", elm->result->data);
-	}else if(elm->typ == ICG_JNZ){
-		if(elm->op1->typ == ICGO_NUMERICLIT){
-			fprintf(f, "jnz %s, %s", elm->result->data, elm->op1->data);
-		}else{
-			fprintf(f, "jnz %s, $%s", elm->result->data, elm->op1->data);
-		}
-	}else if(elm->typ == ICG_JZ){
-		if(elm->op1->typ == ICGO_NUMERICLIT){
-			fprintf(f, "jz %s, %s", elm->result->data, elm->op1->data);
-		}else{
-			fprintf(f, "jz %s, $%s", elm->result->data, elm->op1->data);
-		}
-	}
+  if(elm->typ == ICG_JMP){
+    fprintf(f, "jmp ");
+    printOp(f, elm->result);
+  }else if(elm->typ == ICG_JNZ){
+    fprintf(f, "jnz ");
+    printOp(f, elm->result);
+    fprintf(f, ", ");
+    printOp(f, elm->op1);
+  }else if(elm->typ == ICG_JZ){
+    fprintf(f, "jz ");
+    printOp(f, elm->result);
+    fprintf(f, ", ");
+    printOp(f, elm->op1);
+  }
 }
 
 ICGElm * icGenCompObj_print(ICGElm *elm, FILE* f){
-	fprintf(f, "compobj");
-	fprintf(f, " $%s, ", elm->result->data);
-	if(elm->op1->typ == ICGO_RO_ADDR){
-		fprintf(f, "%%%s, ", elm->op1->data);
-	}else{
-		fprintf(f, "$%s, ", elm->op1->data);
-	}
-	if(elm->op2->typ == ICGO_RO_ADDR){
-		fprintf(f, "%%%s", elm->op2->data);
-	}else{
-		fprintf(f, "$%s", elm->op2->data);
-	}
+  fprintf(f, "compobj ");
+  printOp(f, elm->result);
+  fprintf(f, ", ");
+  printOp(f, elm->op1);
+  fprintf(f, ", ");
+  printOp(f, elm->op2);
 }
 
 void icGenFor_print(ICGElm *elm, FILE* f){
-	if(elm->typ == ICG_ITER_INIT){
-		fprintf(f, "iteri $%s, $%s", elm->result->data, elm->op1->data);
-	}else if(elm->typ == ICG_ITER_CLOSE){
-		fprintf(f, "iterf $%s", elm->result->data);
-	}else if(elm->typ == ICG_ITER_NEXT){
-		fprintf(f, "itern $%s, $%s, %s", elm->result->data, elm->op1->data, elm->op2->data);
-	}
+  if(elm->typ == ICG_ITER_INIT){
+    fprintf(f, "iteri ");
+    printOp(f, elm->result);
+    fprintf(f, ", ");
+    printOp(f, elm->op1);
+		
+  }else if(elm->typ == ICG_ITER_CLOSE){
+    fprintf(f, "iterf ");
+    printOp(f, elm->result);
+  }else if(elm->typ == ICG_ITER_NEXT){
+    fprintf(f, "itern ");
+    printOp(f, elm->result);
+    fprintf(f, ", ");
+    printOp(f, elm->op1);
+    fprintf(f, ", ");
+    printOp(f, elm->op2);
+  }
 }

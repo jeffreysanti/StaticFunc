@@ -19,6 +19,7 @@ typedef struct{
   int uuid;
   char *refname; // name in code (null if temp)
   Type sig;
+  bool disposedTemp;
 
   struct Variable *next;
   struct Variable *prev;

@@ -9,28 +9,27 @@
 
 #include "icg.h"
 
-extern ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, char *reg);
-
 
 static inline ICGElm * processChild(PTree *child1, ICGElm *prev, ICGElmOp **op){
 	ICGElm *data1 = icGen(child1, prev);
 	*op = NULL;
 	if(data1->typ == ICG_LITERAL){
 		freeICGElm(data1);
-		*op = newOpCopyData(ICGO_NUMERICLIT, (char*)child1->tok->extra);
+		*op = newOpInt_sc((char*)child1->tok->extra);
 	}else if(data1->typ == ICG_IDENT){
 		freeICGElm(data1);
 		if(isTypeNumeric(child1->finalType)){
-		  *op = newOp(ICGO_NUMERICREG, getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra)));
+		  *op = newOp(ICGO_REG, getNearbyVariable((char*)child1->tok->extra));
 		}else{
-		  char *tmpreg = getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra));
+		  /*char *tmpreg = getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra));
 			prev = icGenCopyObject(child1, prev, tmpreg);
 			free(tmpreg);
-			*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);
+			*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);*/
+		  printf("NON Numeric in icgArith.processChild???\n");
 		}
 	}else{ // expression (other code before this)
 		prev = data1;
-		*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);
+		*op = newOpCopy(prev->result);
 	}
 	return prev;
 }
@@ -40,7 +39,7 @@ ICGElm * icGenArith(PTree *root, ICGElm *prev){
 
 
 	Variable *tmpvar = defineVariable(NULL, d);
-	ICGElmOp *res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
+	ICGElmOp *res = newOp(ICGO_REG, tmpvar);
 
 	ICGElmOp *op1, *op2;
 	prev = processChild((PTree*)root->child1, prev, &op1);
@@ -80,46 +79,33 @@ ICGElm * icGenArith(PTree *root, ICGElm *prev){
 
 void icGenArith_print(ICGElm *elm, FILE* f)
 {
-	if(elm->typ == ICG_ADD) fprintf(f, "add");
-	if(elm->typ == ICG_MUL) fprintf(f, "mul");
-	if(elm->typ == ICG_DIV) fprintf(f, "div");
-	if(elm->typ == ICG_SUB) fprintf(f, "sub");
-	if(elm->typ == ICG_AND) fprintf(f, "and");
-	if(elm->typ == ICG_OR) fprintf(f, "or");
-	if(elm->typ == ICG_XOR) fprintf(f, "xor");
-	if(elm->typ == ICG_NOT) fprintf(f, "not");
-	if(elm->typ == ICG_GT) fprintf(f, "cmpgt");
-	if(elm->typ == ICG_LT) fprintf(f, "cmplt");
-	if(elm->typ == ICG_GTE) fprintf(f, "cmpgte");
-	if(elm->typ == ICG_LTE) fprintf(f, "cmplte");
-	if(elm->typ == ICG_SHR) fprintf(f, "shr");
-	if(elm->typ == ICG_SHL) fprintf(f, "shl");
-	if(elm->typ == ICG_EXP) fprintf(f, "exp");
-	if(elm->typ == ICG_MOD) fprintf(f, "mod");
+  if(elm->typ == ICG_ADD) fprintf(f, "add");
+  if(elm->typ == ICG_MUL) fprintf(f, "mul");
+  if(elm->typ == ICG_DIV) fprintf(f, "div");
+  if(elm->typ == ICG_SUB) fprintf(f, "sub");
+  if(elm->typ == ICG_AND) fprintf(f, "and");
+  if(elm->typ == ICG_OR) fprintf(f, "or");
+  if(elm->typ == ICG_XOR) fprintf(f, "xor");
+  if(elm->typ == ICG_NOT) fprintf(f, "not");
+  if(elm->typ == ICG_GT) fprintf(f, "cmpgt");
+  if(elm->typ == ICG_LT) fprintf(f, "cmplt");
+  if(elm->typ == ICG_GTE) fprintf(f, "cmpgte");
+  if(elm->typ == ICG_LTE) fprintf(f, "cmplte");
+  if(elm->typ == ICG_SHR) fprintf(f, "shr");
+  if(elm->typ == ICG_SHL) fprintf(f, "shl");
+  if(elm->typ == ICG_EXP) fprintf(f, "exp");
+  if(elm->typ == ICG_MOD) fprintf(f, "mod");
 
 
-	printICGTypeSuffix(elm, f);
+  printICGTypeSuffix(elm, f);
 
-	fprintf(f, " $%s, ", elm->result->data);
-
-	ICGElmOp *op = elm->op1;
-	if(op->typ == ICGO_NUMERICLIT){
-		fprintf(f, "%s", op->data);
-	}else if(op->typ == ICGO_RO_ADDR){
-		fprintf(f, "%%%s", op->data);
-	}else{
-		fprintf(f, "$%s", op->data);
-	}
-
-	if(elm->op2 != NULL){
-		fprintf(f, ", ");
-		op = elm->op2;
-		if(op->typ == ICGO_NUMERICLIT){
-			fprintf(f, "%s", op->data);
-		}else if(op->typ == ICGO_RO_ADDR){
-			fprintf(f, "%%%s", op->data);
-		}else{
-			fprintf(f, "$%s", op->data);
-		}
-	}
+  fprintf(f, " ");
+  printOp(f, elm->result);
+  fprintf(f, ", ");
+  printOp(f, elm->op1);
+	
+  if(elm->op2 != NULL){
+    fprintf(f, ", ");
+    printOp(f, elm->op2);
+  }
 }

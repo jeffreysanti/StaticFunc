@@ -122,6 +122,7 @@ Variable *defineVariable(char *sym, Type typ)
     sb->refname = strdup(sym);
   }
   sb->sig = duplicateType(typ);
+  sb->disposedTemp = false;
   sb->prev = NULL;
   sb->next = SC->variables;
   SC->variables = (void*)sb;

@@ -95,9 +95,8 @@ typedef enum{
 
 typedef enum{
 	ICGO_NUMERICLIT,
-	ICGO_NUMERICREG,
+	ICGO_REG,
 	ICGO_RO_ADDR,
-	ICGO_OBJREF,
 	ICGO_OBJREFNEW,
 
 	ICGO_LABEL
@@ -107,7 +106,7 @@ typedef enum{
 
 typedef struct{
 	ICGElmOpType typ;
-	char *data;
+	void *data;
 }ICGElmOp;
 
 typedef struct{
@@ -152,9 +151,17 @@ void freeICGElm(ICGElm *elm);
 void printSingleICGElm(ICGElm *elm, FILE *f);
 void printICG(ICGElm *root, FILE *f, bool address);
 
-ICGElmOp *newOp(ICGElmOpType typ, char *data);
-ICGElmOp *newOpInt(ICGElmOpType typ, int val);
-ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data);
+ICGElmOp *newOp(ICGElmOpType typ, Variable *data);
+ICGElmOp *newOpInt(int val);
+ICGElmOp *newOpInt_s(char* val);
+ICGElmOp *newOpInt_sc(char* val);
+ICGElmOp *newOpCopy(ICGElmOp *cpy);
+ICGElmOp *newOpROA_c(char *val);
+ICGElmOp *newOpLabel_c(char *val);
+
+void printOp(FILE *f, ICGElmOp *op);
+
+//ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data);
 
 ICGDataType typeToICGDataType(Type t);
 void printICGTypeSuffix(ICGElm *elm, FILE* f);
@@ -181,15 +188,16 @@ static inline ICGElmOp *bitSizeTupleOp(Type t){
 			dta += 2;
 		}
 	}
-	return newOp(ICGO_NUMERICLIT, origDta);
+	return newOpInt_s(origDta);
 }
 
 static inline ICGElmOp *bitSizeOp(Type t){
 	ICGElmOp *op = NULL;
-	if(t.base == TB_NATIVE_INT || t.base == TB_NATIVE_FLOAT)
-		op = newOpCopyData(ICGO_NUMERICLIT, "8");
-	else
-		op = newOpCopyData(ICGO_NUMERICLIT, "PTR");
+	if(t.base == TB_NATIVE_INT || t.base == TB_NATIVE_FLOAT){
+	  op = newOpInt_sc("8");
+	}else{
+	  op = newOpInt_sc("PTR");
+	}
 	return op;
 }
 

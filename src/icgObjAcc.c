@@ -24,12 +24,7 @@ static inline int getTupleIndex(Type tuple, char *ident){
 
 ICGElm * icGenDot(PTree *root, ICGElm *prev){
   Variable *tmpvar = defineVariable(NULL, root->finalType);
-  ICGElmOp *res = NULL;
-  if(isTypeNumeric(root->finalType)){
-    res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
-  }else{
-    res = newOp(ICGO_OBJREF, getVariableUniqueName(tmpvar));
-  }
+  ICGElmOp *res = newOp(ICGO_REG, tmpvar);
 
   char *ident = (char*)((PTree*)root->child2)->tok->extra;
 
@@ -37,16 +32,16 @@ ICGElm * icGenDot(PTree *root, ICGElm *prev){
   Type tuple = src->finalType;
   int i = getTupleIndex(tuple, ident);
 
-  ICGElmOp *op1 = newOpInt(ICGO_NUMERICLIT, i);
+  ICGElmOp *op1 = newOpInt(i);
 
   ICGElm *tmp = icGen(src, prev);
   ICGElmOp *op2 = NULL;
   if(tmp->typ == ICG_IDENT){
-    op2 = newOp(tmp->result->typ, getVariableUniqueName(getNearbyVariable((char*)src->tok->extra)));
+    op2 = newOp(tmp->result->typ, getNearbyVariable((char*)src->tok->extra));
     freeICGElm(tmp);
   }else{ // expression (other code before this)
     prev = tmp;
-    op2 = newOpCopyData(tmp->result->typ, prev->result->data);
+    op2 = newOpCopy(prev->result);
   }
 
   ICGElm *ret = newICGElm(prev, ICG_TPLLOAD, typeToICGDataType(root->finalType), root);
@@ -63,24 +58,20 @@ ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
   ICGElmOp *res = NULL;
   ICGElmOp *op1 = NULL;
   ICGElmOp *op2 = NULL;
-  if(isTypeNumeric(root->finalType)){
-    res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
-  }else{
-    res = newOp(ICGO_OBJREF, getVariableUniqueName(tmpvar));
-  }
+  res = newOp(ICGO_REG, tmpvar);
 
   ICGElm *genKey = icGen((PTree*)root->child2, prev); // for op1
   if(genKey->typ == ICG_LITERAL){
     char *keyval = (char*)((PTree*)root->child2)->tok->extra;
-    op1 = newOpCopyData(ICGO_NUMERICLIT, keyval);
+    op1 = newOpInt_sc(keyval);
     freeICGElm(genKey);
   }else{
     prev = genKey;
-    op1 = newOpCopyData(genKey->result->typ, genKey->result->data);
+    op1 = newOpCopy(genKey->result);
   }
 
   prev = icGen((PTree*)root->child1, prev); // for op2
-  op2 = newOpCopyData(prev->result->typ, prev->result->data);
+  op2 = newOpCopy(prev->result);
 
   if(((PTree*)root->child1)->finalType.base == TB_DICT){
     prev = newICGElm(prev, ICG_DICTLOAD, typeToICGDataType(root->finalType), root);
@@ -99,7 +90,7 @@ ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
 ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int depth){
 	if(root->typ == PTT_IDENTIFIER){
 		prev = newICGElm(prev, ICG_IDENT, ICGDT_NONE, root);
-		prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(getNearbyVariable((char*)root->tok->extra)));
+		prev->result = newOp(ICGO_REG, getNearbyVariable((char*)root->tok->extra));
 		return prev;
 	}
 	if(root->typ == PTT_DOT){
@@ -107,11 +98,11 @@ ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int d
 		char *ident = (char*)((PTree*)root->child2)->tok->extra;
 		prev = icGenSaveToDataStruct_aux(pTuple, prev, src, depth+1);
 		if(depth == 0){
-			ICGElmOp *res = newOpCopyData(ICGO_OBJREF, prev->result->data);
+			ICGElmOp *res = newOpCopy(prev->result);
 
 			int i = getTupleIndex(pTuple->finalType, ident);
-			ICGElmOp *op1 = newOpInt(ICGO_NUMERICLIT, i);
-			ICGElmOp *op2 = newOpCopyData(src->result->typ, src->result->data);
+			ICGElmOp *op1 = newOpInt(i);
+			ICGElmOp *op2 = newOpCopy(src->result);
 
 			prev = newICGElm(prev, ICG_TPLSTORE, typeToICGDataType(root->finalType), root);
 			prev->result = res;
@@ -125,21 +116,21 @@ ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int d
 		PTree *pKey = (PTree*)root->child2;
 		prev = icGenSaveToDataStruct_aux(pArray, prev, src, depth+1);
 		if(depth == 0){
-			ICGElmOp *res = newOpCopyData(ICGO_OBJREF, prev->result->data);
+			ICGElmOp *res = newOpCopy(prev->result);
 
 			// get access element
 			ICGElm *genKey = icGen(pKey, prev);
 			ICGElmOp *op1 = NULL;
 			if(genKey->typ == ICG_LITERAL){
 				char *keyval = (char*)pKey->tok->extra;
-				op1 = newOpCopyData(ICGO_NUMERICLIT, keyval);
+				op1 = newOpInt_sc(keyval);
 				freeICGElm(genKey);
 			}else{
 				prev = genKey;
-				op1 = newOpCopyData(genKey->result->typ, genKey->result->data);
+				op1 = newOpCopy(genKey->result);
 			}
 
-			ICGElmOp *op2 = newOpCopyData(src->result->typ, src->result->data);
+			ICGElmOp *op2 = newOpCopy(src->result);
 
 			if(pArray->finalType.base == TB_DICT){
 			  prev = newICGElm(prev, ICG_DICTSTORE, typeToICGDataType(root->finalType), root);
@@ -170,21 +161,17 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   ICGElmOp *op2 = NULL;
 
   if(root->typ != PTT_PUSH && root->typ != PTT_QUEUE){
-     if(isTypeNumeric(root->finalType)){
-       res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
-     }else{
-       res = newOp(ICGO_OBJREF, getVariableUniqueName(tmpvar));
-     }
+    res = newOp(ICGO_REG, tmpvar);
   }
   
   
   // load pointer to object
   prev = icGen((PTree*)root->child1, prev); // for op1
-  op1 = newOpCopyData(prev->result->typ, prev->result->data);
+  op1 = newOpCopy(prev->result);
   
   if(root->typ == PTT_QUEUE || root->typ == PTT_PUSH){
     prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
-    op2 = newOpCopyData(prev->result->typ, prev->result->data);
+    op2 = newOpCopy(prev->result);
   }
 
   if(root->typ == PTT_PUSH)
@@ -217,15 +204,15 @@ ICGElm * icGenRemoveContainsMethod(PTree *root, ICGElm *prev){
   ICGElmOp *op1 = NULL;
   ICGElmOp *op2 = NULL;
 
-  res = newOp(ICGO_NUMERICREG, getVariableUniqueName(tmpvar));
+  res = newOp(ICGO_REG, tmpvar);
   
   // load pointer to object
   prev = icGen((PTree*)root->child1, prev); // for op1
-  op1 = newOpCopyData(prev->result->typ, prev->result->data);
+  op1 = newOpCopy(prev->result);
 
   // key we're compareing
   prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
-  op2 = newOpCopyData(prev->result->typ, prev->result->data);
+  op2 = newOpCopy(prev->result);
   
 
   if(((PTree*)root->child1)->finalType.base == TB_DICT){
@@ -287,38 +274,30 @@ void icGenVecMethod_print(ICGElm *elm, FILE* f) {
   
 
   if(elm->result != NULL){
-    	if(elm->result->typ == ICGO_NUMERICLIT){
-		fprintf(f, " %s, ", elm->result->data);
-	}else{
-		fprintf(f, " $%s, ", elm->result->data);
-	}
+    printOp(f, elm->result);
+    fprintf(f, ", ");
   }else{
     fprintf(f, " nil, ");
   }
-  fprintf(f, "$%s", elm->op1->data);
+  printOp(f, elm->op1);
   if(elm->op2 != NULL){
-    	if(elm->op2->typ == ICGO_NUMERICLIT){
-		fprintf(f, ", %s", elm->op2->data);
-	}else{
-		fprintf(f, ", $%s", elm->op2->data);
-	}
+    fprintf(f, ", ");
+    printOp(f, elm->op2);
   }
 }
 
 
 void icGenRemoveContainsMethod_print(ICGElm *elm, FILE* f) {
 
-  if(elm->typ == ICG_VREMOVE) fprintf(f, "vrem");
-  if(elm->typ == ICG_VCONTAINS) fprintf(f, "vcont");
-  if(elm->typ == ICG_DREMOVE) fprintf(f, "drem");
-  if(elm->typ == ICG_DCONTAINS) fprintf(f, "dcont");
+  if(elm->typ == ICG_VREMOVE) fprintf(f, "vrem ");
+  if(elm->typ == ICG_VCONTAINS) fprintf(f, "vcont ");
+  if(elm->typ == ICG_DREMOVE) fprintf(f, "drem ");
+  if(elm->typ == ICG_DCONTAINS) fprintf(f, "dcont ");
 
-  fprintf(f, " %s, ", elm->result->data);
-  fprintf(f, "$%s", elm->op1->data);
-  if(elm->op2->typ == ICGO_NUMERICLIT){
-    fprintf(f, ", %s", elm->op2->data);
-  }else{
-    fprintf(f, ", $%s", elm->op2->data);
-  }
+  printOp(f, elm->result);
+  fprintf(f, ", ");
+  printOp(f, elm->op1);
+  fprintf(f, ", ");
+  printOp(f, elm->op2);
 }
 

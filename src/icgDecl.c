@@ -17,7 +17,7 @@ ICGElm * icGenDecl(PTree *root, ICGElm *prev){
 	Variable *var = defineVariable((char*)root->tok->extra, d);
 
 	prev = newICGElm(prev, ICG_DEFINE, typeToICGDataType(d), root);
-	prev->result = newOp(ICGO_NUMERICREG, getVariableUniqueName(var));
+	prev->result = newOp(ICGO_REG, var);
 
 	if(root->child2 != NULL){
 		prev = icGenAssnToX((PTree*)root->child2, prev, var, d);
@@ -29,6 +29,7 @@ void icGenDecl_print(ICGElm *elm, FILE* f)
 {
 	fprintf(f, "d");
 	printICGTypeSuffix(elm, f);
-	fprintf(f, " $%s", elm->result->data);
+	fprintf(f, " ");
+	printOp(f, elm->result);
 }
 

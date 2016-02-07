@@ -100,20 +100,28 @@ void freeICGElm(ICGElm *elm)
 	fprintf(stderr, "\n");*/
 
 	if(elm->result != NULL){
-		free(elm->result->data);
-		free(elm->result);
+	  if(elm->result->typ == ICGO_NUMERICLIT || elm->result->typ == ICGO_RO_ADDR
+	      || elm->result->typ == ICGO_LABEL)
+	    free(elm->result->data);
+	  free(elm->result);
 	}
 	if(elm->op1 != NULL){
-		free(elm->op1->data);
-		free(elm->op1);
+	  if(elm->op1->typ == ICGO_NUMERICLIT || elm->op1->typ == ICGO_RO_ADDR
+	      || elm->op1->typ == ICGO_LABEL)
+	    free(elm->op1->data);
+	  free(elm->op1);
 	}
 	if(elm->op2 != NULL){
-		free(elm->op2->data);
-		free(elm->op2);
+	  if(elm->op2->typ == ICGO_NUMERICLIT || elm->op2->typ == ICGO_RO_ADDR
+	      || elm->op2->typ == ICGO_LABEL)
+	    free(elm->op2->data);
+	  free(elm->op2);
 	}
 	if(elm->op3 != NULL){
-		free(elm->op3->data);
-		free(elm->op3);
+	  if(elm->op3->typ == ICGO_NUMERICLIT || elm->op3->typ == ICGO_RO_ADDR
+	      || elm->op3->typ == ICGO_LABEL)
+	    free(elm->op3->data);
+	  free(elm->op3);
 	}
 
 	free(elm);
@@ -153,7 +161,8 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}else if(elm->typ == ICG_ITER_INIT || elm->typ == ICG_ITER_NEXT || elm->typ == ICG_ITER_CLOSE){
 		icGenFor_print(elm, f);
 	}else if(elm->typ == ICG_DR){
-	  fprintf(f, "dr $%s", elm->result->data);
+	  fprintf(f, "dr ");
+	  printOp(f, elm->result);
 	}else{
 		fprintf(f, "???");
 	}
@@ -183,7 +192,7 @@ void printICG(ICGElm *root, FILE *f, bool address)
 ICGElmOp *newOpCopyData(ICGElmOpType typ, char *data){
 	char *newData = malloc(strlen(data)+1);
 	strcpy(newData, data);
-	return newOp(typ, newData);
+	return newOp(typ, (Variable*)newData);
 }
 
 ICGElm *icGen(PTree *root, ICGElm *prev)
@@ -194,11 +203,7 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev->result = newOpCopyData(ICGO_NUMERICLIT, root->tok->extra);
 	}else if(root->typ == PTT_IDENTIFIER){
 		prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
-		if(isTypeNumeric(root->finalType)){
-		  prev->result = newOp(ICGO_NUMERICREG, getVariableUniqueName(getNearbyVariable(root->tok->extra)));
-		}else{
-		  prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(getNearbyVariable(root->tok->extra)));
-		}
+		prev->result = newOp(ICGO_REG, getNearbyVariable(root->tok->extra));
 	}else if(root->typ == PTT_DECL){
 		prev = icGenDecl(root, prev);
 	}else if(root->typ == PTT_ASSIGN){
@@ -284,7 +289,7 @@ void icRunGen(PTree *root, char *outfl)
 
 }
 
-ICGElmOp *newOp(ICGElmOpType typ, char *data)
+ICGElmOp *newOp(ICGElmOpType typ, Variable *data)
 {
 	ICGElmOp *ret = malloc(sizeof(ICGElmOp));
 	if(ret == NULL){
@@ -295,11 +300,64 @@ ICGElmOp *newOp(ICGElmOpType typ, char *data)
 	return ret;
 }
 
-ICGElmOp *newOpInt(ICGElmOpType typ, int val)
+ICGElmOp *newOpInt(int val)
 {
 	char *str = calloc(20, 1);
 	sprintf(str, "%d", val);
-	return newOp(ICGO_NUMERICLIT, str);
+	return newOp(ICGO_NUMERICLIT, (Variable*)str);
+}
+
+ICGElmOp *newOpInt_s(char* val)
+{
+  return newOp(ICGO_NUMERICLIT, (Variable*)val);
+}
+
+ICGElmOp *newOpInt_sc(char* val)
+{
+  char *newData = malloc(strlen(val)+1);
+  strcpy(newData, val);
+  return newOp(ICGO_NUMERICLIT, (Variable*)newData);
+}
+
+ICGElmOp *newOpROA_c(char *val){
+  ICGElmOp *ret = newOpInt_sc(val);
+  ret->typ = ICGO_RO_ADDR;
+  return ret;
+}
+
+ICGElmOp *newOpLabel_c(char *val){
+  ICGElmOp *ret = newOpInt_sc(val);
+  ret->typ = ICGO_LABEL;
+  return ret;
+}
+
+ICGElmOp *newOpCopy(ICGElmOp *cpy){
+  ICGElmOp *ret = newOp(cpy->typ, NULL);
+  if(ret->typ == ICGO_NUMERICLIT || ret->typ == ICGO_RO_ADDR){
+    char *newData = malloc(strlen(cpy->data)+1);
+    strcpy(newData, cpy->data);
+    ret->data = (Variable*)newData;
+  }else if(ret->typ == ICGO_REG || ret->typ == ICGO_OBJREFNEW){
+    ret->data = cpy->data;
+  }else{
+    fprintf(stderr, "Unknown ICGOP Copy!!! Number: %d\n", ret->typ);
+  }
+}
+
+void printOp(FILE *f, ICGElmOp *op){
+  if(op->typ == ICGO_NUMERICLIT){
+    fprintf(f, "%s", (char*)op->data);
+  }else if(op->typ == ICGO_RO_ADDR){
+    fprintf(f, "%%%s", (char*)op->data);
+  }else if(op->typ == ICGO_REG || op->typ == ICGO_OBJREFNEW){
+    char *symname = getVariableUniqueName(op->data);
+    fprintf(f, "$%s", symname);
+    free(symname);
+  }else if(op->typ == ICGO_LABEL){
+    fprintf(f, "%s", (char*)op->data);
+  }else{
+    fprintf(f, "??");
+  }
 }
 
 ICGDataType typeToICGDataType(Type d)
@@ -353,10 +411,10 @@ ICGElm * derefScope(ICGElm *prev){
   Scope *s = currentScope();
   Variable *ptr = (Variable*)s->variables;
   while(ptr != NULL){
-    if(ptr->refname != NULL){
+    if(!ptr->disposedTemp){
       if(!isTypeNumeric(ptr->sig)){
 	prev = newICGElm(prev, ICG_DR, typeToICGDataType(ptr->sig), NULL);
-	prev->result = newOp(ICGO_OBJREF, getVariableUniqueName(ptr));
+	prev->result = newOp(ICGO_REG, ptr);
       }
     }
     ptr = (Variable*)ptr->next;

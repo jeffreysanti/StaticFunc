@@ -1,6 +1,10 @@
 
+if(5 == 5){
+
 float x(8.23);
 float y(2.53);
+
+x = y;
 
 float z;
 int i;
@@ -28,3 +32,16 @@ z = (y > x);
 z = (y < x);
 z = (y >= x);
 z = (y <= x);
+
+
+string s("abc");
+string t("123");
+
+t = s;
+
+i = (s == t);
+
+}
+
+
+
