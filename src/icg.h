@@ -172,6 +172,8 @@ ICGElm *derefScope(ICGElm *prev);
 
 
 
+extern char *emptyROString;
+
 
 static inline ICGElmOp *bitSizeTupleOp(Type t){
 	char *dta = calloc(t.numchildren*2 + 1, 1);

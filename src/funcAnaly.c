@@ -1006,8 +1006,9 @@ void propagateTreeType(PTree *root){
 		}
 	}else if(root->typ == PTT_ARRAY_COMP){
 		// we need to propagate source and eval expressions
-		propagateTreeType((PTree*)((PTree*)root->child1)->child2);
-
+	  propagateTreeType((PTree*)((PTree*)root->child1)->child2); // input array
+	  propagateTreeType((PTree*)((PTree*)root->child1)->child1); // temp var
+		
 		if(((PTree*)(PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){
 		  propagateTreeType((PTree*)((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child1);
 		  propagateTreeType((PTree*)((PTree*)((PTree*)((PTree*)root)->child2)->child1)->child2);

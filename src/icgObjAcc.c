@@ -24,6 +24,7 @@ static inline int getTupleIndex(Type tuple, char *ident){
 
 ICGElm * icGenDot(PTree *root, ICGElm *prev){
   Variable *tmpvar = defineVariable(NULL, root->finalType);
+  tmpvar->disposedTemp = true;
   ICGElmOp *res = newOp(ICGO_REG, tmpvar);
 
   char *ident = (char*)((PTree*)root->child2)->tok->extra;
@@ -55,6 +56,7 @@ ICGElm * icGenDot(PTree *root, ICGElm *prev){
 
 ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
   Variable *tmpvar = defineVariable(NULL, root->finalType);
+  tmpvar->disposedTemp = true;
   ICGElmOp *res = NULL;
   ICGElmOp *op1 = NULL;
   ICGElmOp *op2 = NULL;
@@ -128,6 +130,7 @@ ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int d
 			}else{
 				prev = genKey;
 				op1 = newOpCopy(genKey->result);
+				((Variable*)op1->data)->disposedTemp = true;
 			}
 
 			ICGElmOp *op2 = newOpCopy(src->result);
@@ -155,12 +158,12 @@ ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev){
 
 ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   
-  Variable *tmpvar = defineVariable(NULL, root->finalType);
   ICGElmOp *res = NULL;
   ICGElmOp *op1 = NULL;
   ICGElmOp *op2 = NULL;
 
   if(root->typ != PTT_PUSH && root->typ != PTT_QUEUE){
+    Variable *tmpvar = defineVariable(NULL, root->finalType);
     res = newOp(ICGO_REG, tmpvar);
   }
   
@@ -172,6 +175,10 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   if(root->typ == PTT_QUEUE || root->typ == PTT_PUSH){
     prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
     op2 = newOpCopy(prev->result);
+
+    if(op2->typ == ICGO_REG || op2->typ == ICGO_OBJREFNEW){
+      ((Variable*)op2->data)->disposedTemp = true;
+    }
   }
 
   if(root->typ == PTT_PUSH)
@@ -189,6 +196,12 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   else
     prev = newICGElm(prev, ICG_DVALS, typeToICGDataType(root->finalType), root);
 
+
+  if(root->typ == PTT_KEYS || root->typ == PTT_VALUES){
+    res->typ = ICGO_OBJREFNEW;
+  }
+  
+  
   prev->result = res;
   prev->op1 = op1;
   prev->op2 = op2;
@@ -242,7 +255,12 @@ void icGenDot_print(ICGElm *elm, FILE* f)
 {
 	fprintf(f, "tld");
 	printICGTypeSuffix(elm, f);
-	fprintf(f, " $%s, %s, $%s", elm->result->data, elm->op1->data, elm->op2->data);
+        fprintf(f, " ");
+	printOp(f, elm->result);
+	fprintf(f, ", ");
+	printOp(f, elm->op1);
+	fprintf(f, ", ");
+	printOp(f, elm->op2);
 }
 
 void icGenArrAcc_print(ICGElm *elm, FILE* f)
@@ -253,24 +271,24 @@ void icGenArrAcc_print(ICGElm *elm, FILE* f)
 		fprintf(f, "vld");
 	}
 	printICGTypeSuffix(elm, f);
-	fprintf(f, " $%s, ", elm->result->data);
-	if(elm->op1->typ == ICGO_NUMERICLIT){
-		fprintf(f, "%s, $%s", elm->op1->data, elm->op2->data);
-	}else{
-		fprintf(f, "$%s, $%s", elm->op1->data, elm->op2->data);
-	}
+	fprintf(f, " ");
+	printOp(f, elm->result);
+	fprintf(f, ", ");
+	printOp(f, elm->op1);
+	fprintf(f, ", ");
+	printOp(f, elm->op2);
 }
 
 
 void icGenVecMethod_print(ICGElm *elm, FILE* f) {
 
-  if(elm->typ == ICG_VPUSH) fprintf(f, "vpush");
-  if(elm->typ == ICG_VPOP) fprintf(f, "vpop");
-  if(elm->typ == ICG_VQUEUE) fprintf(f, "vqueue");
-  if(elm->typ == ICG_VDEQUEUE) fprintf(f, "vdequeue");
-  if(elm->typ == ICG_VSIZE) fprintf(f, "vsize");
-  if(elm->typ == ICG_DKEYS) fprintf(f, "dkeys");
-  if(elm->typ == ICG_DVALS) fprintf(f, "dvals");
+  if(elm->typ == ICG_VPUSH) fprintf(f, "vpush ");
+  if(elm->typ == ICG_VPOP) fprintf(f, "vpop ");
+  if(elm->typ == ICG_VQUEUE) fprintf(f, "vqueue ");
+  if(elm->typ == ICG_VDEQUEUE) fprintf(f, "vdequeue ");
+  if(elm->typ == ICG_VSIZE) fprintf(f, "vsize ");
+  if(elm->typ == ICG_DKEYS) fprintf(f, "dkeys ");
+  if(elm->typ == ICG_DVALS) fprintf(f, "dvals ");
   
 
   if(elm->result != NULL){

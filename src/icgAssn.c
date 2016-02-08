@@ -12,8 +12,13 @@
 extern ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, Variable *src);
 extern ICGElm * icGenSaveToDataStruct(PTree *root, ICGElm *prev);
 
-ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType){
+ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType, bool nullRegister){
 
+  if(!isTypeNumeric(to->sig) && !nullRegister){
+    prev = newICGElm(prev, ICG_DR, typeToICGDataType(to->sig), NULL);
+    prev->result = newOp(ICGO_REG, to);
+  }
+  
 	ICGElm *data = icGen(root, prev);
 	if(data->typ == ICG_LITERAL){
 		freeICGElm(data);
@@ -39,6 +44,7 @@ ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType){
 			  Variable *src = getNearbyVariable((char*)root->tok->extra);
 			  prev = icGenCopyObject(root, prev, src);
 			}
+		        ((Variable*)prev->result->data)->disposedTemp = true;
 
 			ICGElmOp *result = newOp(ICGO_OBJREFNEW, to);
 			ICGElmOp *op1 = newOpCopy(prev->result);
@@ -61,6 +67,7 @@ ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType){
 		        if(prev->result->typ != ICGO_OBJREFNEW){ // need to copy obj first
 				prev = icGenCopyObject(root, prev, prev->result->data);
 			}
+			((Variable*)prev->result->data)->disposedTemp = true;
 
 			ICGElmOp *result = newOp(ICGO_OBJREFNEW, to);
 			ICGElmOp *op1 = newOpCopy(prev->result);
@@ -78,10 +85,11 @@ ICGElm * icGenAssn(PTree *root, ICGElm *prev){
 	PTree *rhs = (PTree*)root->child2;
 
 	if(lhs->typ == PTT_IDENTIFIER){
-	  prev = icGenAssnToX(rhs, prev, getNearbyVariable((char*)lhs->tok->extra), root->finalType);
+	  prev = icGenAssnToX(rhs, prev, getNearbyVariable((char*)lhs->tok->extra), root->finalType, false);
 	}else{
-	  Variable *tmpvar = defineVariable("", root->finalType);
-	  prev = icGenAssnToX(rhs, prev, tmpvar, root->finalType);
+	  Variable *tmpvar = defineVariable(NULL, root->finalType);
+	  tmpvar->disposedTemp = true;
+	  prev = icGenAssnToX(rhs, prev, tmpvar, root->finalType, true);
 	  prev = icGenSaveToDataStruct(lhs, prev);
 	}
 	return prev;

@@ -58,6 +58,11 @@ extern void icGenRemoveContainsMethod_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenArrayComp(PTree *root, ICGElm *prev);
 
+
+
+char *emptyROString="**EMPTYSTRING**";
+
+
 ICGElm *newICGElm(ICGElm *parent, ICGElmType typ, ICGDataType dt, PTree *ref)
 {
 	ICGElm *ret = malloc(sizeof(ICGElm));

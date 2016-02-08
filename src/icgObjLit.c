@@ -9,7 +9,7 @@
 
 #include "icg.h"
 
-extern ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType);
+extern ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assignType, bool nullRegister);
 
 ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	char *roName = newROStringLit((char*)root->tok->extra);
@@ -56,7 +56,8 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		for(i=0; i<elmCnt; i++){
 			PTree *elm = (PTree*)ptr->child1;
 			Variable *elmTemp = defineVariable(NULL, elm->finalType);
-			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType);
+			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType, true);
+			elmTemp->disposedTemp = true;
 
 			if(root->finalType.base == TB_VECTOR){
 				ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
@@ -103,12 +104,14 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 
 			PTree *key = (PTree*)elm->child1;
 			Variable *elmKeyTemp = defineVariable(NULL, key->finalType);
-			prev = icGenAssnToX(key, prev, elmKeyTemp, key->finalType);
+			elmKeyTemp->disposedTemp = true;
+			prev = icGenAssnToX(key, prev, elmKeyTemp, key->finalType, true);
 			ICGElmOpType optkey = prev->result->typ;
 
 			PTree *val = (PTree*)elm->child2;
 			Variable *elmValTemp = defineVariable(NULL, val->finalType);
-			prev = icGenAssnToX(val, prev, elmValTemp, val->finalType);
+			elmValTemp->disposedTemp = true;
+			prev = icGenAssnToX(val, prev, elmValTemp, val->finalType, true);
 			ICGElmOpType optval = prev->result->typ;
 
 			ICGElmOp *res = newOp(ICGO_OBJREFNEW,  tmpvar) ;
@@ -140,7 +143,8 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			PTree *elm = (PTree*)ptr->child1;
 
 			Variable *elmTemp = defineVariable(NULL, elm->finalType);
-			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType);
+			elmTemp->disposedTemp = true;
+			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType, true);
 
 			ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
 			ICGElmOp *op1 = newOpInt(i);
