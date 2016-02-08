@@ -83,7 +83,9 @@ typedef enum{
 	ICG_JMP,
 
 	ICG_COMPOBJ,
-	ICG_DR
+	ICG_DR,
+
+	ICG_INITNULLFUNC
 }ICGElmType;
 
 typedef enum{

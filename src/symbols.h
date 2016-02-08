@@ -62,6 +62,8 @@ Type getNearbyVariableTypeOrErr(char *sym, int lineno);
 
 char *getVariableUniqueName(Variable *);
 
+void dumpSymbolTable(FILE *f);
+
 /*
 
 

@@ -58,6 +58,7 @@ extern void icGenRemoveContainsMethod_print(ICGElm *elm, FILE* f);
 
 extern ICGElm * icGenArrayComp(PTree *root, ICGElm *prev);
 
+extern ICGElm * icGenCall(PTree *root, ICGElm *prev);
 
 
 char *emptyROString="**EMPTYSTRING**";
@@ -135,7 +136,7 @@ void freeICGElm(ICGElm *elm)
 void printSingleICGElm(ICGElm *elm, FILE *f){
 	if(elm->typ == ICG_NONE || elm->typ == ICG_IDENT){
 	  //fprintf(f, "nop");
-	}else if(elm->typ == ICG_DEFINE){
+	}else if(elm->typ == ICG_DEFINE || elm->typ == ICG_INITNULLFUNC){
 		icGenDecl_print(elm, f);
 	}else if(elm->typ == ICG_MOV){
 		icGenAssn_print(elm, f);
@@ -241,7 +242,9 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenFor(root, prev);
 	}else if(root->typ == PTT_ARRAY_COMP){
 	  prev = icGenArrayComp(root, prev);
-        }else{
+        }else if(root->typ == PTT_PARAM_CONT){
+	  prev = icGenCall(root, prev);
+	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
 	}

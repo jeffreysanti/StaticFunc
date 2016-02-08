@@ -197,6 +197,31 @@ char *getVariableUniqueName(Variable *v)
   }
 }
 
+void dumpSymbolTable(FILE *f){
+  int scopeNo = 1;
+  for(int i=0; i<SCOPE_LEVELS; i++){
+    if(S[i].next == NULL)
+      return;
+
+    Scope *scope = (Scope*)S[i].next;
+    while(scope != NULL){
+      Variable *var = (Variable*)scope->variables;
+      while(var != NULL){
+	for(int x=0; x<=i; x++) fprintf(f, "##");
+	char *nm = "";
+	if(var->refname != NULL) nm = var->refname;
+	char *sigStr = getTypeAsString(var->sig);
+	fprintf(f, "%3d %s : %s\n", scopeNo, nm, sigStr);
+	free(sigStr);
+	var = (Variable*)var->next;
+      }
+      scopeNo ++;
+      scope = (Scope*)scope->next;
+    }
+  }
+  fprintf(f,"---SDUMP OVER---\n");
+}
+
 
 /*
 Symbol *S = NULL;

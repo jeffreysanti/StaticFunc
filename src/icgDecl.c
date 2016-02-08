@@ -73,6 +73,10 @@ ICGElm *initVar(Variable *var, ICGElm *prev){
       prev->op2 = op2;
     }
     return prev;
+  }else if(var->sig.base == TB_FUNCTION){
+    prev = newICGElm(prev, ICG_INITNULLFUNC, typeToICGDataType(var->sig), NULL);
+    prev->result = result;
+    return prev;
   }
 
   return NULL;
@@ -97,9 +101,14 @@ ICGElm * icGenDecl(PTree *root, ICGElm *prev){
 
 void icGenDecl_print(ICGElm *elm, FILE* f)
 {
-	fprintf(f, "d");
-	printICGTypeSuffix(elm, f);
-	fprintf(f, " ");
-	printOp(f, elm->result);
+  if(elm->typ == ICG_INITNULLFUNC){
+    fprintf(f, "nullfunc ");
+    printOp(f, elm->result);
+  }else{
+    fprintf(f, "d");
+    printICGTypeSuffix(elm, f);
+    fprintf(f, " ");
+    printOp(f, elm->result);
+  }
 }
 

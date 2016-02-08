@@ -220,6 +220,7 @@ TypeDeductions handleLambdaCreation(PTree *root, int *err){
 	// paramaters
 	int paramCnt = 0;
 	bool failed = false;
+	enterNewScope(); // LAMBDA PARAM SCOPE
 	while(paramTypeTree != NULL){
 		paramCnt ++;
 		Type tempParamType = deduceTypeDeclType((PTree*)((PTree*)paramTypeTree->child1)->child1);
@@ -260,11 +261,13 @@ TypeDeductions handleLambdaCreation(PTree *root, int *err){
 	// finally our return type deduction
 	TypeDeductions ret = singleTypeDeduction(lambdaSig);
 	freeType(lambdaSig);
+	exitScope(); // LAMBDA PARAM SCOPE
 	return ret;
 }
 
 TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 {
+  //dumpSymbolTable(stdout);
 	if(root->child1 == NULL && root->child2 == NULL){
 		if(root->typ == PTT_INT){
 			setTypeDeductions(root,
@@ -1205,6 +1208,14 @@ bool semAnalyStmt(PTree *root, Type sig)
 			reportError("SA052", "Assignment Invalid: Line %d", root->tok->lineNo);
 			return false;
 		}
+
+		else if(((PTree*)root->child1)->typ == PTT_IDENTIFIER){
+		  if(!variableExists((char*)((PTree*)root->child1)->tok->extra)){
+		    // problem: you're trying to redefine a possibly-templated global function!!
+		    reportError("SA053", "Assignment Invalid. You cannot redefine a global function: Line %d", root->tok->lineNo);
+			return false;
+		  }
+		}
 		return finalizeSingleDeduction(root);
 	}else if(root->typ == PTT_FUNCTION){
 		// functions here are named essentially lambdas mixed into a declaration
@@ -1293,7 +1304,7 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	int errs = 0;
 	PTree *body = root;
 	if(!global){
-	        enterGlobalSpace();
+	  //enterGlobalSpace();
 		enterNewScope();
 		// need to push locals onto stack
 		PTree *paramList = (PTree*)((PTree*)root->child1)->child2;
@@ -1324,6 +1335,7 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 				return ret;
 			printf("Inside function: %s \n", v->funcName);
 			semAnalyFunc(v->defRoot, false, v->sig);
+			enterGlobalSpace();
 		}
 		printf("DONE!");
 	}

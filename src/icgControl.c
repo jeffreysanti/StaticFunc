@@ -62,57 +62,59 @@ ICGElm * icGenEquality(PTree *root, ICGElm *prev){
 }
 
 ICGElm * icGenIf(PTree *root, ICGElm *prev){
-	// step 1: Evaluate Condition
-	PTree *cond = (PTree*)root->child1;
-	char *lblPastTrue = newLabel("IfElse");
-	prev = icGenGeneralCondition(cond, prev, lblPastTrue);
+  // step 1: Evaluate Condition
+  enterNewScope(); // SCOPE OF IF
+  PTree *cond = (PTree*)root->child1;
+  char *lblPastTrue = newLabel("IfElse");
+  prev = icGenGeneralCondition(cond, prev, lblPastTrue);
 
-	// now gen accepting condition
-	PTree *pred = (PTree*)root->child2;
-	if(pred->typ == PTT_IFELSE_SWITCH){ // has an else condition
-		PTree *predTrue = (PTree*)pred->child1;
-		PTree *predFalse = (PTree*)pred->child2;
-		char *lblPastFalse = newLabel("IfElseEnd");
-		char *lblFakeIfStart = newLabel("IfTrue");
+  // now gen accepting condition
+  PTree *pred = (PTree*)root->child2;
+  if(pred->typ == PTT_IFELSE_SWITCH){ // has an else condition
+    PTree *predTrue = (PTree*)pred->child1;
+    PTree *predFalse = (PTree*)pred->child2;
+    char *lblPastFalse = newLabel("IfElseEnd");
+    char *lblFakeIfStart = newLabel("IfTrue");
 
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
 
-		enterNewScope();
-		prev = icGenBlock(predTrue, prev); // true branch
-		prev = derefScope(prev); exitScope();
+    enterNewScope(); // SCOPE OF TRUE
+    prev = icGenBlock(predTrue, prev); // true branch
+    prev = derefScope(prev); exitScope(); // SCOPE OF TRUE
 		
 		
-		prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root); // jump to end if statemnt
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastFalse);
+    prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root); // jump to end if statemnt
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblPastFalse);
 
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
 
-		enterNewScope();
-		prev = icGenBlock(predFalse, prev); // false branch
-		prev = derefScope(prev); exitScope();
+    enterNewScope(); // SCOPE OF FALSE
+    prev = icGenBlock(predFalse, prev); // false branch
+    prev = derefScope(prev); exitScope(); // SCOPE OF FALSE
 		
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // if end label
-		prev->result = newOpLabel_c(lblPastFalse);
-	}else{ // falls through
-		char *lblFakeIfEnd = newLabel("IfElseEnd");
-		char *lblFakeIfStart = newLabel("IfTrue");
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // if end label
+    prev->result = newOpLabel_c(lblPastFalse);
+  }else{ // falls through
+    char *lblFakeIfEnd = newLabel("IfElseEnd");
+    char *lblFakeIfStart = newLabel("IfTrue");
 
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if begin label
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfStart);
 
-		enterNewScope();
-		prev = icGenBlock(pred, prev); // true branch
-		prev = derefScope(prev); exitScope();
+    enterNewScope(); // SCOPE OF TRUE
+    prev = icGenBlock(pred, prev); // true branch
+    prev = derefScope(prev); exitScope(); // SCOPE OF TRUE
 		
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // else label
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblPastTrue);
 
-		prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
-		prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfEnd);
-	}
-	return prev;
+    prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
+    prev->result = newOp(ICGO_LABEL, (Variable*)lblFakeIfEnd);
+  }
+  prev = derefScope(prev); exitScope(); //  SCOPE OF IF
+  return prev;
 }
 
 ICGElm * icGenWhile(PTree *root, ICGElm *prev){
@@ -121,6 +123,9 @@ ICGElm * icGenWhile(PTree *root, ICGElm *prev){
   char *lblExitWhile = newLabel("WhileLoopExit");
   char *lblWhileMarker = newLabel("WhileLoopTest");
 
+  enterNewScope(); // SCOPE OF WHILELOOP
+
+  
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // test label
   prev->result = newOp(ICGO_LABEL, (Variable*)lblWhileMarker);
 
@@ -142,12 +147,16 @@ ICGElm * icGenWhile(PTree *root, ICGElm *prev){
   prev = newICGElm(prev, ICG_LBL, ICGDT_NONE, root); // fake if end label
   prev->result = newOp(ICGO_LABEL, (Variable*)lblExitWhile);
 
+  prev = derefScope(prev); exitScope(); //  SCOPE OF WHILELOOP
+  
   return prev;
 }
 
 ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	char *lblForEnd = newLabel("ForLoopExit");
 
+	enterNewScope(); // SCOPE OF FORLOOP
+	
 	// step 1: Initialize holder variable & iteratable variable
 	prev = icGenDecl((PTree*)((PTree*)root->child1)->child1, prev);
 	ICGElm *holderVar = prev;
@@ -167,13 +176,21 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	prev->result = newOp(ICGO_LABEL, (Variable*)lblForMarker);
 
 	// step 4: get next data
+	Variable *hv = (Variable*)holderVar->result->data;
+	hv->disposedTemp = true; // we take care of this for each iteration below
+	if(!isTypeNumeric(hv->sig)){
+	  prev = newICGElm(prev, ICG_DR, typeToICGDataType(hv->sig), NULL);
+	  prev->result = newOp(ICGO_REG, hv);
+	}
 	prev = newICGElm(prev, ICG_ITER_NEXT, ICGDT_NONE, root);
 	prev->result = newOpCopy(holderVar->result);
 	prev->op1 = newOp(ICGO_REG, iteratorVar);
 	prev->op2 = newOpLabel_c(lblForEnd);
 
 	// step 6: run code & reloop
+	enterNewScope(); // SCOPE OF LOOP BLOCK
 	prev = icGenBlock((PTree*)root->child2, prev);
+	prev = derefScope(prev); exitScope(); //  SCOPE OF LOOP BLOCK
 	prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
 	prev->result = newOpLabel_c(lblForMarker);
 
@@ -182,6 +199,8 @@ ICGElm * icGenFor(PTree *root, ICGElm *prev){
 	prev->result = newOp(ICGO_LABEL, (Variable*)lblForEnd);
 	prev = newICGElm(prev, ICG_ITER_CLOSE, ICGDT_NONE, root); // fake if end label
 	prev->result = newOp(ICGO_REG, iteratorVar);
+
+	prev = derefScope(prev); exitScope(); //  SCOPE OF FORLOOP
 
 	return prev;
 }
@@ -255,6 +274,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   }
 
   // step 6: push element into object
+  enterNewScope(); //SCOPE OF COMP PUSH
   if(((PTree*)((PTree*)root->child2)->child1)->typ == PTT_ARRAY_ELM_PAIR){ // dict
     PTree *pair = (PTree*)((PTree*)root->child2)->child1;
     ICGElmOp *res = newOpCopy(outRes);
@@ -282,6 +302,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
     prev->op1 = op1;
     prev->op2 = op2;
   }
+  prev = derefScope(prev); exitScope(); //  SCOPE OF COMP PUSH
 
   // step 7: reloop
   prev = newICGElm(prev, ICG_JMP, ICGDT_NONE, root);
