@@ -72,5 +72,7 @@ NamedFunctionMapEnt *getFunctionVersions(char *nm);
 void markFunctionVersionUsed(FunctionVersion *fver);
 FunctionVersion *markFirstUsedVersionChecked();
 
+void getAllUsedFunctionVersions(FunctionVersion ***fver, int *count);
+
 
 #endif /* STATICFUNC_SRC_FUNCTIONS_H_ */

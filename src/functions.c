@@ -9,7 +9,7 @@
 
 #include "functions.h"
 
-UT_icd FunctionVersion_icd = {sizeof(FunctionVersion), NULL, NULL, NULL};
+UT_icd FunctionVersion_icd = {sizeof(FunctionVersion*), NULL, NULL, NULL};
 UT_icd SearchAndReplace_icd = {sizeof(SearchAndReplace), NULL, NULL, NULL};
 
 
@@ -433,18 +433,18 @@ void markFunctionVersionUsed(FunctionVersion *fver)
 			addTreeToFreeList(copy);
 		}
 
-		utarray_push_back(FUSED, fver);
+		utarray_push_back(FUSED, &fver);
 	}
 }
 
 FunctionVersion *markFirstUsedVersionChecked()
 {
-	FunctionVersion *ret = (FunctionVersion *)utarray_back(FUSED);
-	if(ret == NULL)
+	FunctionVersion **ret = (FunctionVersion **)utarray_back(FUSED);
+	if(ret == NULL || *ret == NULL)
 		return NULL;
 	utarray_pop_back(FUSED); // remove from the used list
-	ret->stat = FS_CHECKED;
-	return ret;
+	(*ret)->stat = FS_CHECKED;
+	return *ret;
 }
 
 void registerNativeFunction(char *nm, Type sig)
@@ -455,4 +455,37 @@ void registerNativeFunction(char *nm, Type sig)
 	fv->sig = sig;
 	addFunctionVerToList(nm, fv);
 }
+
+
+
+void getAllUsedFunctionVersions(FunctionVersion ***fver, int *count){
+  *count = 0;
+  NamedFunctionMapEnt  *ent = NULL;
+  for(ent=NFM; ent != NULL; ent=ent->hh.next) {
+    FunctionVersion *fv = ent->V;
+    while(fv != NULL){
+      if(fv->stat == FS_CHECKED){
+	(*count) ++;
+      }
+      fv = (FunctionVersion*)fv->next;
+    }
+  }
+
+  FunctionVersion **out = malloc(*count * sizeof(FunctionVersion*));
+  ent = NULL;
+  int i = 0;
+  for(ent=NFM; ent != NULL; ent=ent->hh.next) {
+    FunctionVersion *fv = ent->V;
+    while(fv != NULL){
+      if(fv->stat == FS_CHECKED){
+	out[i] = fv;
+	i++;
+      }
+      fv = (FunctionVersion*)fv->next;
+    }
+  }
+  *fver = out;
+}
+
+
 

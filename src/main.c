@@ -87,8 +87,6 @@ int main(int argc, char **argv){
 
 				// now generate code :D
 				icRunGen(tree, outfl);
-
-				// now generate each used function version
 				
 			}
 			freeParseTreeNode(tree);

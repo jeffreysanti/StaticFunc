@@ -244,6 +244,8 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 	  prev = icGenArrayComp(root, prev);
         }else if(root->typ == PTT_PARAM_CONT){
 	  prev = icGenCall(root, prev);
+	}else if(root->typ == PTT_FUNCTION){
+	  // start of function handled elsewhere
 	}else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
@@ -252,6 +254,9 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 }
 
 ICGElm * icGenBlock(PTree *root, ICGElm *prev){
+  if(root->typ == PTT_FUNCTION){
+    root = (PTree*)root->child2;
+  }
 	if(root->typ != PTT_STMTBLOCK){
 		prev = icGen(root, prev);
 		return prev;
@@ -271,8 +276,17 @@ void icRunGen(PTree *root, char *outfl)
 
 	utarray_new(temp_vars_tofree, &ut_ptr_icd);
 
-	icGenBlock(root, ptr);
+        ptr = icRunGenFunction(root, ptr, NULL); // .Main entry
 
+	// now all used functions
+	FunctionVersion **fver = NULL;
+	int fcount = 0;
+	getAllUsedFunctionVersions(&fver, &fcount);
+	for(int i=0; i<fcount; i++){
+	  FunctionVersion *v = fver[i];
+	  ptr = icRunGenFunction(v->defRoot, ptr, v->funcName); // .Main entry
+	}
+	
 	printICG(icgroot, stdout, true);
 
 	FILE *tmpout = openOutputFile(outfl, "icg");
@@ -296,6 +310,32 @@ void icRunGen(PTree *root, char *outfl)
 	}
 
 }
+
+
+int funcNo = 1;
+ICGElm *icRunGenFunction(PTree *root, ICGElm *ptr, char *funcName){
+  char *str = NULL;
+  if(funcName == NULL){
+    str = calloc(10, 1);
+    sprintf(str, ".Main");
+  }else{
+    str = calloc(10+strlen(funcName), 1);
+    sprintf(str, "func%d_%s", funcNo++, funcName);
+  }
+  	
+  char *lbl = newLabel(str);
+  ptr = newICGElm(ptr, ICG_LBL, ICGDT_NONE, root); // fake if begin label
+  ptr->result = newOp(ICGO_LABEL, (Variable*)lbl);
+
+  if(funcName != NULL){
+    // TODO: Unpack paramaters; build stack frame, etc.
+  }
+  
+  ptr = icGenBlock(root, ptr);
+  free(str);
+  return ptr;
+}
+
 
 ICGElmOp *newOp(ICGElmOpType typ, Variable *data)
 {

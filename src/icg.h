@@ -12,6 +12,7 @@
 
 #include "parsetree.h"
 #include "symbols.h"
+#include "functions.h"
 
 // ICCodeGen Element (Linked List)
 
@@ -140,7 +141,13 @@ struct ROStringLit {
     UT_hash_handle hh;
 };
 
+
+
+
 void icRunGen(PTree *root, char *outfl);
+
+ICGElm *icRunGenFunction(PTree *root, ICGElm *ptr, char *uniqName);
+
 ICGElm * icGenBlock(PTree *root, ICGElm *prev);
 ICGElm * icGen(PTree *root, ICGElm *prev);
 

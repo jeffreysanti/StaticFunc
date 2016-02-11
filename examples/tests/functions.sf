@@ -4,6 +4,8 @@
 int global(0);
 
 def N add(N x, N y){
+	int w(4);
+	w = w + 6;
 	return x + y + global;
 }
 
