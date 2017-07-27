@@ -16,6 +16,8 @@
 
 // ICCodeGen Element (Linked List)
 
+#define FUNCNAME_LAMBDA (char*)1
+
 #define MAX_POINTER_SIZE   16
 
 typedef enum{
@@ -25,7 +27,6 @@ typedef enum{
 
 	ICG_LBL,
 
-	ICG_DEFINE,
 	ICG_MOV,
 	ICG_OBJCOPY,
 
@@ -82,9 +83,24 @@ typedef enum{
 	ICG_JNZ,
 	ICG_JZ,
 	ICG_JMP,
+	ICG_JAL,
 
 	ICG_COMPOBJ,
 	ICG_DR,
+
+	ICG_RET,
+	ICG_LOADRET,
+	ICG_PUSH,
+	ICG_POP,
+	ICG_LABEL_ADDR,
+	ICG_METHOD_PTR,
+	ICG_WRITE_METHOD_PTR,
+
+	ICG_STOREH,
+	ICG_LOADH,
+	ICG_STORES,
+	ICG_LOADS,
+	ICG_ALLOC,
 
 	ICG_INITNULLFUNC
 }ICGElmType;
@@ -144,13 +160,14 @@ struct ROStringLit {
 
 
 
-void icRunGen(PTree *root, char *outfl);
+UT_array *icRunGen(PTree *root, FILE *outfl);
 
-ICGElm *icRunGenFunction(PTree *root, ICGElm *ptr, char *uniqName);
+char *icRunGenFunction(PTree *root, char *uniqName, FunctionVersion *fv);
 
 ICGElm * icGenBlock(PTree *root, ICGElm *prev);
 ICGElm * icGen(PTree *root, ICGElm *prev);
 
+void freeICGSystem();
 
 char *newROStringLit(char *str);
 char *newLabel(char *base);

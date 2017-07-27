@@ -16,18 +16,18 @@ static inline ICGElm * processChild(PTree *child1, ICGElm *prev, ICGElmOp **op){
 	if(data1->typ == ICG_LITERAL){
 		freeICGElm(data1);
 		*op = newOpInt_sc((char*)child1->tok->extra);
-	}else if(data1->typ == ICG_IDENT){
+	}/*else if(data1->typ == ICG_IDENT){
 		freeICGElm(data1);
 		if(isTypeNumeric(child1->finalType)){
-		  *op = newOp(ICGO_REG, getNearbyVariable((char*)child1->tok->extra));
+		  *op = newOp(ICGO_REG, child1->var);
 		}else{
-		  /*char *tmpreg = getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra));
-			prev = icGenCopyObject(child1, prev, tmpreg);
-			free(tmpreg);
-			*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);*/
-		  printf("NON Numeric in icgArith.processChild???\n");
+		  //char *tmpreg = getVariableUniqueName(getNearbyVariable((char*)child1->tok->extra));
+		//	prev = icGenCopyObject(child1, prev, tmpreg);
+		//	free(tmpreg);
+		//	*op = newOpCopyData(ICGO_NUMERICREG, prev->result->data);
+		  //printf("NON Numeric in icgArith.processChild???\n");
 		}
-	}else{ // expression (other code before this)
+	}*/else{ // expression (other code before this)
 		prev = data1;
 		*op = newOpCopy(prev->result);
 	}
@@ -38,7 +38,7 @@ ICGElm * icGenArith(PTree *root, ICGElm *prev){
 	Type d = root->finalType;
 
 
-	Variable *tmpvar = defineVariable(NULL, d);
+	Variable *tmpvar = defineUnattachedVariable(d);
 	ICGElmOp *res = newOp(ICGO_REG, tmpvar);
 
 	ICGElmOp *op1, *op2;

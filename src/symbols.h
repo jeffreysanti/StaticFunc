@@ -11,15 +11,24 @@
 #define STATICFUNC_SRC_SYMBOLS_H_
 
 #include "types.h"
+#include "uthash/utarray.h"
+#include "hashset/hashset.h"
+#include "parsetree.h"
 
 #define SYMLEV_GLOBAL 0
 
 
-typedef struct{
+#define SCOPETYPE_FUNCTION 1
+#define SCOPETYPE_NON_FUNCTION 2
+
+
+
+typedef struct Variable{
   int uuid;
   char *refname; // name in code (null if temp)
   Type sig;
   bool disposedTemp;
+  bool referencedExternally;
 
   struct Variable *next;
   struct Variable *prev;
@@ -27,10 +36,25 @@ typedef struct{
   struct Scope *scope;
 } Variable;
 
-typedef struct{
+typedef struct {
+  hashset_t variables; // list of variable names
+  hashset_t spaces; // list of scopes in order from here-1 to global-1
+} LambdaSpace;
+
+
+typedef struct PackedLambdaData PackedLambdaData;
+struct PTree;
+
+
+typedef struct Scope{
   int uuid;
   int level;
+  int type;
+  bool globalScope;
   struct Variable *variables;
+
+  LambdaSpace lambdaspace;
+  PackedLambdaData *packedLambdaSpace;
 
   struct Scope *next;
   struct Scope *prev;
@@ -38,26 +62,30 @@ typedef struct{
   struct Scope *parentScope;
 } Scope;
 
-
 void initScopeSystem();
 void freeScopeSystem();
 
+void generateLambdaContainers();
+
 void enterGlobalSpace();
 
-void enterNewScope();
+void enterNewScope(PTree *tree, int type);
 void exitScope();
 
 Scope *currentScope();
+Scope *getMethodScope(Scope *scope);
+int getMethodScopeDistance(Scope *parent, Scope *child);
+Scope *prevMethodScope(Scope *scope);
 
 // mutators
-Variable *defineVariable(char *nm, Type typ);
-
+Variable *defineVariable(PTree *tree, char *nm, Type typ);
+Variable *defineUnattachedVariable(Type typ);
 
 // accessors
 bool variableExistsCurrentScope(char *sym);
 bool variableExists(char *sym);
 
-Variable *getNearbyVariable(char *sym);
+Variable *getVariable(char *sym);
 Type getNearbyVariableTypeOrErr(char *sym, int lineno);
 
 char *getVariableUniqueName(Variable *);

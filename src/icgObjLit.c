@@ -13,7 +13,7 @@ extern ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assig
 
 ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	char *roName = newROStringLit((char*)root->tok->extra);
-	Variable *tmpvar = defineVariable(NULL, root->finalType);
+	Variable *tmpvar = defineUnattachedVariable(root->finalType);
 
 	ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
 	ICGElmOp *op1 = newOpROA_c(roName);
@@ -34,7 +34,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 	}
 
 	if(root->finalType.base == TB_VECTOR || root->finalType.base == TB_VECTOR){
-	  Variable *tmpvar = defineVariable(NULL, root->finalType);
+	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
 
 		Type childType = ((Type*)root->finalType.children)[0];
@@ -55,7 +55,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		ptr = root;
 		for(i=0; i<elmCnt; i++){
 			PTree *elm = (PTree*)ptr->child1;
-			Variable *elmTemp = defineVariable(NULL, elm->finalType);
+			Variable *elmTemp = defineUnattachedVariable(elm->finalType);
 			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType, true);
 			elmTemp->disposedTemp = true;
 
@@ -80,7 +80,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			ptr = (PTree*)ptr->child2;
 		}
 	}else if(root->finalType.base == TB_DICT){
-	  Variable *tmpvar = defineVariable(NULL, root->finalType);
+	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
 
 		Type childTypeKey = ((Type*)root->finalType.children)[0];
@@ -103,13 +103,13 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			PTree *elm = (PTree*)ptr->child1;
 
 			PTree *key = (PTree*)elm->child1;
-			Variable *elmKeyTemp = defineVariable(NULL, key->finalType);
+			Variable *elmKeyTemp = defineUnattachedVariable(key->finalType);
 			elmKeyTemp->disposedTemp = true;
 			prev = icGenAssnToX(key, prev, elmKeyTemp, key->finalType, true);
 			ICGElmOpType optkey = prev->result->typ;
 
 			PTree *val = (PTree*)elm->child2;
-			Variable *elmValTemp = defineVariable(NULL, val->finalType);
+			Variable *elmValTemp = defineUnattachedVariable(val->finalType);
 			elmValTemp->disposedTemp = true;
 			prev = icGenAssnToX(val, prev, elmValTemp, val->finalType, true);
 			ICGElmOpType optval = prev->result->typ;
@@ -126,7 +126,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			ptr = (PTree*)ptr->child2;
 		}
 	}else if(root->finalType.base == TB_TUPLE){
-	  Variable *tmpvar = defineVariable(NULL, root->finalType);
+	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
 		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
 
 		ICGElmOp *op1 = newOpInt(elmCnt);
@@ -142,7 +142,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		for(i=0; i<elmCnt; i++){
 			PTree *elm = (PTree*)ptr->child1;
 
-			Variable *elmTemp = defineVariable(NULL, elm->finalType);
+			Variable *elmTemp = defineUnattachedVariable(elm->finalType);
 			elmTemp->disposedTemp = true;
 			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType, true);
 
@@ -169,7 +169,7 @@ ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, Variable *src){
 
 	ICGElmOp *op1 = newOp(ICGO_REG, src);
 
-	Variable *tempVar = defineVariable(NULL, root->finalType);
+	Variable *tempVar = defineUnattachedVariable(root->finalType);
 	ICGElmOp *res = newOp(ICGO_OBJREFNEW, tempVar);
 
 	ICGElm *ret = newICGElm(prev, ICG_OBJCOPY, ICGDT_PTR, root);

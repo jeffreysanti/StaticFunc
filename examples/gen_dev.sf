@@ -1,31 +1,53 @@
 
-int32 n(4);
 
-if(n == 1 == 2)
-	n = 1;
-else
-	n = 2;
+#typelistadd N int,float;
 
+int global(0);
 
-if(4 - 4)
-	n = 4;
-
-n = 3 + 5;
-
-if(5 > 7 | 4 < 3){
-     n = n + 1;
+def N add(N x, N y){
+	int w(4);
+	w = w + 6;
+	return x + y + global;
 }
 
-string s1("Hi");
-string s2("hola");
 
-vector<int8> v1([2,5,7,8]);
-vector<int8> v2([2,5,7,8]);
 
-if(s1 == "test"){
-	s2 = "Hi";
+def function<int,int> makeCounter(){
+
+	int i(0);
+	global = i;
+
+	function<int,int> doCount(lambda(int(int x){
+		i = i + 1;
+		return i;
+	}));
+
+	i = 4;
+
+	return doCount;
 }
 
-if(v1 != v2){
-	n = n + 1;
+
+global = 1924;
+
+if(5 == 5){
+	def int fact(int u){
+		return u + 2;
+	}
+	fact = lambda(int(int u){ return u + 3; });
 }
+
+
+add(3, 6);
+function<int,int> counter(makeCounter());
+counter(0);
+counter(0);
+
+
+if(5 == 5){
+	function<string, int, string> fact;
+	
+	string y;
+	y = fact(4, "hello");
+}
+

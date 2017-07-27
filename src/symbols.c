@@ -8,6 +8,7 @@
  */
 
 #include "symbols.h"
+#include "scopeprocessor.h"
 
 #define SCOPE_LEVELS 128
 
@@ -17,6 +18,7 @@ int scopeLevel = 0;
 int nextVariableID = 1;
 
 Scope *SC = NULL;
+UT_array *temp_vars_tofree = NULL;
 
 
 
@@ -41,6 +43,13 @@ void initScopeSystem(){
   global->prev = (void*)&S[0];
   global->parentScope = NULL;
   S[0].next = (void*)global;
+  global->lambdaspace.variables = hashset_create();
+  global->lambdaspace.spaces = hashset_create();
+  global->packedLambdaSpace = NULL;
+  global->type = SCOPETYPE_NON_FUNCTION;
+  global->globalScope = true;
+
+  utarray_new(temp_vars_tofree, &ut_ptr_icd);
 
   enterGlobalSpace();
 }
@@ -62,6 +71,8 @@ void freeScope(Scope* s){
   if(s->variables != NULL){
     freeVariable((Variable*)s->variables);
   }
+  hashset_destroy(s->lambdaspace.variables);
+  hashset_destroy(s->lambdaspace.spaces);
   free(s);
   if(next != NULL){
     freeScope(next);
@@ -74,6 +85,12 @@ void freeScopeSystem(){
       freeScope((Scope*)S[i].next);
     }
   }
+
+  Variable **p = NULL;
+	while ( (p=(Variable**)utarray_next(temp_vars_tofree,p))) {
+		freeVariable(*p);
+	}
+	utarray_free(temp_vars_tofree);
 }
 
 
@@ -90,16 +107,31 @@ void exitScope(){
 }
 
 
-void enterNewScope(){
+void enterNewScope(PTree *tree, int type){
   scopeLevel ++;
 
   Scope *s = malloc(sizeof(Scope));
   s->uuid = nextScopeID++;
+  s->type = type;
   s->level = scopeLevel;
   s->variables = NULL;
   s->next = S[scopeLevel].next;
   s->prev = (void*)&S[scopeLevel];
   s->parentScope = (void*)SC;
+
+  s->lambdaspace.variables = hashset_create();
+  s->lambdaspace.spaces = hashset_create();
+  s->packedLambdaSpace = NULL;
+
+  if(SC->globalScope && type != SCOPETYPE_FUNCTION){
+	s->globalScope = true;
+  }else{
+	s->globalScope = false;
+  }
+  
+
+  tree->scope = (struct Scope*)s;
+
   S[scopeLevel].next = (void*)s;
 
   SC = s;
@@ -110,9 +142,51 @@ Scope *currentScope(){
   return SC;
 }
 
+Scope *getMethodScope(Scope *scope){
+  while(scope->type != SCOPETYPE_FUNCTION){
+    scope = (Scope*)scope->parentScope;
 
-Variable *defineVariable(char *sym, Type typ)
+    if(scope == NULL){
+      return NULL;
+    }
+  }
+  return scope;
+}
+
+int getMethodScopeDistance(Scope *parent, Scope *child){
+	if(parent == child){
+		return 0;
+	}
+	int cnt = 0;
+	while(parent != child){
+		if(child->type == SCOPETYPE_FUNCTION){
+			cnt ++;
+		}
+		child = (Scope*)child->parentScope;
+
+		if(child == NULL){
+			return 0;
+		}
+	}
+	return cnt;
+}
+
+Scope *prevMethodScope(Scope *scope){
+	scope = getMethodScope(scope);
+	if(scope == NULL){
+		return NULL;
+	}
+	scope = scope->prev;
+	if(scope == NULL){
+		return NULL;
+	}
+	return getMethodScope(scope);
+}
+
+
+Variable *defineVariable(PTree *tree, char *sym, Type typ)
 {
+	printf("D %s / %d / %p\n", sym, SC->uuid, SC);
   Variable * sb = malloc(sizeof(Variable));
   sb->uuid = nextVariableID ++;
   sb->scope = (void*)SC;
@@ -123,9 +197,28 @@ Variable *defineVariable(char *sym, Type typ)
   }
   sb->sig = duplicateType(typ);
   sb->disposedTemp = false;
+  sb->referencedExternally = false;
   sb->prev = NULL;
   sb->next = SC->variables;
   SC->variables = (void*)sb;
+
+  tree->var = sb;
+
+  return sb;
+}
+
+Variable *defineUnattachedVariable(Type typ){
+  Variable * sb = malloc(sizeof(Variable));
+  sb->uuid = nextVariableID ++;
+  sb->refname = NULL;
+  sb->sig = duplicateType(typ);
+  sb->disposedTemp = false;
+  sb->referencedExternally = false;
+  sb->prev = NULL;
+  sb->next = NULL;
+
+  utarray_push_back(temp_vars_tofree, &sb);
+
   return sb;
 }
 
@@ -157,28 +250,34 @@ bool variableExists(char *sym){
 }
 
 
-Variable *getNearbyVariable(char *sym){
+Variable *getVariable(char *sym){
   Scope *scope = SC;
+  Scope *accessMethodScope = getMethodScope(scope);
+  
   while(scope != NULL){
     Variable *ptr = (Variable*)scope->variables;
     while(ptr != NULL){
       if(ptr->refname != NULL && strcmp(sym, ptr->refname) == 0){
-	return ptr;
+        Scope *rootMethodScope = getMethodScope(scope);
+
+		printf("Lookup Var (in scope %d): %s [acc: %p, def: %p] : right now in scope %p; raw=%p\n", scope->uuid, sym, accessMethodScope, rootMethodScope, SC, scope);
+
+        if(accessMethodScope != NULL && rootMethodScope != NULL && accessMethodScope != rootMethodScope){
+          ptr->referencedExternally = true; // needs to be on heap
+
+		  printf("Acc Extern: %s\n", sym);
+
+          //also pack this scope reference into the lamda container
+           hashset_add(accessMethodScope->lambdaspace.spaces, rootMethodScope);
+           hashset_add(rootMethodScope->lambdaspace.variables, ptr);
+        }
+	      return ptr;
       }
       ptr = (Variable*)ptr->next;
     }
     scope = (Scope*)scope->parentScope;
   }
   return NULL;
-}
-
-Type getNearbyVariableTypeOrErr(char *sym, int lineno){
-  Variable *v = getNearbyVariable(sym);
-  if(v == NULL){
-    reportError("SS001", "Symbol %s Not Found: Line %d", sym, lineno);
-    return newBasicType(TB_ERROR);
-  }
-  return v->sig;
 }
 
 char *getVariableUniqueName(Variable *v)
@@ -323,6 +422,42 @@ void dumpSymbolTable(FILE *fp){
 
 
 */
+
+
+
+
+void generateLambdaContainers(){
+  // Each functional scope needs an associated lambda container
+  // This lambda container will hold all variables in that scope which must be
+  // held in the heap.
+
+  for(int i=0; i<SCOPE_LEVELS; i++){
+    Scope *scope = (Scope*)S[i].next;
+    while(scope != NULL){
+
+      if(scope->type == SCOPETYPE_FUNCTION){
+        scope->packedLambdaSpace = processMethodScope(scope);
+      }else if(scope->globalScope){
+		  // if a route to the global scope exists without reaching a function
+		  // then the variables in this group are global and must be packed into static data
+		Variable *ptr = (Variable*)scope->variables;
+		while(ptr != NULL){
+			processSystemGlobal(ptr);
+			ptr = (Variable*)ptr->next;
+		}
+	  }
+
+      scope = (Scope*)scope->next;
+    }
+  }
+}
+
+
+
+
+
+
+
 
 
 

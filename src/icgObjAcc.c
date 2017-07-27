@@ -23,7 +23,7 @@ static inline int getTupleIndex(Type tuple, char *ident){
 }
 
 ICGElm * icGenDot(PTree *root, ICGElm *prev){
-  Variable *tmpvar = defineVariable(NULL, root->finalType);
+  Variable *tmpvar = defineUnattachedVariable(root->finalType);
   tmpvar->disposedTemp = true;
   ICGElmOp *res = newOp(ICGO_REG, tmpvar);
 
@@ -37,13 +37,13 @@ ICGElm * icGenDot(PTree *root, ICGElm *prev){
 
   ICGElm *tmp = icGen(src, prev);
   ICGElmOp *op2 = NULL;
-  if(tmp->typ == ICG_IDENT){
-    op2 = newOp(tmp->result->typ, getNearbyVariable((char*)src->tok->extra));
+  /*if(tmp->typ == ICG_IDENT){
+    op2 = newOp(tmp->result->typ, src->var);
     freeICGElm(tmp);
-  }else{ // expression (other code before this)
+  }else{ // expression (other code before this)*/
     prev = tmp;
     op2 = newOpCopy(prev->result);
-  }
+  //}
 
   ICGElm *ret = newICGElm(prev, ICG_TPLLOAD, typeToICGDataType(root->finalType), root);
   ret->result = res;
@@ -55,7 +55,7 @@ ICGElm * icGenDot(PTree *root, ICGElm *prev){
 }
 
 ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
-  Variable *tmpvar = defineVariable(NULL, root->finalType);
+  Variable *tmpvar = defineUnattachedVariable(root->finalType);
   tmpvar->disposedTemp = true;
   ICGElmOp *res = NULL;
   ICGElmOp *op1 = NULL;
@@ -91,9 +91,7 @@ ICGElm * icGenArrAcc(PTree *root, ICGElm *prev){
 
 ICGElm * icGenSaveToDataStruct_aux(PTree *root, ICGElm *prev, ICGElm *src, int depth){
 	if(root->typ == PTT_IDENTIFIER){
-		prev = newICGElm(prev, ICG_IDENT, ICGDT_NONE, root);
-		prev->result = newOp(ICGO_REG, getNearbyVariable((char*)root->tok->extra));
-		return prev;
+		return icGen(root, prev);
 	}
 	if(root->typ == PTT_DOT){
 		PTree *pTuple = (PTree*)root->child1;
@@ -163,7 +161,7 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
   ICGElmOp *op2 = NULL;
 
   if(root->typ != PTT_PUSH && root->typ != PTT_QUEUE){
-    Variable *tmpvar = defineVariable(NULL, root->finalType);
+    Variable *tmpvar = defineUnattachedVariable(root->finalType);
     res = newOp(ICGO_REG, tmpvar);
   }
   
@@ -212,7 +210,7 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
 
 
 ICGElm * icGenRemoveContainsMethod(PTree *root, ICGElm *prev){
-  Variable *tmpvar = defineVariable(NULL, root->finalType);
+  Variable *tmpvar = defineUnattachedVariable(root->finalType);
   ICGElmOp *res = NULL;
   ICGElmOp *op1 = NULL;
   ICGElmOp *op2 = NULL;

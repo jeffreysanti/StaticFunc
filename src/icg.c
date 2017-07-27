@@ -16,14 +16,15 @@ static long lastLabel = 0;
 
 static struct ROStringLit *ROSL = NULL;
 
-UT_array *temp_vars_tofree = NULL;
-
 // all external code generators
 extern ICGElm * icGenDecl(PTree *, ICGElm *);
 extern void icGenDecl_print(ICGElm *, FILE*);
 
 extern ICGElm * icGenAssn(PTree *, ICGElm *);
 extern void icGenAssn_print(ICGElm *, FILE*);
+extern void icGenStoreLoad_print(ICGElm *elm, FILE* f);
+
+extern ICGElm * icGenIdent(PTree *root, ICGElm *prev);
 
 extern ICGElm * icGenStringLit(PTree *root, ICGElm *prev);
 extern void icGenObjCpy_print(ICGElm *, FILE*);
@@ -59,6 +60,10 @@ extern void icGenRemoveContainsMethod_print(ICGElm *elm, FILE* f);
 extern ICGElm * icGenArrayComp(PTree *root, ICGElm *prev);
 
 extern ICGElm * icGenCall(PTree *root, ICGElm *prev);
+extern ICGElm * icGenRet(PTree *root, ICGElm *prev);
+extern ICGElm * icGenLambda(PTree *root, ICGElm *prev);
+extern void icGenRetCall_print(ICGElm *elm, FILE* f);
+
 
 
 char *emptyROString="**EMPTYSTRING**";
@@ -136,7 +141,7 @@ void freeICGElm(ICGElm *elm)
 void printSingleICGElm(ICGElm *elm, FILE *f){
 	if(elm->typ == ICG_NONE || elm->typ == ICG_IDENT){
 	  //fprintf(f, "nop");
-	}else if(elm->typ == ICG_DEFINE || elm->typ == ICG_INITNULLFUNC){
+	}else if(elm->typ == ICG_INITNULLFUNC){
 		icGenDecl_print(elm, f);
 	}else if(elm->typ == ICG_MOV){
 		icGenAssn_print(elm, f);
@@ -160,7 +165,7 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 		icGenDot_print(elm, f);
 	}else if(elm->typ == ICG_DICTLOAD || elm->typ == ICG_VECLOAD){
 		icGenArrAcc_print(elm, f);
-	}else if(elm->typ == ICG_JMP || elm->typ == ICG_JNZ || elm->typ == ICG_JZ){
+	}else if(elm->typ == ICG_JMP || elm->typ == ICG_JNZ || elm->typ == ICG_JZ || elm->typ == ICG_JAL){
 		icGenJump_print(elm, f);
 	}else if(elm->typ == ICG_COMPOBJ){
 		icGenCompObj_print(elm, f);
@@ -169,6 +174,11 @@ void printSingleICGElm(ICGElm *elm, FILE *f){
 	}else if(elm->typ == ICG_DR){
 	  fprintf(f, "dr ");
 	  printOp(f, elm->result);
+	}else if(elm->typ == ICG_RET || elm->typ == ICG_LOADRET || elm->typ == ICG_LABEL_ADDR || elm->typ == ICG_METHOD_PTR || 
+				elm->typ == ICG_WRITE_METHOD_PTR || elm->typ == ICG_POP || elm->typ == ICG_PUSH){
+		icGenRetCall_print(elm, f);
+	}else if(elm->typ == ICG_STOREH || elm->typ == ICG_LOADH || elm->typ == ICG_ALLOC || elm->typ == ICG_LOADS || elm->typ == ICG_STORES){
+		icGenStoreLoad_print(elm, f);
 	}else{
 		fprintf(f, "???");
 	}
@@ -180,7 +190,7 @@ void printICG(ICGElm *root, FILE *f, bool address)
 		if(root->typ == ICG_LBL){
 			fprintf(f, "  %s : ", root->result->data);
 			fprintf(f, "\n");
-		}else if(root->typ == ICG_LITERAL || root->typ == ICG_IDENT){
+		}else if(root->typ == ICG_LITERAL || root->typ == ICG_IDENT || root->typ == ICG_NONE){
 
 		}else{
 			if(address){
@@ -208,8 +218,7 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = newICGElm(prev, ICG_LITERAL, typeToICGDataType(root->finalType), root);
 		prev->result = newOpCopyData(ICGO_NUMERICLIT, root->tok->extra);
 	}else if(root->typ == PTT_IDENTIFIER){
-		prev = newICGElm(prev, ICG_IDENT, typeToICGDataType(root->finalType), root);
-		prev->result = newOp(ICGO_REG, getNearbyVariable(root->tok->extra));
+		prev = icGenIdent(root, prev);
 	}else if(root->typ == PTT_DECL){
 		prev = icGenDecl(root, prev);
 	}else if(root->typ == PTT_ASSIGN){
@@ -242,11 +251,15 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 		prev = icGenFor(root, prev);
 	}else if(root->typ == PTT_ARRAY_COMP){
 	  prev = icGenArrayComp(root, prev);
-        }else if(root->typ == PTT_PARAM_CONT){
+	}else if(root->typ == PTT_PARAM_CONT){
 	  prev = icGenCall(root, prev);
-	}else if(root->typ == PTT_FUNCTION){
+	}else if(root->typ == PTT_RETURN){
+	  prev = icGenRet(root, prev);
+	}else if(root->typ == PTT_LAMBDA){
+		prev = icGenLambda(root, prev);
+	}/*else if(root->typ == PTT_FUNCTION){
 	  // start of function handled elsewhere
-	}else{
+	}*/else{
 		//fatalError("ICG Code GEN: Unknown Tree Expression: %s", getParseNodeName(root));
 		fprintf(stderr, "ICG Code GEN: Unknown Tree Expression: %s\n", getParseNodeName(root));
 	}
@@ -254,14 +267,14 @@ ICGElm *icGen(PTree *root, ICGElm *prev)
 }
 
 ICGElm * icGenBlock(PTree *root, ICGElm *prev){
-  if(root->typ == PTT_FUNCTION){
+  if(root->typ == PTT_FUNCTION || root->typ == PTT_LAMBDA){
     root = (PTree*)root->child2;
   }
 	if(root->typ != PTT_STMTBLOCK){
 		prev = icGen(root, prev);
 		return prev;
 	}
-	while(root != NULL && root->typ == PTT_STMTBLOCK){
+	while(root != NULL && root->child1 != NULL && root->typ == PTT_STMTBLOCK){
 		PTree *gen = (PTree*)root->child1;
 		prev = icGen(gen, prev);
 		root = (PTree*)root->child2;
@@ -269,38 +282,44 @@ ICGElm * icGenBlock(PTree *root, ICGElm *prev){
 	return prev;
 }
 
-void icRunGen(PTree *root, char *outfl)
+int funcNo = 1;
+UT_array *GeneratedFunctions;
+UT_array *icRunGen(PTree *root, FILE *outfl)
 {
-	ICGElm *icgroot = newICGElm(NULL, ICG_NONE, ICGDT_NONE, NULL);
-	ICGElm *ptr = icgroot;
+	utarray_new(GeneratedFunctions, &ut_ptr_icd);
 
-	utarray_new(temp_vars_tofree, &ut_ptr_icd);
-
-        ptr = icRunGenFunction(root, ptr, NULL); // .Main entry
-
-	// now all used functions
+	// First make a pass through all used functions to make labels for them
 	FunctionVersion **fver = NULL;
 	int fcount = 0;
 	getAllUsedFunctionVersions(&fver, &fcount);
 	for(int i=0; i<fcount; i++){
 	  FunctionVersion *v = fver[i];
-	  ptr = icRunGenFunction(v->defRoot, ptr, v->funcName); // .Main entry
+	  char *str = calloc(10+strlen(v->funcName), 1);
+      sprintf(str, "func%d_%s", funcNo++, v->funcName);
+	  v->icgEntryLabel = newLabel(str);
+	  free(str);
 	}
+
+	icRunGenFunction(root, NULL, NULL); // .Main entry
+
+	// now all used functions
+	for(int i=0; i<fcount; i++){
+	  FunctionVersion *v = fver[i];
+	  icRunGenFunction(v->defRoot, v->funcName, v);
+	}
+	free(fver);
 	
-	printICG(icgroot, stdout, true);
-
-	FILE *tmpout = openOutputFile(outfl, "icg");
-	printICG(icgroot, tmpout, false);
-	fclose(tmpout);
-
-	freeICGElm(icgroot);
-
-	char **p = NULL;
-	while ( (p=(char**)utarray_next(temp_vars_tofree,p))) {
-		free(*p);
+	// print everything out
+	ICGElm **p;
+	for(p=(ICGElm**)utarray_front(GeneratedFunctions); p!=NULL; p=(ICGElm**)utarray_next(GeneratedFunctions,p)) {
+		printICG(*p, stdout, true);
+		printICG(*p, outfl, false);
 	}
-	utarray_free(temp_vars_tofree);
 
+	return GeneratedFunctions;
+}
+
+void freeICGSystem(){
 	struct ROStringLit *tmp1, *tmp2;
 	HASH_ITER(hh, ROSL, tmp1, tmp2) {
 		HASH_DEL(ROSL,tmp1);
@@ -309,31 +328,53 @@ void icRunGen(PTree *root, char *outfl)
 		free(tmp1);
 	}
 
+	ICGElm **p;
+	for(p=(ICGElm**)utarray_front(GeneratedFunctions); p!=NULL; p=(ICGElm**)utarray_next(GeneratedFunctions,p)) {
+		freeICGElm(*p);
+	}
+
+	utarray_free(GeneratedFunctions);
 }
 
-
-int funcNo = 1;
-ICGElm *icRunGenFunction(PTree *root, ICGElm *ptr, char *funcName){
+char *icRunGenFunction(PTree *root, char *funcName, FunctionVersion *fv){
   char *str = NULL;
-  if(funcName == NULL){
-    str = calloc(10, 1);
-    sprintf(str, ".Main");
+  char *lbl = NULL;
+  if(fv == NULL){
+	if(funcName == NULL){
+		str = calloc(10, 1);
+		sprintf(str, ".Main");
+	}else if(funcName == FUNCNAME_LAMBDA){
+			str = calloc(10, 1);
+		sprintf(str, "lambda_%d", funcNo++, funcName);
+	}
+	lbl = newLabel(str);
   }else{
-    str = calloc(10+strlen(funcName), 1);
-    sprintf(str, "func%d_%s", funcNo++, funcName);
+	lbl = fv->icgEntryLabel;
   }
-  	
-  char *lbl = newLabel(str);
-  ptr = newICGElm(ptr, ICG_LBL, ICGDT_NONE, root); // fake if begin label
+
+  ICGElm* ptr = newICGElm(NULL, ICG_LBL, ICGDT_NONE, root); // fake if begin label
   ptr->result = newOp(ICGO_LABEL, (Variable*)lbl);
 
-  if(funcName != NULL){
-    // TODO: Unpack paramaters; build stack frame, etc.
+  utarray_push_back(GeneratedFunctions, &ptr);
+
+  
+  // pop all params
+  if(root->typ == PTT_FUNCTION || root->typ == PTT_LAMBDA){
+	dumpParseTreeDet(root, 0, stdout);
+	PTree *params = (PTree*)((PTree*)root->child1)->child2;
+	while(params != NULL){
+		PTree *desc = (PTree*)params->child1;
+		ptr = newICGElm(ptr, ICG_POP, typeToICGDataType(desc->finalType), NULL);
+		ptr->result = newOp(ICGO_REG, desc->var);
+		
+		params = (PTree*)params->child2;
+	}
   }
+
   
   ptr = icGenBlock(root, ptr);
   free(str);
-  return ptr;
+  return lbl;
 }
 
 
@@ -455,8 +496,9 @@ char *newLabel(char *base){
 	return nm;
 }
 
+
 ICGElm * derefScope(ICGElm *prev){
-  Scope *s = currentScope();
+  /*Scope *s = currentScope();
   Variable *ptr = (Variable*)s->variables;
   while(ptr != NULL){
     if(!ptr->disposedTemp){
@@ -466,7 +508,7 @@ ICGElm * derefScope(ICGElm *prev){
       }
     }
     ptr = (Variable*)ptr->next;
-  }
+  }*/
   return prev;
 }
 

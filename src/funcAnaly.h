@@ -166,6 +166,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd);
 void propagateTreeType(PTree *root);
 bool finalizeSingleDeduction(PTree *root);
 
+bool blockUnitThisScope(PTree *root, Type sig, bool global);
 bool blockUnit(PTree *root, Type sig, bool global);
 
 

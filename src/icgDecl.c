@@ -13,7 +13,8 @@ extern ICGElm * icGenAssnToX(PTree *root, ICGElm *prev, Variable *to, Type assig
 
 
 ICGElm *initVar(Variable *var, ICGElm *prev){
-  ICGElmOp *result = newOp(ICGO_REG, var);
+	Variable *resultTemp = defineUnattachedVariable(var->sig);
+  	ICGElmOp *result = newOp(ICGO_REG, resultTemp);
 			
   if(isTypeNumeric(var->sig)){
     ICGElmOp *op1 = newOpInt(0);
@@ -59,7 +60,7 @@ ICGElm *initVar(Variable *var, ICGElm *prev){
     prev->op2 = op2;
 
     for(int i=0; i<var->sig.numchildren; i++){
-      Variable *elmTemp = defineVariable(NULL, ((Type*)var->sig.children)[i]);
+      Variable *elmTemp = defineUnattachedVariable(((Type*)var->sig.children)[i]);
       prev = initVar(elmTemp, prev);
       elmTemp->disposedTemp = true;
       
@@ -84,10 +85,7 @@ ICGElm *initVar(Variable *var, ICGElm *prev){
 
 ICGElm * icGenDecl(PTree *root, ICGElm *prev){
 	Type d = root->finalType;
-	Variable *var = defineVariable((char*)root->tok->extra, d);
-
-	prev = newICGElm(prev, ICG_DEFINE, typeToICGDataType(d), root);
-	prev->result = newOp(ICGO_REG, var);
+  Variable *var = root->var;
 
 	if(!isTypeNumeric(var->sig)){ // need to initialize non-primative variable
 	  prev = initVar(var, prev);
@@ -95,6 +93,9 @@ ICGElm * icGenDecl(PTree *root, ICGElm *prev){
 	
 	if(root->child2 != NULL){
 	  prev = icGenAssnToX((PTree*)root->child2, prev, var, d, false);
+	}else{
+		//prev = initVar(var, prev);
+		prev = icGenAssnToX(NULL, prev, var, d, false);
 	}
 	return prev;
 }
@@ -103,11 +104,6 @@ void icGenDecl_print(ICGElm *elm, FILE* f)
 {
   if(elm->typ == ICG_INITNULLFUNC){
     fprintf(f, "nullfunc ");
-    printOp(f, elm->result);
-  }else{
-    fprintf(f, "d");
-    printICGTypeSuffix(elm, f);
-    fprintf(f, " ");
     printOp(f, elm->result);
   }
 }

@@ -23,7 +23,7 @@ typedef enum{
 	FS_NATIVE
 } FunctionStatus;
 
-typedef struct{
+typedef struct FunctionVersion{
 	PTree *defRoot;
 	Type sig;
 	bool performReplacement;
@@ -32,6 +32,7 @@ typedef struct{
 	UT_array *sr;
 	struct FunctionVersion *next;
 	char *funcName;
+	char *icgEntryLabel;
 }FunctionVersion;
 extern UT_icd FunctionVersion_icd;
 

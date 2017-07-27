@@ -88,6 +88,7 @@ FunctionVersion *newFunctionVersion()
 	ret->verid = 1;
 	ret->sr = NULL;
 	ret->funcName = NULL;
+	ret->icgEntryLabel = NULL;
 	//if(parent != NULL){
 		//parent->next = (void*)ret;
 		//ret->verid = parent->verid + 1;

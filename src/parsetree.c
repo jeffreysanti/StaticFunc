@@ -7,8 +7,11 @@
  *
  */
 
+#include "symbols.h"
 #include "parsetree.h"
 #include "lextokens.h"
+#include "functions.h"
+
 
 
 char * PTLookup[] = {
@@ -83,10 +86,13 @@ PTree *newParseTreeNode()
 	pTree->child1 = NULL;
 	pTree->child2 = NULL;
 	pTree->parent = NULL;
+	pTree->var = NULL;
+	pTree->funcCallVer = NULL;
 	pTree->typ = PTT_NOTYPE;
 	pTree->tok = NULL;
 	pTree->deducedTypes = newTypeDeductions();
 	pTree->finalType = newBasicType(TB_ERROR);
+	pTree->scope = NULL;
 	return pTree;
 }
 
@@ -144,6 +150,13 @@ PTree *newChildNode(PTree *parent)
 		fatalError("ERROR: Child Node Cannot Be Added\n");
 	}
 	return pTree;
+}
+
+struct Scope *getNodeScope(PTree *tree){
+	while(tree->scope == NULL){
+		tree = (PTree*)tree->parent;
+	}
+	return tree->scope;
 }
 
 /*void removeParentParseNodeLeaveLChild(PTree *root)

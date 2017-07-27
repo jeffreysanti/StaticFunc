@@ -78,21 +78,29 @@ typedef enum{
 	PTT_OBJECT_EQUAL_CHECK
 } PTType;
 
+typedef struct Variable Variable;
+typedef struct Scope Scope;
+typedef struct FunctionVersion FunctionVersion;
+
 typedef struct _PTree{
 	PTType typ;
 	struct PTree *child1;
 	struct PTree *child2;
 	struct PTree *parent;
 	LexicalToken *tok;
+	Variable *var;
+	Scope *scope;
+	FunctionVersion *funcCallVer;
 	TypeDeductions deducedTypes;
 	Type finalType;
 } PTree;
-
 
 PTree *newParseTree(PTType typ);
 PTree *newChildNode(PTree *parent);
 void freeParseTreeNode(PTree *pTree);
 void freeParseTreeNode_onlychildren(PTree *pTree);
+
+struct Scope *getNodeScope(PTree *tree);
 
 PTree *extractIndependentLeftParseNodeLeaveChild(PTree *root);
 

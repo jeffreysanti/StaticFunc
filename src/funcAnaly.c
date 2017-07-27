@@ -55,7 +55,7 @@ static inline bool declaration(PTree *root, int *err, Variable **symbol){
 		reportError("#SA003", "Warning: Hiding Previous Declaration of %s: Line %d", sname, root->tok->lineNo);
 	}
 	Type styp = deduceTypeDeclType((PTree*)root->child1);
-	*symbol = defineVariable(sname, styp);
+	*symbol = defineVariable(root, sname, styp);
 	setTypeDeductions(root, singleTypeDeduction(styp));
 	if(root->child2 != NULL){
 		TypeDeductions assignment = deduceTreeType((PTree*)root->child2, err, CAST_UP);
@@ -204,10 +204,12 @@ TypeDeductions handleFunctCall(PTree *root, int *err)
 }
 
 TypeDeductions handleLambdaCreation(PTree *root, int *err){
-	PTree *funcRoot = root;
-	PTree *typeTree = (PTree*)funcRoot->child1;
+	PTree *funcRoot = (PTree*)root ; //->child2;
+	PTree *typeTree = (PTree*)root->child1;
 	PTree *retTypeTree = (PTree*)typeTree->child1;
 	PTree *paramTypeTree = (PTree*)typeTree->child2;
+
+	enterNewScope(root, SCOPETYPE_FUNCTION); // LAMBDA PARAM SCOPE
 
 	Type Treturn = deduceTypeDeclType(retTypeTree); // return type
 	if(Treturn.base == TB_ERROR || Treturn.base == TB_TYPELIST){
@@ -220,7 +222,6 @@ TypeDeductions handleLambdaCreation(PTree *root, int *err){
 	// paramaters
 	int paramCnt = 0;
 	bool failed = false;
-	enterNewScope(); // LAMBDA PARAM SCOPE
 	while(paramTypeTree != NULL){
 		paramCnt ++;
 		Type tempParamType = deduceTypeDeclType((PTree*)((PTree*)paramTypeTree->child1)->child1);
@@ -284,7 +285,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			return root->deducedTypes;
 		}
 		else if(root->typ == PTT_IDENTIFIER){
-			if(!variableExists((char*)root->tok->extra)){
+			Variable *var = getVariable((char*)root->tok->extra);
+			if(var == NULL){
 				// perhaps it is a global function:
 				NamedFunctionMapEnt *l = getFunctionVersions((char*)root->tok->extra);
 				if(l == NULL){
@@ -302,8 +304,8 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 					setTypeDeductions(root, ret);
 				}
 			}else{
-				setTypeDeductions(root,
-					expandedTypeDeduction(getNearbyVariableTypeOrErr((char*)root->tok->extra, root->tok->lineNo), cd));
+				root->var = (struct Variable *)var;
+				setTypeDeductions(root, expandedTypeDeduction(var->sig, cd));
 			}
 			return root->deducedTypes;
 		}
@@ -513,7 +515,7 @@ TypeDeductions deduceTreeType(PTree *root, int *err, CastDirection cd)
 			setTypeDeductions(root, ret);
 			return ret;
 		}
-		enterNewScope();
+		enterNewScope(root, SCOPETYPE_NON_FUNCTION);
 		Variable *lastAddedSymb = NULL;
 		if(!declaration(tmpVar, err, &lastAddedSymb) || *err != 0){
 			exitScope();
@@ -954,6 +956,11 @@ void propagateTreeType(PTree *root){
 			FunctionVersion *ver = l->V;
 			while(ver != NULL){
 				if(tryPropogateFuncSig(ver->sig, pCount, root)){
+
+					// Since we are choosing this function, we must
+					// mark it so the code generator knows to call this
+					// and make sure this version compiles
+					root->funcCallVer = ver;
 					markFunctionVersionUsed(ver);
 					return;
 				}
@@ -967,6 +974,7 @@ void propagateTreeType(PTree *root){
 		while((sig=(Type*)utarray_next(callee._types,sig))){
 			if(sig->base == TB_FUNCTION){
 				if(tryPropogateFuncSig(*sig, pCount, root)){
+					root->var = id->var;
 					setFinalTypeDeduction(id, duplicateType(*sig));
 					propagateTreeType(id);
 					return;
@@ -1176,10 +1184,12 @@ bool semAnalyStmt(PTree *root, Type sig)
 		PTree *arr = (PTree*)cond->child2;
 
 		// Declaration:
-		enterNewScope();
+		enterNewScope(root, SCOPETYPE_NON_FUNCTION);
 		Variable *definedSymb = NULL;
-		if(!declaration(decl, &err, &definedSymb) || !finalizeSingleDeduction(decl))
+		if(!declaration(decl, &err, &definedSymb) || !finalizeSingleDeduction(decl)){
+			exitScope();
 			return false;
+		}
 
 		// Find out what type we are iterating/expected object to iterate
 		Type typ = duplicateType(definedSymb->sig);
@@ -1196,9 +1206,12 @@ bool semAnalyStmt(PTree *root, Type sig)
 		setTypeDeductions(arr, duplicateTypeDeductions(res));
 		if(err > 0 || !finalizeSingleDeduction(arr)){
 			reportError("SA051", "Array Iteration Type Invalid: Line %d", root->tok->lineNo);
+			exitScope();
 			return false;
 		}
-		return blockUnit(branch, sig, false);
+		bool ret = blockUnitThisScope(branch, sig, false);
+		exitScope();
+		return ret;
 	}else if(root->typ == PTT_ASSIGN){
 		TypeDeductions lhs = deduceTreeType((PTree*)root->child1, &err, CAST_DOWN);
 		TypeDeductions rhs = deduceTreeType((PTree*)root->child2, &err, CAST_UP);
@@ -1275,10 +1288,8 @@ bool semAnalyStmt(PTree *root, Type sig)
 	return (err == 0);
 }
 
-bool blockUnit(PTree *root, Type sig, bool global)
+bool blockUnitThisScope(PTree *root, Type sig, bool global)
 {
-	if(!global)
-		enterNewScope();
 	int errs = 0;
 	if(root->typ != PTT_STMTBLOCK){
 		if(!semAnalyStmt(root, sig)){
@@ -1286,17 +1297,27 @@ bool blockUnit(PTree *root, Type sig, bool global)
 		}
 	}else{
 		PTree *body = root;
-		while(body != NULL){
+		while(body != NULL && body->child1 != NULL){
 			if(!semAnalyStmt((PTree*)body->child1, sig)){
 				errs ++;
 			}
 			body = (PTree*)body->child2;
 		}
 	}
-	if(!global)
-		exitScope();
 	return (errs == 0);
 }
+
+bool blockUnit(PTree *root, Type sig, bool global)
+{
+	if(!global)
+		enterNewScope(root, SCOPETYPE_NON_FUNCTION);
+	bool ret = blockUnitThisScope(root, sig, global);
+	if(!global)
+		exitScope();
+	return ret;
+}
+
+
 
 bool semAnalyFunc(PTree *root, bool global, Type sig)
 {
@@ -1305,12 +1326,12 @@ bool semAnalyFunc(PTree *root, bool global, Type sig)
 	PTree *body = root;
 	if(!global){
 	  //enterGlobalSpace();
-		enterNewScope();
+		enterNewScope(root, SCOPETYPE_FUNCTION);
 		// need to push locals onto stack
 		PTree *paramList = (PTree*)((PTree*)root->child1)->child2;
 		int i;
 		for(i=1; i<sig.numchildren; i++){
-			defineVariable((char*)((PTree*)paramList->child1)->tok->extra, duplicateType(((Type*)sig.children)[i]));
+			defineVariable((PTree*)paramList->child1, (char*)((PTree*)paramList->child1)->tok->extra, duplicateType(((Type*)sig.children)[i]));
 			paramList = (PTree*)paramList->child2;
 		}
 		body = (PTree*)root->child2;

@@ -22,6 +22,8 @@
 #include "nativeFunctions.h"
 #include "icg.h"
 #include "symbols.h"
+#include "scopeprocessor.h"
+#include "icgLocalOptimize.h"
 
 FILE *openOutputFile(char *outfl, char ext[3]){
 	outfl[strlen(outfl)-3] = ext[0];
@@ -45,6 +47,7 @@ int main(int argc, char **argv){
 	initFunctionSystem();
 	initalizeBuiltInFunctions();
 	initScopeSystem();
+	initScopeProcessor();
 
 	FILE *fp = fopen(argv[1], "r");
 	if(fp == NULL){
@@ -78,24 +81,33 @@ int main(int argc, char **argv){
 			seperateFunctionsFromParseTree(&tree, false);
 
 			if(semAnalyFunc(tree, true, getProgramReturnType())){
-			  freeScopeSystem();
-			  initScopeSystem(); // reintitalize it for stage 2
-			  
 				FILE *tmpout = openOutputFile(outfl, "ps2");
 				dumpParseTreeDet(tree, 0, tmpout);
 				fclose(tmpout);
 
+				generateLambdaContainers();
+
 				// now generate code :D
-				icRunGen(tree, outfl);
+				tmpout = openOutputFile(outfl, "icg");
+				UT_array *funcs = icRunGen(tree, tmpout);
+				fclose(tmpout);
+
+				tmpout = openOutputFile(outfl, "opt");
+				performICGOptimization(funcs, tmpout);
+				fclose(tmpout);
+				
+
 				
 			}
 			freeParseTreeNode(tree);
 		}
 	}
 
+	freeICGSystem();
 	freeTypeSystem();
 	freeFunctionSystem();
 	freeScopeSystem();
+	freeScopeProcessor();
 
 	if(T != NULL){
 		freeLexicalTokenList(T);

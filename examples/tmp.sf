@@ -1,0 +1,2 @@
+
+vector<int> myarray2([2*ci for int ci in [0,1,2,3]]);
