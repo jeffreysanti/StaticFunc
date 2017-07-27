@@ -5,10 +5,46 @@
 int global(0);
 
 def N add(N x, N y){
-	int w(4);
-	w = w + 6;
+	int a(0);
+	int b(0);
+	int c(0);
+	int d(0);
+	int e(0);
+	int f(0);
+	int g(0);
+	int h(0);
+	int i(0);
+	int j(0);
+	int k(0);
+	int l(0);
+	int m(0);
+	int n(0);
+	int o(0);
+	int p(0);
+
+	p = a;
+	o = b;
+	n = c;
+	m = d;
+	l = e;
+	k = f;
+	j = h;
+	i = g;
+
 	return x + y + global;
 }
+
+def N sqrt(N x){
+	int lastIter(2); // our guess
+	int iters(0);
+	while(iters < 10){
+		lastIter = lastIter - (lastIter*lastIter - x) / (2*lastIter);
+		iters ++;
+	}
+	return lastIter;
+}
+
+sqrt(37);
 
 
 
@@ -19,6 +55,10 @@ def function<int,int> makeCounter(){
 
 	function<int,int> doCount(lambda(int(int x){
 		i = i + 1;
+		int cnt(100);
+		while(cnt > i){
+			cnt = cnt - 1;
+		}
 		return i;
 	}));
 

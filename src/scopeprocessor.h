@@ -48,6 +48,8 @@ void freePackedLambda();
 
 void processSystemGlobal(Variable *v);
 
+int getStaticVarSize();
+
 PackedLambdaData *processMethodScope(Scope *scope);
 
 PackedLambdaOffset findVariableLambdaOffset(Variable *v, Scope *from);

@@ -8,6 +8,7 @@
  */
 
 #include "icg.h"
+#include "scopeprocessor.h"
 
 static long long lastICGID = 0;
 static long lastTempVar = 0;
@@ -141,6 +142,8 @@ void freeICGElm(ICGElm *elm)
 void printSingleICGElm(ICGElm *elm, FILE *f){
 	if(elm->typ == ICG_NONE || elm->typ == ICG_IDENT){
 	  //fprintf(f, "nop");
+	}else if(elm->typ == ICG_DB){
+		fprintf(f, "db %s", (char*)elm->result->data);
 	}else if(elm->typ == ICG_INITNULLFUNC){
 		icGenDecl_print(elm, f);
 	}else if(elm->typ == ICG_MOV){
@@ -288,7 +291,13 @@ UT_array *icRunGen(PTree *root, FILE *outfl)
 {
 	utarray_new(GeneratedFunctions, &ut_ptr_icd);
 
-	// First make a pass through all used functions to make labels for them
+	// First make space for global variables
+	ICGElm* staticSpace = newICGElm(NULL, ICG_DB, ICGDT_NONE, NULL); // fake if begin label
+  	staticSpace->result = newOpInt(getStaticVarSize());
+  	utarray_push_back(GeneratedFunctions, &staticSpace);
+
+
+	// make a pass through all used functions to make labels for them
 	FunctionVersion **fver = NULL;
 	int fcount = 0;
 	getAllUsedFunctionVersions(&fver, &fcount);
@@ -360,7 +369,6 @@ char *icRunGenFunction(PTree *root, char *funcName, FunctionVersion *fv){
   
   // pop all params
   if(root->typ == PTT_FUNCTION || root->typ == PTT_LAMBDA){
-	dumpParseTreeDet(root, 0, stdout);
 	PTree *params = (PTree*)((PTree*)root->child1)->child2;
 	while(params != NULL){
 		PTree *desc = (PTree*)params->child1;
@@ -426,7 +434,7 @@ ICGElmOp *newOpCopy(ICGElmOp *cpy){
     char *newData = malloc(strlen(cpy->data)+1);
     strcpy(newData, cpy->data);
     ret->data = (Variable*)newData;
-  }else if(ret->typ == ICGO_REG || ret->typ == ICGO_OBJREFNEW){
+  }else if(ret->typ == ICGO_REG){
     ret->data = cpy->data;
   }else{
     fprintf(stderr, "Unknown ICGOP Copy!!! Number: %d\n", ret->typ);
@@ -438,7 +446,7 @@ void printOp(FILE *f, ICGElmOp *op){
     fprintf(f, "%s", (char*)op->data);
   }else if(op->typ == ICGO_RO_ADDR){
     fprintf(f, "%%%s", (char*)op->data);
-  }else if(op->typ == ICGO_REG || op->typ == ICGO_OBJREFNEW){
+  }else if(op->typ == ICGO_REG){
     char *symname = getVariableUniqueName(op->data);
     fprintf(f, "$%s", symname);
     free(symname);

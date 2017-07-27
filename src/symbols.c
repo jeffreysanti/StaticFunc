@@ -186,7 +186,6 @@ Scope *prevMethodScope(Scope *scope){
 
 Variable *defineVariable(PTree *tree, char *sym, Type typ)
 {
-	printf("D %s / %d / %p\n", sym, SC->uuid, SC);
   Variable * sb = malloc(sizeof(Variable));
   sb->uuid = nextVariableID ++;
   sb->scope = (void*)SC;
@@ -260,12 +259,8 @@ Variable *getVariable(char *sym){
       if(ptr->refname != NULL && strcmp(sym, ptr->refname) == 0){
         Scope *rootMethodScope = getMethodScope(scope);
 
-		printf("Lookup Var (in scope %d): %s [acc: %p, def: %p] : right now in scope %p; raw=%p\n", scope->uuid, sym, accessMethodScope, rootMethodScope, SC, scope);
-
         if(accessMethodScope != NULL && rootMethodScope != NULL && accessMethodScope != rootMethodScope){
           ptr->referencedExternally = true; // needs to be on heap
-
-		  printf("Acc Extern: %s\n", sym);
 
           //also pack this scope reference into the lamda container
            hashset_add(accessMethodScope->lambdaspace.spaces, rootMethodScope);

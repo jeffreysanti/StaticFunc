@@ -201,7 +201,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   
   ICGElmOp *outRes;
   if(root->finalType.base == TB_VECTOR){
-    outRes = newOp(ICGO_OBJREFNEW, outVar);
+    outRes = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, outVar);
     Type childType = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childType);
     ICGElmOp *op2 = newOpInt(0);
@@ -210,7 +210,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
     prev->op1 = op1;
     prev->op2 = op2;
   }else{ // dict
-    outRes = newOp(ICGO_OBJREFNEW, outVar);
+    outRes = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, outVar);
     Type childTypeKey = ((Type*)root->finalType.children)[0];
     ICGElmOp *op1 = bitSizeOp(childTypeKey);
     Type childTypeVal = ((Type*)root->finalType.children)[1];
@@ -232,7 +232,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   ICGElm *iteratableVar = prev;
 
   // clear the holder object if it's not a primative
-  if(holderVar->result->typ == ICGO_REG || holderVar->result->typ == ICGO_OBJREFNEW){
+  if(holderVar->result->typ == ICGO_REG || holderVar->result->typ == /*ICGO_OBJREFNEW*/ ICGO_REG){
     ICGElmOp *o = newOpCopy(holderVar->result);
     prev = newICGElm(prev, ICG_DR, typeToICGDataType(((Variable*)o->data)->sig), NULL);
       prev->result = o;
@@ -268,11 +268,11 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
 
     prev = icGen((PTree*)pair->child1, prev); // key
     ICGElmOp *op1 = newOpCopy(prev->result);
-    if(op1->typ == ICGO_REG || op1->typ == ICGO_OBJREFNEW)
+    if(op1->typ == ICGO_REG || op1->typ == /*ICGO_OBJREFNEW*/ ICGO_REG)
       ((Variable*)op1->data)->disposedTemp = true;
     prev = icGen((PTree*)pair->child2, prev); // value
     ICGElmOp *op2 = newOpCopy(prev->result);
-    if(op2->typ == ICGO_REG || op2->typ == ICGO_OBJREFNEW)
+    if(op2->typ == ICGO_REG || op2->typ == /*ICGO_OBJREFNEW*/ ICGO_REG)
       ((Variable*)op2->data)->disposedTemp = true;
     
     prev = newICGElm(prev, ICG_DICTSTORE, typeToICGDataType(root->finalType), root);
@@ -282,7 +282,7 @@ ICGElm * icGenArrayComp(PTree *root, ICGElm *prev){
   }else{ // vector
     prev = icGen((PTree*)((PTree*)root->child2)->child1, prev);
     ICGElmOp *op2 = newOpCopy(prev->result);
-    if(op2->typ == ICGO_REG || op2->typ == ICGO_OBJREFNEW)
+    if(op2->typ == ICGO_REG || op2->typ == /*ICGO_OBJREFNEW*/ ICGO_REG)
       ((Variable*)op2->data)->disposedTemp = true;
     ICGElmOp *op1 = newOpCopy(outRes);
     prev = newICGElm(prev, ICG_VPUSH, typeToICGDataType(root->finalType), root);

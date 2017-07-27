@@ -15,7 +15,7 @@ ICGElm * icGenStringLit(PTree *root, ICGElm *prev){
 	char *roName = newROStringLit((char*)root->tok->extra);
 	Variable *tmpvar = defineUnattachedVariable(root->finalType);
 
-	ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+	ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 	ICGElmOp *op1 = newOpROA_c(roName);
 
 	prev = newICGElm(prev, ICG_OBJCOPY, ICGDT_PTR, root);
@@ -35,7 +35,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 
 	if(root->finalType.base == TB_VECTOR || root->finalType.base == TB_VECTOR){
 	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
-		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+		ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 
 		Type childType = ((Type*)root->finalType.children)[0];
 		ICGElmOp *op1 = bitSizeOp(childType);
@@ -60,7 +60,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			elmTemp->disposedTemp = true;
 
 			if(root->finalType.base == TB_VECTOR){
-				ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+				ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 				ICGElmOp *op1 = newOpInt(i);
 				ICGElmOp *op2 = newOpCopy(prev->result);
 
@@ -69,7 +69,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 				prev->op1 = op1;
 				prev->op2 = op2;
 			}else{
-				ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+				ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 				ICGElmOp *op1 = newOpCopy(prev->result);
 
 				prev = newICGElm(prev, ICG_SETSTORE, typeToICGDataType(elm->finalType), elm);
@@ -81,7 +81,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		}
 	}else if(root->finalType.base == TB_DICT){
 	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
-		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+		ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 
 		Type childTypeKey = ((Type*)root->finalType.children)[0];
 		ICGElmOp *op1 = bitSizeOp(childTypeKey);
@@ -114,7 +114,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			prev = icGenAssnToX(val, prev, elmValTemp, val->finalType, true);
 			ICGElmOpType optval = prev->result->typ;
 
-			ICGElmOp *res = newOp(ICGO_OBJREFNEW,  tmpvar) ;
+			ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG,  tmpvar) ;
 			ICGElmOp *op1 = newOp(optkey, elmKeyTemp);
 			ICGElmOp *op2 = newOp(optval, elmValTemp);
 
@@ -127,7 +127,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 		}
 	}else if(root->finalType.base == TB_TUPLE){
 	  Variable *tmpvar = defineUnattachedVariable(root->finalType);
-		ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+		ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 
 		ICGElmOp *op1 = newOpInt(elmCnt);
 		ICGElmOp *op2 = bitSizeTupleOp(root->finalType);
@@ -146,7 +146,7 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 			elmTemp->disposedTemp = true;
 			prev = icGenAssnToX(elm, prev, elmTemp, elm->finalType, true);
 
-			ICGElmOp *res = newOp(ICGO_OBJREFNEW, tmpvar);
+			ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tmpvar);
 			ICGElmOp *op1 = newOpInt(i);
 			ICGElmOp *op2 = newOpCopy(prev->result);
 
@@ -163,14 +163,14 @@ ICGElm * icGenArray(PTree *root, ICGElm *prev){
 
 ICGElm * icGenCopyObject(PTree *root, ICGElm *prev, Variable *src){
 
-	if(prev->result->typ == ICGO_OBJREFNEW){
+	if(prev->result->typ == /*ICGO_OBJREFNEW*/ ICGO_REG){
 		fprintf(stderr, "icGenCopyObject called on new object!\n");
 	}
 
 	ICGElmOp *op1 = newOp(ICGO_REG, src);
 
 	Variable *tempVar = defineUnattachedVariable(root->finalType);
-	ICGElmOp *res = newOp(ICGO_OBJREFNEW, tempVar);
+	ICGElmOp *res = newOp(/*ICGO_OBJREFNEW*/ ICGO_REG, tempVar);
 
 	ICGElm *ret = newICGElm(prev, ICG_OBJCOPY, ICGDT_PTR, root);
 	ret->result = res;

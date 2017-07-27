@@ -23,7 +23,8 @@
 #include "icg.h"
 #include "symbols.h"
 #include "scopeprocessor.h"
-#include "icgLocalOptimize.h"
+#include "icgOptimize.h"
+#include "genAMD64.h"
 
 FILE *openOutputFile(char *outfl, char ext[3]){
 	outfl[strlen(outfl)-3] = ext[0];
@@ -93,8 +94,14 @@ int main(int argc, char **argv){
 				fclose(tmpout);
 
 				tmpout = openOutputFile(outfl, "opt");
-				performICGOptimization(funcs, tmpout);
+				UT_array *optMethods = performICGOptimization(funcs, tmpout);
 				fclose(tmpout);
+
+				MethodAnalysis **p;
+				for(p=(MethodAnalysis**)utarray_front(optMethods); p!=NULL; p=(MethodAnalysis**)utarray_next(optMethods,p)) {
+					freeMethodAnalysis(*p);
+				}
+				utarray_free(optMethods);
 				
 
 				

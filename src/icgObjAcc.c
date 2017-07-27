@@ -174,7 +174,7 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
     prev = icGen((PTree*)((PTree*)root->child2)->child2, prev);
     op2 = newOpCopy(prev->result);
 
-    if(op2->typ == ICGO_REG || op2->typ == ICGO_OBJREFNEW){
+    if(op2->typ == ICGO_REG){
       ((Variable*)op2->data)->disposedTemp = true;
     }
   }
@@ -196,7 +196,7 @@ ICGElm * icGenVecMethod(PTree *root, ICGElm *prev){
 
 
   if(root->typ == PTT_KEYS || root->typ == PTT_VALUES){
-    res->typ = ICGO_OBJREFNEW;
+    res->typ = ICGO_REG;//ICGO_OBJREFNEW;
   }
   
   

@@ -69,15 +69,12 @@ PackedLambdaData *processMethodScope(Scope *scope){
 	// the size of the tables, and correct orderin
 	PackedLambdaData *pl = newPackedLambda();
 
-	printf("processMethodScope Called %d\n", scope->uuid);
-
 	int offset = 8; // 8 bytes dedicated to execute pointer
 	offset += 8; // 8 bytes for pointer to previous packed lambda data (regardless of whether it's in spaces)
 
 	hashset_itr_t iter = hashset_iterator(scope->lambdaspace.variables);
 	while(hashset_iterator_next(iter)){
 		Variable *v = (Variable*)hashset_iterator_value(iter);
-		printf(" * %s \n", v->refname);
 
 		utarray_push_back(pl->vars, &v);
 		utarray_push_back(pl->vars_offsets, &offset);
@@ -88,7 +85,6 @@ PackedLambdaData *processMethodScope(Scope *scope){
 	iter = hashset_iterator(scope->lambdaspace.spaces);
 	while(hashset_iterator_next(iter)){
 		Scope *s = (Scope*)hashset_iterator_value(iter);
-		printf(" . %d \n", s->uuid);
 
 		utarray_push_back(pl->spaces, &s);
 		utarray_push_back(pl->spaces_offsets, &offset);
@@ -174,8 +170,6 @@ PackedLambdaOffset findVariableLambdaOffset(Variable *find, Scope *from){
 // and not stored in registers
 // We pack them into a structure here
 void processSystemGlobal(Variable *v){
-	printf("Global Variable: %s\n", v->refname);
-
 	utarray_push_back(GlobalVars.vars, &v);
 	utarray_push_back(GlobalVars.vars_offsets, &GlobalVars.size);
 	GlobalVars.size += 8;
@@ -192,6 +186,11 @@ int findGlobalVariableOffset(Variable *find){
 	}
 
 	return *((int*)utarray_eltptr(GlobalVars.vars_offsets, idx));
+}
+
+
+int getStaticVarSize(){
+	return GlobalVars.size;
 }
 
 

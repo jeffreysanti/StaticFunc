@@ -126,13 +126,15 @@ ICGElm *icGenCall(PTree *root, ICGElm *prev){
 		prev->result = newOpLabel_c(func->icgEntryLabel);
 	}else{
 		// lambda function
-		// var contains a pointer to the code
+		// identifier contains a pointer to the code
+		prev = icGen((PTree*)root->child1, prev);
+		ICGElmOp *varop = newOpCopy(prev->result);
 
 		// load execution pointer
 		Variable *execPtr = defineUnattachedVariable(newBasicType(TB_FUNCTION));
 		prev = newICGElm(prev, ICG_LOADH, ICGDT_PTR, NULL);
 		prev->result = newOp(ICGO_REG, execPtr);
-		prev->op1 = newOp(ICGO_REG, root->var);
+		prev->op1 = varop;
 		prev->op2 = newOpInt(0);
 
 		prev = newICGElm(prev, ICG_WRITE_METHOD_PTR, ICGDT_PTR, NULL);

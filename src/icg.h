@@ -88,6 +88,8 @@ typedef enum{
 	ICG_COMPOBJ,
 	ICG_DR,
 
+	ICG_DB,
+
 	ICG_RET,
 	ICG_LOADRET,
 	ICG_PUSH,
@@ -116,7 +118,6 @@ typedef enum{
 	ICGO_NUMERICLIT,
 	ICGO_REG,
 	ICGO_RO_ADDR,
-	ICGO_OBJREFNEW,
 
 	ICGO_LABEL
 
